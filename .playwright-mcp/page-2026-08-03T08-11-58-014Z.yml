@@ -1,0 +1,37 @@
+- generic [ref=f4e3]:
+  - navigation "Primary" [ref=f4e4]:
+    - button "AAVA home" [ref=f4e5] [cursor=pointer]
+    - button "Search" [ref=f4e8] [cursor=pointer]
+    - button "Threads" [ref=f4e12] [cursor=pointer]
+    - button "Pinned" [ref=f4e15] [cursor=pointer]
+    - button "Dev — account" [ref=f4e18] [cursor=pointer]: D
+  - generic [ref=f4e19]:
+    - banner [ref=f4e20]:
+      - button "AAVA 3.0" [ref=f4e21] [cursor=pointer]:
+        - text: AAVA
+        - generic [ref=f4e22]: "3.0"
+      - generic [ref=f4e23]:
+        - button "Notifications" [ref=f4e24] [cursor=pointer]
+        - button "Tasks" [ref=f4e28] [cursor=pointer]
+    - main [ref=f4e33]:
+      - generic [ref=f4e34]:
+        - generic [ref=f4e35]:
+          - heading "Good morning, Dev" [level=1] [ref=f4e36]
+          - paragraph [ref=f4e37]: Three tasks are ready for your attention. One of them I've already prepared end to end.
+        - generic [ref=f4e38]:
+          - button "Add feedback form to AAVA Partially done · 2 hrs" [ref=f4e40] [cursor=pointer]:
+            - heading "Add feedback form to AAVA" [level=2] [ref=f4e41]
+            - generic [ref=f4e42]: Partially done · 2 hrs
+          - button "Create PRD for Rate Limiting for Engineers Awaiting clarifications · 1.5 hrs" [ref=f4e45] [cursor=pointer]:
+            - heading "Create PRD for Rate Limiting for Engineers" [level=2] [ref=f4e46]
+            - generic [ref=f4e47]: Awaiting clarifications · 1.5 hrs
+          - button "Migrate data from MySQL to MongoDB (NoSQL) Pending · 3 hrs" [ref=f4e50] [cursor=pointer]:
+            - heading "Migrate data from MySQL to MongoDB (NoSQL)" [level=2] [ref=f4e51]
+            - generic [ref=f4e52]: Pending · 3 hrs
+    - generic [ref=f4e56]:
+      - generic [ref=f4e57]: Message AAVA
+      - textbox "Message AAVA" [ref=f4e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f4e59]:
+        - button "Think Harder" [ref=f4e60] [cursor=pointer]
+        - button "Send message" [disabled] [ref=f4e61] [cursor=pointer]

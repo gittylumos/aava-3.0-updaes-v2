@@ -1,0 +1,37 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e3]:
+    - navigation "Primary" [ref=f8e4]:
+      - button "AAVA home" [ref=f8e5] [cursor=pointer]
+      - button "Search" [ref=f8e8] [cursor=pointer]
+      - button "Threads" [ref=f8e12] [cursor=pointer]
+      - button "Pinned" [ref=f8e16] [cursor=pointer]
+      - button "Dev — account" [ref=f8e20] [cursor=pointer]: D
+    - generic [ref=f8e21]:
+      - banner [ref=f8e22]:
+        - button "AAVA 3.0" [ref=f8e23] [cursor=pointer]
+        - generic [ref=f8e24]:
+          - button "Notifications" [ref=f8e25] [cursor=pointer]
+          - button "Tasks" [ref=f8e30] [cursor=pointer]
+      - main [ref=f8e35]:
+        - generic [ref=f8e36]:
+          - generic [ref=f8e37]:
+            - heading "Good morning, Dev" [level=1] [ref=f8e38]
+            - paragraph [ref=f8e39]: Three tasks are ready for your attention. One of them I've already prepared end to end.
+          - generic [ref=f8e40]:
+            - button "Add feedback form to AAVA Partially done · 2 hrs" [ref=f8e42] [cursor=pointer]:
+              - heading "Add feedback form to AAVA" [level=2] [ref=f8e43]
+              - generic [ref=f8e44]: Partially done · 2 hrs
+            - button "Create PRD for Rate Limiting for Engineers Awaiting clarifications · 1.5 hrs" [ref=f8e47] [cursor=pointer]:
+              - heading "Create PRD for Rate Limiting for Engineers" [level=2] [ref=f8e48]
+              - generic [ref=f8e49]: Awaiting clarifications · 1.5 hrs
+            - button "Migrate data from MySQL to MongoDB (NoSQL) Pending · 3 hrs" [ref=f8e52] [cursor=pointer]:
+              - heading "Migrate data from MySQL to MongoDB (NoSQL)" [level=2] [ref=f8e53]
+              - generic [ref=f8e54]: Pending · 3 hrs
+      - generic [ref=f8e58]:
+        - generic [ref=f8e59]: Message AAVA
+        - textbox "Message AAVA" [ref=f8e60]:
+          - /placeholder: You can ask me about the pending tasks or chat about something else…
+        - generic [ref=f8e61]:
+          - button "Think Harder" [ref=f8e62] [cursor=pointer]
+          - button "Send message" [disabled] [ref=f8e63] [cursor=pointer]
+  - tooltip [ref=f8e72]

@@ -1,0 +1,144 @@
+/* AAVA ← FlexLayout.
+ *
+ * FlexLayout 0.10 draws everything through `--flexlayout-*` override variables,
+ * so theming it is a mapping table rather than a fight: no `!important`, no
+ * hardcoded colours, and no second copy for light mode. The AAVA tokens on the
+ * right already flip with [data-theme='light'], so the workspace inverts with
+ * the rest of the product for free.
+ *
+ * The base stylesheet has to come first — it carries the layout geometry
+ * (absolute positioning, splitter hit areas), not just colour.
+ */
+@import 'flexlayout-react/style/light.css';
+
+:root {
+  /* -- Type ------------------------------------------------------------- */
+  --flexlayout-font-family: var(--font-ui);
+  --flexlayout-font-size: 12.5px;
+  --flexlayout-font-weight: 500;
+
+  /* -- Surfaces --------------------------------------------------------- */
+  --flexlayout-color-text: var(--text);
+  /* The panel behind the workspace already paints --slab-raised; tab bodies
+     and tabsets sit directly on it rather than restating it. */
+  --flexlayout-color-background: transparent;
+  --flexlayout-color-base: transparent;
+  --flexlayout-color-tab-content: transparent;
+  --flexlayout-color-tabset-background: transparent;
+  --flexlayout-color-tabset-background-selected: transparent;
+  --flexlayout-color-tabset-background-maximized: var(--slab);
+
+  /* The neutral ladder FlexLayout reaches for internally, mapped onto AAVA's
+     wash ladder so every incidental surface inverts with the theme. */
+  --flexlayout-color-1: var(--wash-1);
+  --flexlayout-color-2: var(--wash-2);
+  --flexlayout-color-3: var(--wash-3);
+  --flexlayout-color-4: var(--wash-4);
+  --flexlayout-color-5: var(--wash-5);
+  --flexlayout-color-6: var(--wash-6);
+
+  /* -- Tabs ------------------------------------------------------------- */
+  --flexlayout-color-tab-selected: var(--text);
+  --flexlayout-color-tab-selected-background: var(--wash-3);
+  --flexlayout-color-tab-unselected: var(--muted);
+  --flexlayout-color-tab-unselected-background: transparent;
+  --flexlayout-color-tab-textbox: var(--text);
+  --flexlayout-color-tab-textbox-background: var(--wash-3);
+
+  /* -- Dividers and splitters ------------------------------------------- */
+  --flexlayout-color-tabset-divider-line: var(--glass-line-soft);
+  --flexlayout-color-border-divider-line: var(--glass-line-soft);
+  --flexlayout-color-splitter: var(--glass-line-soft);
+  --flexlayout-color-splitter-hover: var(--brand);
+  --flexlayout-color-splitter-drag: var(--brand);
+  --flexlayout-color-splitter-handle: var(--glass-line);
+  /* A 2px line with an 8px grab target: easy to hit, invisible until wanted. */
+  --flexlayout-splitter-size: 2px;
+  --flexlayout-splitter-active-size: 8px;
+
+  /* -- Drag and drop ----------------------------------------------------- */
+  /* Was a literal rgba(99,102,241,.2) — which is exactly --brand at 20%. Derived
+     from the token now, so it follows the brand into light mode instead of
+     staying a dark-mode indigo on white. */
+  --flexlayout-color-drag-rect-background: color-mix(in srgb, var(--brand) 18%, transparent);
+  --flexlayout-color-drag-rect-border: var(--brand);
+  --flexlayout-color-drag-rect: var(--text);
+  --flexlayout-color-drag1: var(--brand);
+  --flexlayout-color-drag2: var(--brand);
+  --flexlayout-color-drag1-background: color-mix(in srgb, var(--brand) 12%, transparent);
+  --flexlayout-color-drag2-background: color-mix(in srgb, var(--brand) 12%, transparent);
+  --flexlayout-color-edge-marker: color-mix(in srgb, var(--brand) 40%, transparent);
+  --flexlayout-color-edge-icon: var(--muted);
+
+  /* -- Chrome ------------------------------------------------------------ */
+  --flexlayout-color-icon: var(--muted);
+  --flexlayout-color-overflow: var(--muted);
+  --flexlayout-color-focus: var(--focus-ring);
+  --flexlayout-color-toolbar-button-hover: var(--wash-4);
+  --flexlayout-color-popup-border: var(--glass-line);
+  --flexlayout-color-popup-unselected: var(--text-dim);
+  --flexlayout-color-popup-unselected-background: var(--slab-raised);
+  --flexlayout-color-popup-selected: var(--text);
+  --flexlayout-color-popup-selected-background: var(--wash-3);
+  --flexlayout-color-mini-scroll-indicator: var(--wash-6);
+  --flexlayout-color-mini-scroll-indicator-hovered: var(--muted);
+}
+
+/* The active tab has to be unmistakable, and AAVA marks active state with a
+   brand edge rather than a raised card — §22's "compact and IDE-like", not a
+   row of rounded tiles. The variables above cannot express an underline, so
+   this is the one place that needs a rule of its own. */
+.flexlayout__tab_button {
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  padding: 5px 12px;
+  box-shadow: inset 0 -2px 0 transparent;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.flexlayout__tab_button--selected {
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+
+.flexlayout__tab_button:hover {
+  color: var(--text);
+}
+
+/* Keyboard focus reuses the global ring rather than inventing a second one. */
+.flexlayout__tab_button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* The tab strip is the workspace's primary navigation, so it gets the hairline
+   that separates navigation from content everywhere else in the product. */
+.flexlayout__tabset_tabbar_inner {
+  border-bottom: 1px solid var(--glass-line-soft);
+}
+
+/* Close affordance stays quiet until the tab is under the cursor. */
+.flexlayout__tab_button_trailing {
+  opacity: 0.45;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.flexlayout__tab_button:hover .flexlayout__tab_button_trailing,
+.flexlayout__tab_button--selected .flexlayout__tab_button_trailing {
+  opacity: 1;
+}
+
+.flexlayout__tab_button_trailing:hover {
+  color: var(--danger);
+}
+
+/* tokens.css already zeroes durations globally under reduced motion; the drag
+   rectangle animates via a transform FlexLayout sets inline, so it needs saying
+   again here. */
+@media (prefers-reduced-motion: reduce) {
+  .flexlayout__drag_rect,
+  .flexlayout__tab_button {
+    transition: none;
+  }
+}

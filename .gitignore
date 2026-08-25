@@ -1,0 +1,7 @@
+node_modules/
+app/node_modules/
+app/dist/
+.superpowers/
+.DS_Store
+.vercel
+.env*

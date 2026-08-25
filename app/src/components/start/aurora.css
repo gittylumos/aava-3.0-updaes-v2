@@ -1,0 +1,32 @@
+/* The ring is the entire "recommended" affordance — no badge, no star, no size
+   change. It works by painting a conic gradient on a wrapper and letting the
+   card's own opaque surface cover all but a hairline of it. The card MUST stay
+   opaque (--card), or the gradient floods through and the ring becomes a blob. */
+.aurora-ring {
+  position: relative;
+  display: flex;
+  border-radius: calc(var(--r-lg) + 1px);
+  padding: 1.25px;
+  background: conic-gradient(
+    from var(--aurora-angle),
+    var(--aurora-1), var(--aurora-2), var(--aurora-3), var(--aurora-2), var(--aurora-1)
+  );
+  animation: aurora-spin 7s linear infinite;
+}
+
+/* Bloom. Sits behind the card and bleeds outward, so the ring reads as lit
+   rather than drawn. Kept low-alpha — it competes with the cards either side. */
+.aurora-ring::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  z-index: -1;
+  border-radius: var(--r-xl);
+  background: radial-gradient(closest-side, rgba(167, 139, 250, .26), transparent 72%);
+}
+
+@keyframes aurora-spin { to { --aurora-angle: 360deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-ring { animation: none; }
+}

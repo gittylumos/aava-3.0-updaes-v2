@@ -1,0 +1,69 @@
+- generic:
+  - generic:
+    - generic:
+      - navigation:
+        - button
+        - button
+        - button
+        - button
+        - button: D
+      - generic:
+        - banner:
+          - button:
+            - text: AAVA
+            - generic: "3.0"
+          - generic:
+            - button
+            - button
+        - main:
+          - generic:
+            - generic:
+              - log "Conversation":
+                - generic: why is the first one recommended?
+                - generic:
+                  - paragraph: AAVA
+                  - paragraph: T1 is first because every dependency is resolved. T2 is waiting on two answers from the platform team, and T3 needs a maintenance window.
+            - complementary:
+              - generic:
+                - generic: Tasks
+                - button: ›
+              - generic:
+                - button:
+                  - generic: Add feedback form to AAVA
+                  - generic: Partially done · 2 hrs
+                - button:
+                  - generic: Create PRD for Rate Limiting for Engineers
+                  - generic: Awaiting clarifications · 1.5 hrs
+                - button:
+                  - generic: Migrate data from MySQL to MongoDB (NoSQL)
+                  - generic: Pending · 3 hrs
+                - button:
+                  - generic: Instrument AAVA Edge telemetry
+                  - generic: Partially done · 4 hrs
+                - button:
+                  - generic: Deprecate the legacy artifact store
+                  - generic: Done · —
+                - button:
+                  - generic: Write the Experience Studio migration runbook
+                  - generic: Done · —
+        - generic:
+          - generic:
+            - generic: Message AAVA
+            - textbox:
+              - /placeholder: You can ask me about the pending tasks or chat about something else…
+            - generic:
+              - button: Think Harder
+              - button [disabled]
+  - dialog [ref=f5e111]:
+    - generic [ref=f5e112]:
+      - heading "Threads" [level=2] [ref=f5e113]
+      - button "Close threads" [active] [ref=f5e114] [cursor=pointer]: ✕
+    - generic [ref=f5e115]:
+      - button "chat Sprint scope questions Yesterday" [ref=f5e116] [cursor=pointer]:
+        - generic [ref=f5e117]: chat
+        - generic [ref=f5e118]: Sprint scope questions
+        - generic [ref=f5e119]: Yesterday
+      - button "task T4 · Instrument AAVA Edge telemetry 2 days ago" [ref=f5e120] [cursor=pointer]:
+        - generic [ref=f5e121]: task
+        - generic [ref=f5e122]: T4 · Instrument AAVA Edge telemetry
+        - generic [ref=f5e123]: 2 days ago

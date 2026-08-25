@@ -1,0 +1,180 @@
+- generic [ref=f3e3]:
+  - navigation "Primary" [ref=f3e4]:
+    - button "AAVA home" [ref=f3e5] [cursor=pointer]
+    - button "Search" [ref=f3e8] [cursor=pointer]
+    - button "Threads" [ref=f3e12] [cursor=pointer]
+    - button "Pinned" [ref=f3e15] [cursor=pointer]
+    - button "Dev — account" [ref=f3e18] [cursor=pointer]: D
+  - generic [ref=f3e19]:
+    - banner [ref=f3e20]:
+      - button "AAVA 3.0" [ref=f3e21] [cursor=pointer]:
+        - text: AAVA
+        - generic [ref=f3e22]: "3.0"
+      - generic [ref=f3e23]:
+        - button "Notifications" [ref=f3e24] [cursor=pointer]
+        - button "Tasks" [ref=f3e28] [cursor=pointer]
+    - main [ref=f3e33]:
+      - generic [ref=f3e64]:
+        - log "Conversation" [ref=f3e67]:
+          - generic [ref=f3e68]: "Let's work on: Add feedback form to AAVA"
+          - generic [ref=f3e69]:
+            - paragraph [ref=f3e70]: AAVA
+            - generic "AAVA is thinking" [ref=f3e71]
+        - region "Playground" [ref=f3e76]:
+          - generic [ref=f3e77]:
+            - generic [ref=f3e78]:
+              - paragraph [ref=f3e79]: Playground
+              - heading "Add feedback form to AAVA" [level=2] [ref=f3e80]
+            - generic [ref=f3e81]:
+              - generic [ref=f3e82]: Prep ready
+              - button "Close playground" [ref=f3e84] [cursor=pointer]: ✕
+          - generic [ref=f3e85]:
+            - tablist [ref=f3e86]:
+              - tab "Evidence" [selected] [ref=f3e87] [cursor=pointer]
+              - tab "Preview" [disabled]
+              - tab "Code" [ref=f3e88] [cursor=pointer]
+              - tab "Tests" [ref=f3e89] [cursor=pointer]
+              - tab "Diff" [disabled]
+            - tabpanel "Evidence" [ref=f3e91]:
+              - generic [ref=f3e92]:
+                - generic [ref=f3e93]:
+                  - generic [ref=f3e94]: Read Jira
+                  - generic [ref=f3e95]: Jira
+                - generic [ref=f3e96]:
+                  - generic [ref=f3e97]:
+                    - term [ref=f3e98]: Ticket
+                    - definition [ref=f3e99]: AAVA-2841
+                  - generic [ref=f3e100]:
+                    - term [ref=f3e101]: Title
+                    - definition [ref=f3e102]: Add feedback form to AAVA
+                  - generic [ref=f3e103]:
+                    - term [ref=f3e104]: Sprint
+                    - definition [ref=f3e105]: Sprint 34
+                  - generic [ref=f3e106]:
+                    - term [ref=f3e107]: Acceptance
+                    - definition [ref=f3e108]: Rating 1–5 · comment up to 500 characters · success and error states
+                  - generic [ref=f3e109]:
+                    - term [ref=f3e110]: Status
+                    - definition [ref=f3e111]: In Progress
+              - generic [ref=f3e112]:
+                - generic [ref=f3e113]:
+                  - generic [ref=f3e114]: Identified image from Figma
+                  - generic [ref=f3e115]: Figma
+                - generic [ref=f3e116]:
+                  - img "Feedback Form v3 design frame" [ref=f3e117]:
+                    - generic [ref=f3e129]: Feedback Form v3
+                  - paragraph [ref=f3e130]: Feedback Form v3 · last modified 3 days ago · click to enlarge
+              - generic [ref=f3e131]:
+                - generic [ref=f3e132]:
+                  - generic [ref=f3e133]: Verified PLAY components
+                  - generic [ref=f3e134]: PLAY library
+                - paragraph [ref=f3e135]: Design broken into six components, each checked against the library index.
+                - generic [ref=f3e136]:
+                  - generic [ref=f3e137]:
+                    - heading "Found" [level=5] [ref=f3e138]
+                    - list [ref=f3e139]:
+                      - listitem [ref=f3e140]: Input
+                      - listitem [ref=f3e141]: Textarea
+                      - listitem [ref=f3e142]: RatingScale
+                      - listitem [ref=f3e143]: Button
+                  - generic [ref=f3e144]:
+                    - heading "Missing" [level=5] [ref=f3e145]
+                    - list [ref=f3e146]:
+                      - listitem [ref=f3e147]: FormField
+                      - listitem [ref=f3e148]: CharacterCounter
+              - generic [ref=f3e149]:
+                - generic [ref=f3e150]:
+                  - generic [ref=f3e151]: Identified build vs use
+                  - generic [ref=f3e152]: Decision
+                - generic [ref=f3e153]:
+                  - generic [ref=f3e154]:
+                    - term [ref=f3e155]: Reused
+                    - definition [ref=f3e156]: Input · Textarea · RatingScale · Button
+                  - generic [ref=f3e157]:
+                    - term [ref=f3e158]: Built
+                    - definition [ref=f3e159]: FormField · CharacterCounter
+                  - generic [ref=f3e160]:
+                    - term [ref=f3e161]: Destination
+                    - definition [ref=f3e162]: Separate PR into the PLAY library
+              - generic [ref=f3e163]:
+                - generic [ref=f3e164]:
+                  - generic [ref=f3e165]: Verified API contract
+                  - generic [ref=f3e166]: OpenAPI
+                - generic [ref=f3e167]:
+                  - generic [ref=f3e168]:
+                    - term [ref=f3e169]: Endpoint
+                    - definition [ref=f3e170]: POST /api/v1/feedback
+                  - generic [ref=f3e171]:
+                    - term [ref=f3e172]: Request
+                    - definition [ref=f3e173]: "{ rating: number, comment: string }"
+                  - generic [ref=f3e174]:
+                    - term [ref=f3e175]: Response
+                    - definition [ref=f3e176]: "201 { id: string, createdAt: string }"
+                  - generic [ref=f3e177]:
+                    - term [ref=f3e178]: Status
+                    - definition [ref=f3e179]: Live · no contract change needed
+              - generic [ref=f3e180]:
+                - generic [ref=f3e181]:
+                  - generic [ref=f3e182]: Identified code from repo
+                  - generic [ref=f3e183]: Repo
+                - generic [ref=f3e184]:
+                  - generic [ref=f3e185]:
+                    - term [ref=f3e186]: Repo
+                    - definition [ref=f3e187]: aava-product
+                  - generic [ref=f3e188]:
+                    - term [ref=f3e189]: Branch
+                    - definition [ref=f3e190]: feat/AAVA-2841-feedback-form
+                  - generic [ref=f3e191]:
+                    - term [ref=f3e192]: Module
+                    - definition [ref=f3e193]: src/app/feedback/
+                  - generic [ref=f3e194]:
+                    - term [ref=f3e195]: Route
+                    - definition [ref=f3e196]: /feedback registered in app.routes.ts
+              - generic [ref=f3e197]:
+                - generic [ref=f3e198]:
+                  - generic [ref=f3e199]: Injected the feedback form
+                  - generic [ref=f3e200]: 7 files
+                - generic [ref=f3e201]:
+                  - generic [ref=f3e202]:
+                    - term [ref=f3e203]: Added
+                    - definition [ref=f3e204]: feedback-form.component.ts · .html · .scss · .spec.ts
+                  - generic [ref=f3e205]:
+                    - term [ref=f3e206]: Added
+                    - definition [ref=f3e207]: feedback.service.ts
+                  - generic [ref=f3e208]:
+                    - term [ref=f3e209]: Modified
+                    - definition [ref=f3e210]: feedback.module.ts · app.routes.ts
+              - generic [ref=f3e211]:
+                - generic [ref=f3e212]:
+                  - generic [ref=f3e213]: Ran unit tests
+                  - generic [ref=f3e214]: Karma
+                - paragraph [ref=f3e215]: 11 specs, all passing. Coverage 87%, above the 80% gate. The full run is on the Tests tab.
+              - generic [ref=f3e216]:
+                - generic [ref=f3e217]:
+                  - generic [ref=f3e218]: Checks passed
+                  - generic [ref=f3e219]: Self-check
+                - generic [ref=f3e220]:
+                  - generic [ref=f3e221]:
+                    - term [ref=f3e222]: Build
+                    - definition [ref=f3e223]: Clean
+                  - generic [ref=f3e224]:
+                    - term [ref=f3e225]: Lint
+                    - definition [ref=f3e226]: Clean
+                  - generic [ref=f3e227]:
+                    - term [ref=f3e228]: Contract
+                    - definition [ref=f3e229]: Response shape matches
+                  - generic [ref=f3e230]:
+                    - term [ref=f3e231]: Assumed
+                    - definition [ref=f3e232]: Comment required · rating starts unselected · form resets after submit
+              - generic [ref=f3e233]:
+                - generic [ref=f3e234]:
+                  - generic [ref=f3e235]: Prep is ready
+                  - generic [ref=f3e236]: Status
+                - paragraph [ref=f3e237]: Nothing has been pushed. Two PRs are staged and waiting on your approval.
+    - generic [ref=f3e56]:
+      - generic [ref=f3e57]: Message AAVA
+      - textbox "Message AAVA" [ref=f3e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f3e59]:
+        - button "Think Harder" [ref=f3e60] [cursor=pointer]
+        - button "Send message" [disabled] [ref=f3e61] [cursor=pointer]

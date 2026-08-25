@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AAVA 3.0</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<!-- data-state : home | chat | execute
+     Chat always holds the left. Everything else comes in on the right. -->
+<body data-state="home">
+
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__navy"></div>
+    <div class="ambient__violet"></div>
+  </div>
+
+  <div class="app">
+
+    <!-- ================= SIDEBAR — 70px. Icons still undecided. ================= -->
+    <nav class="rail" aria-label="Primary">
+      <a class="rail__logo" href="#" id="home" aria-label="AAVA home">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M12 3 3.5 20h3.2l1.9-4h6.8l1.9 4h3.2L12 3Zm-2 10.2L12 8.6l2 4.6h-4Z" fill="currentColor"/>
+        </svg>
+      </a>
+
+      <ul class="rail__nav">
+        <li>
+          <button class="rail__btn" type="button" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="m16 16 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+        <li>
+          <!-- Threads: every chat and every task is a resumable session -->
+          <button class="rail__btn" type="button" id="threadsBtn" aria-label="Threads">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M4 6.5h16M4 12h16M4 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+        <li>
+          <button class="rail__btn" type="button" aria-label="Pinned">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M14.5 3 21 9.5l-2.4.5-3.2 3.2.4 3.4-1.6 1.6L9 13l-4.6 4.6M9 13 4.4 8.4 6 6.8l3.4.4 3.2-3.2L14.5 3Z"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+      </ul>
+
+      <button class="rail__avatar" type="button" aria-label="Dev — account">D</button>
+    </nav>
+
+    <div class="shell">
+
+      <!-- ================= HEADER ================= -->
+      <header class="topbar">
+        <button class="topbar__brand" type="button" id="brandHome" aria-label="Back to start">
+          <span class="topbar__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M12 3 3.5 20h3.2l1.9-4h6.8l1.9 4h3.2L12 3Zm-2 10.2L12 8.6l2 4.6h-4Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="topbar__name">AAVA <span class="topbar__version">3.0</span></span>
+        </button>
+
+        <div class="topbar__actions">
+          <button class="icon-btn icon-btn--dot" type="button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <path d="M18 15.5V11a6 6 0 1 0-12 0v4.5L4.5 18h15L18 15.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M10 20.5a2.2 2.2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn" type="button" id="tasksBtn" aria-label="Tasks" aria-haspopup="dialog" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <path d="m4 7.5 2.2 2.2L10.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="m4 17 2.2 2.2L10.5 14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.5 8h6.5M13.5 17.5H20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="body">
+
+        <!-- ================= LEFT: chat, always ================= -->
+        <div class="primary">
+          <main class="stage" id="stage">
+
+            <div class="home" id="homeView">
+              <section class="hero">
+                <h1 class="hero__title">Good Morning, Dev</h1>
+                <p class="hero__sub" id="heroSub">Based on your work, I've identified three tasks that are ready for your attention.</p>
+              </section>
+              <section class="tasks" id="homeTasks" aria-label="Tasks ready for you"></section>
+            </div>
+
+            <div class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation"></div>
+          </main>
+
+          <div class="composer-wrap">
+            <form class="composer" id="composer" autocomplete="off">
+              <label class="sr-only" for="prompt">Message AAVA</label>
+              <textarea id="prompt" class="composer__input" rows="1"
+                        placeholder="You can ask me about the pending tasks or chat about something else..."></textarea>
+
+              <div class="composer__bar">
+                <div class="composer__left">
+                  <button class="ghost-btn" type="button" aria-label="Attach a file">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <path d="M20 11.5 12 19.5a4.6 4.6 0 0 1-6.5-6.5l8-8a3.1 3.1 0 0 1 4.4 4.4l-8 8a1.6 1.6 0 0 1-2.2-2.2l7.3-7.3"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="pill-btn" type="button" id="thinkHarder" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                      <path d="M9 18.5h6M10 21h4M12 3a6 6 0 0 1 3.6 10.8c-.6.5-.9 1-.9 1.7H9.3c0-.7-.3-1.2-.9-1.7A6 6 0 0 1 12 3Z"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Think Harder</span>
+                  </button>
+                </div>
+
+                <div class="composer__right">
+                  <button class="ghost-btn" type="button" aria-label="Dictate">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <button class="send-btn" type="submit" id="send" aria-label="Send message" disabled>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <path d="M12 19V5.5M12 5.5 6 11.5M12 5.5l6 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ================= RIGHT: task cards collapse here (chat state) ================= -->
+        <aside class="tasklist" id="tasklist" aria-label="Your tasks">
+          <div class="tasklist__head">
+            <span class="tasklist__label">Tasks</span>
+            <button class="tasklist__toggle" type="button" id="tasklistToggle" aria-expanded="true" aria-controls="tasklistBody" aria-label="Collapse task list">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="m14.5 5-6.5 7 6.5 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="tasklist__body" id="tasklistBody"></div>
+          <button class="tasklist__stub" type="button" id="tasklistStub" aria-label="Expand task list">
+            <span class="tasklist__stub-count" id="stubCount">6</span>
+            <span class="tasklist__stub-label">Tasks</span>
+          </button>
+        </aside>
+
+        <!-- ================= RIGHT: playground (execute state) ================= -->
+        <section class="playground" id="playground" aria-label="Playground">
+          <header class="playground__head">
+            <div class="playground__id">
+              <p class="playground__eyebrow">Playground</p>
+              <h2 class="playground__title" id="pgTitle">—</h2>
+            </div>
+            <div class="playground__tools">
+              <span class="run-state" id="pgState">
+                <span class="run-state__dot" aria-hidden="true"></span><span id="pgStateText">Prep ready</span>
+              </span>
+              <button class="ghost-btn" type="button" id="pgClose" aria-label="Close playground">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Standard surfaces, arranged contextually per task -->
+          <div class="tabs" role="tablist" aria-label="Playground surfaces">
+            <button class="tab is-active" type="button" role="tab" data-tab="evidence" aria-selected="true">Evidence</button>
+            <button class="tab" type="button" role="tab" data-tab="preview" aria-selected="false" disabled>Preview</button>
+            <button class="tab" type="button" role="tab" data-tab="code"     aria-selected="false">Code</button>
+            <button class="tab" type="button" role="tab" data-tab="tests"    aria-selected="false">Tests</button>
+            <button class="tab" type="button" role="tab" data-tab="diff"     aria-selected="false" disabled>Diff</button>
+          </div>
+
+          <div class="playground__body">
+            <div class="panel is-active" data-panel="evidence" id="panelEvidence"></div>
+
+            <div class="panel" data-panel="preview">
+              <div class="browser">
+                <div class="browser__bar">
+                  <span class="browser__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="browser__url">localhost:4200</span>
+                </div>
+                <div class="browser__viewport" id="previewApp"></div>
+              </div>
+              <div class="terminal" id="terminal"></div>
+            </div>
+
+            <div class="panel" data-panel="code">
+              <div class="files" id="codeFiles"></div>
+              <pre class="code" id="codeBody"></pre>
+            </div>
+
+            <div class="panel" data-panel="tests" id="panelTests"></div>
+            <div class="panel" data-panel="diff"  id="panelDiff"></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TASK WINDOW — lean kanban ================= -->
+  <div class="scrim" id="scrim" hidden></div>
+
+  <div class="taskwindow" id="taskwindow" role="dialog" aria-modal="true" aria-labelledby="twTitle" hidden>
+    <header class="taskwindow__head">
+      <h2 class="taskwindow__title" id="twTitle">Tasks <span class="taskwindow__count" id="twCount">6</span></h2>
+      <button class="ghost-btn" type="button" id="twClose" aria-label="Close tasks">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <p class="taskwindow__notice" id="twNotice" hidden>
+      One task runs at a time. Finish or close <strong id="twRunning">the current task</strong> to start another.
+    </p>
+
+    <div class="kanban" id="kanban"></div>
+  </div>
+
+  <!-- ================= THREADS ================= -->
+  <div class="threads" id="threads" role="dialog" aria-modal="true" aria-labelledby="thTitle" hidden>
+    <header class="taskwindow__head">
+      <h2 class="taskwindow__title" id="thTitle">Threads</h2>
+      <button class="ghost-btn" type="button" id="thClose" aria-label="Close threads">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+    <div class="threads__list" id="threadsList"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+          integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+</html>

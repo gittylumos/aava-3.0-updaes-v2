@@ -1,0 +1,52 @@
+- generic [ref=f5e3]:
+  - navigation "Primary" [ref=f5e4]:
+    - button "AAVA home" [ref=f5e5] [cursor=pointer]
+    - button "Search" [ref=f5e8] [cursor=pointer]
+    - button "Threads" [ref=f5e12] [cursor=pointer]
+    - button "Pinned" [ref=f5e15] [cursor=pointer]
+    - button "Dev — account" [ref=f5e18] [cursor=pointer]: D
+  - generic [ref=f5e19]:
+    - banner [ref=f5e20]:
+      - button "AAVA 3.0" [ref=f5e21] [cursor=pointer]:
+        - text: AAVA
+        - generic [ref=f5e22]: "3.0"
+      - generic [ref=f5e23]:
+        - button "Notifications" [ref=f5e24] [cursor=pointer]
+        - button "Tasks" [ref=f5e28] [cursor=pointer]
+    - main [ref=f5e33]:
+      - generic [ref=f5e64]:
+        - log "Conversation" [ref=f5e66]:
+          - generic [ref=f5e67]: why is the first one recommended?
+          - generic [ref=f5e68]:
+            - paragraph [ref=f5e69]: AAVA
+            - generic "AAVA is thinking" [ref=f5e70]
+        - complementary "Your tasks" [ref=f5e74]:
+          - generic [ref=f5e75]:
+            - generic [ref=f5e76]: Tasks
+            - button "Collapse task list" [ref=f5e77] [cursor=pointer]: ›
+          - generic [ref=f5e78]:
+            - button "Add feedback form to AAVA Partially done · 2 hrs" [ref=f5e79] [cursor=pointer]:
+              - generic [ref=f5e80]: Add feedback form to AAVA
+              - generic [ref=f5e81]: Partially done · 2 hrs
+            - button "Create PRD for Rate Limiting for Engineers Awaiting clarifications · 1.5 hrs" [ref=f5e84] [cursor=pointer]:
+              - generic [ref=f5e85]: Create PRD for Rate Limiting for Engineers
+              - generic [ref=f5e86]: Awaiting clarifications · 1.5 hrs
+            - button "Migrate data from MySQL to MongoDB (NoSQL) Pending · 3 hrs" [ref=f5e89] [cursor=pointer]:
+              - generic [ref=f5e90]: Migrate data from MySQL to MongoDB (NoSQL)
+              - generic [ref=f5e91]: Pending · 3 hrs
+            - button "Instrument AAVA Edge telemetry Partially done · 4 hrs" [ref=f5e94] [cursor=pointer]:
+              - generic [ref=f5e95]: Instrument AAVA Edge telemetry
+              - generic [ref=f5e96]: Partially done · 4 hrs
+            - button "Deprecate the legacy artifact store Done · —" [ref=f5e99] [cursor=pointer]:
+              - generic [ref=f5e100]: Deprecate the legacy artifact store
+              - generic [ref=f5e101]: Done · —
+            - button "Write the Experience Studio migration runbook Done · —" [ref=f5e104] [cursor=pointer]:
+              - generic [ref=f5e105]: Write the Experience Studio migration runbook
+              - generic [ref=f5e106]: Done · —
+    - generic [ref=f5e56]:
+      - generic [ref=f5e57]: Message AAVA
+      - textbox "Message AAVA" [active] [ref=f5e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f5e59]:
+        - button "Think Harder" [ref=f5e60] [cursor=pointer]
+        - button "Send message" [disabled] [ref=f5e61] [cursor=pointer]

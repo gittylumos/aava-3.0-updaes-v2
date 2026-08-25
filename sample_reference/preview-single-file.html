@@ -1,0 +1,2554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AAVA 3.0</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ==========================================================================
+   AAVA 3.0 — single page
+   1.  Tokens              8.  Task cards + aurora     15. Kanban
+   2.  Reset & base        9.  Thread + prep list      16. Threads
+   3.  Ambient             10. Task rail               17. Toast
+   4.  Shell + states      11. Playground shell        18. Utilities
+   5.  Sidebar             12. Evidence
+   6.  Topbar              13. Preview + terminal
+   7.  Hero                14. Code / Tests / Diff
+   ========================================================================== */
+
+/* 1. TOKENS ---------------------------------------------------------------- */
+
+:root {
+  --bg:            #050608;
+  --card:          #111318;
+  --card-hover:    #171A20;
+  --line:          rgba(255, 255, 255, .08);
+  --line-strong:   rgba(255, 255, 255, .14);
+
+  --text:          #FFFFFF;
+  --muted:         #9CA3AF;
+  --muted-dim:     #6B7280;
+  --accent:        #55FF99;
+
+  --aurora-1:      #FF7AC6;
+  --aurora-2:      #A78BFA;
+  --aurora-3:      #5B9DFF;
+
+  --st-wip:        #55FF99;
+  --st-clarify:    #FFB35C;
+  --st-pending:    #6B7280;
+  --st-done:       #5B9DFF;
+  --danger:        #FF6B6B;
+
+  --s-1: 8px;   --s-2: 16px;  --s-3: 24px;  --s-4: 32px;
+  --s-5: 40px;  --s-6: 48px;  --s-7: 56px;  --s-8: 64px;
+  --s-10: 80px; --s-12: 96px;
+
+  --r-sm: 10px;  --r-md: 16px;  --r-lg: 20px;
+  --r-xl: 28px;  --r-pill: 999px;
+
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --fast: 160ms;
+  --slow: 320ms;
+  --layout: 480ms;
+
+  --rail-w: 70px;
+  --content-w: 1120px;
+  --composer-w: 880px;
+  --thread-w: 760px;
+  --tasklist-w: 320px;
+  --tasklist-stub-w: 52px;
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@property --aurora-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* 2. RESET & BASE ---------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button, textarea, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .09); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .16); }
+
+/* 3. AMBIENT --------------------------------------------------------------- */
+
+.ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+
+.ambient__navy, .ambient__violet {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.ambient__navy {
+  top: -32%; right: -18%; width: 1100px; height: 1100px;
+  background: radial-gradient(circle, rgba(28, 52, 110, .55) 0%, rgba(16, 30, 66, .22) 45%, transparent 70%);
+  animation: drift-a 42s var(--ease) infinite alternate;
+}
+
+.ambient__violet {
+  bottom: -38%; left: -20%; width: 1000px; height: 1000px;
+  background: radial-gradient(circle, rgba(88, 48, 140, .34) 0%, rgba(56, 30, 96, .14) 48%, transparent 72%);
+  animation: drift-b 54s var(--ease) infinite alternate;
+}
+
+@keyframes drift-a { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(-70px,60px,0) scale(1.08); } }
+@keyframes drift-b { from { transform: translate3d(0,0,0) scale(1.05); } to { transform: translate3d(80px,-50px,0) scale(1); } }
+
+/* 4. SHELL + STATES -------------------------------------------------------- */
+
+.app { position: relative; z-index: 1; display: flex; height: 100vh; }
+
+.shell { flex: 1; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+
+.body { display: flex; min-height: 0; }
+
+.primary {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis var(--layout) var(--ease);
+}
+
+.stage { flex: 1; min-height: 0; overflow-y: auto; padding: 0 var(--s-5); }
+
+/* home */
+[data-state="home"] .stage { display: flex; align-items: center; justify-content: center; }
+[data-state="home"] .thread,
+[data-state="home"] .tasklist,
+[data-state="home"] .playground { display: none; }
+
+/* chat — chat left, task cards collapsed to the right */
+[data-state="chat"] .home,
+[data-state="chat"] .playground { display: none; }
+
+/* execute — chat left, playground right */
+[data-state="execute"] .home,
+[data-state="execute"] .tasklist { display: none; }
+
+[data-state="execute"] .primary {
+  flex: 0 0 42%;
+  border-right: 1px solid var(--line);
+}
+[data-state="execute"] .stage { padding: 0 var(--s-3); }
+[data-state="execute"] .composer-wrap { padding: 0 var(--s-3) var(--s-3); }
+[data-state="execute"] .composer { max-width: none; }
+[data-state="execute"] .thread { max-width: none; }
+
+/* 5. SIDEBAR --------------------------------------------------------------- */
+
+.rail {
+  width: var(--rail-w);
+  flex: 0 0 var(--rail-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--s-3) 0;
+  border-right: 1px solid var(--line);
+  background: rgba(8, 9, 12, .5);
+  backdrop-filter: blur(12px);
+}
+
+.rail__logo {
+  display: grid; place-items: center;
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  color: var(--bg);
+  background: var(--accent);
+  text-decoration: none;
+  transition: transform var(--fast) var(--ease), box-shadow var(--slow) var(--ease);
+}
+.rail__logo:hover { transform: translateY(-1px); box-shadow: 0 0 24px rgba(85, 255, 153, .28); }
+
+.rail__nav {
+  list-style: none;
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  display: flex; flex-direction: column; gap: var(--s-1);
+}
+
+.rail__btn {
+  display: grid; place-items: center;
+  width: 38px; height: 38px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.rail__btn:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
+.rail__avatar {
+  margin-top: auto;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  font-size: 13px; font-weight: 600;
+  color: var(--muted);
+  background: #1A1D24;
+  border: 1px solid var(--line);
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.rail__avatar:hover { color: var(--text); border-color: var(--line-strong); }
+
+/* 6. TOPBAR ---------------------------------------------------------------- */
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 72px;
+  padding: 0 var(--s-5);
+}
+
+.topbar__brand { display: flex; align-items: center; gap: var(--s-2); border-radius: var(--r-sm); }
+
+.topbar__mark {
+  display: grid; place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  color: var(--accent);
+  background: rgba(85, 255, 153, .1);
+  border: 1px solid rgba(85, 255, 153, .16);
+}
+
+.topbar__name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.topbar__version { color: var(--muted-dim); font-weight: 500; }
+
+.topbar__actions { display: flex; gap: var(--s-1); }
+
+.icon-btn {
+  position: relative;
+  display: grid; place-items: center;
+  width: 38px; height: 38px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease), opacity var(--slow) var(--ease);
+}
+.icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
+.icon-btn--dot::after {
+  content: "";
+  position: absolute; top: 9px; right: 10px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.icon-btn.is-locked { opacity: .38; }
+.icon-btn.is-locked:hover { color: var(--muted); background: none; }
+
+/* 7. HERO ------------------------------------------------------------------ */
+
+.home {
+  width: 100%; max-width: var(--content-w);
+  margin: 0 auto;
+  padding-bottom: var(--s-8);
+  animation: fade-up var(--layout) var(--ease) both;
+}
+
+.hero { margin-bottom: var(--s-10); }
+
+.hero__title {
+  margin: 0 0 var(--s-3);
+  font-size: 56px; font-weight: 700; line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--accent);
+}
+
+.hero__sub {
+  margin: 0; max-width: 720px;
+  font-size: 22px; line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--muted);
+}
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* 8. TASK CARDS ------------------------------------------------------------ */
+
+.tasks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3); }
+
+.task {
+  position: relative; z-index: 0;
+  display: flex;
+  min-height: 196px;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform var(--slow) var(--ease), background var(--slow) var(--ease),
+              border-color var(--slow) var(--ease), box-shadow var(--slow) var(--ease);
+}
+.task:hover {
+  transform: translateY(-4px);
+  background: var(--card-hover);
+  border-color: var(--line-strong);
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, .9);
+}
+
+.task__body { display: flex; flex-direction: column; justify-content: space-between; width: 100%; }
+
+.task__title {
+  margin: 0;
+  font-size: 20px; font-weight: 600; line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.task__foot { margin-top: var(--s-3); }
+
+.task__meta {
+  display: flex; align-items: center; gap: var(--s-1);
+  margin: 0;
+  font-size: 14px; font-weight: 500;
+  color: var(--muted);
+}
+
+.task__sep { width: 3px; height: 3px; border-radius: 50%; background: var(--muted-dim); flex: 0 0 auto; }
+.task__est { color: var(--muted-dim); }
+
+.task__tags { display: flex; align-items: center; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 500;
+  color: var(--muted-dim);
+  white-space: nowrap;
+}
+.tag--p1 { color: #FFB4B4; border-color: rgba(255, 107, 107, .3); background: rgba(255, 107, 107, .08); }
+.tag--p2 { color: #F5D2A6; border-color: rgba(255, 179, 92, .26); background: rgba(255, 179, 92, .07); }
+.tag--p3 { color: var(--muted); }
+.tag--blocked { color: #F5D2A6; border-color: rgba(255, 179, 92, .26); }
+
+.dot { width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; flex: 0 0 auto; }
+.dot--wip { background: var(--st-wip); box-shadow: 0 0 10px rgba(85, 255, 153, .5); }
+.dot--clarify { background: var(--st-clarify); }
+.dot--done { background: var(--st-done); }
+.dot--pending { background: transparent; box-shadow: inset 0 0 0 1.5px var(--st-pending); }
+
+/* Aurora ring — recommended task only */
+.task--recommended::before {
+  content: "";
+  position: absolute; inset: -1px; z-index: 1;
+  padding: 1.2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--aurora-angle),
+    rgba(255,122,198,0) 0deg, var(--aurora-1) 55deg, var(--aurora-2) 140deg,
+    var(--aurora-3) 215deg, rgba(91,157,255,0) 300deg, rgba(255,122,198,0) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: .85;
+  animation: aurora-spin 14s linear infinite;
+  pointer-events: none;
+}
+
+.task--recommended::after {
+  content: "";
+  position: absolute; inset: -2px; z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(from var(--aurora-angle),
+    transparent 0deg, var(--aurora-1) 55deg, var(--aurora-2) 140deg,
+    var(--aurora-3) 215deg, transparent 300deg);
+  filter: blur(18px);
+  opacity: .3;
+  animation: aurora-spin 14s linear infinite;
+  transition: opacity var(--slow) var(--ease);
+  pointer-events: none;
+}
+.task--recommended:hover::after { opacity: .45; }
+
+@keyframes aurora-spin { to { --aurora-angle: 360deg; } }
+
+/* 9. THREAD + PREP LIST ---------------------------------------------------- */
+
+.thread {
+  width: 100%; max-width: var(--thread-w);
+  margin: 0 auto;
+  padding: var(--s-5) 0 var(--s-6);
+  display: flex; flex-direction: column; gap: var(--s-4);
+}
+
+.msg { animation: fade-up var(--slow) var(--ease) both; }
+
+.msg--user {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 14px var(--s-3);
+  border-radius: var(--r-md) var(--r-md) 6px var(--r-md);
+  background: #171A20;
+  border: 1px solid var(--line);
+}
+
+.msg--aava { max-width: 100%; }
+
+.msg__from {
+  display: block;
+  margin-bottom: var(--s-1);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--accent);
+}
+
+.msg__text { margin: 0; font-size: 16px; line-height: 1.65; color: #E5E7EB; }
+.msg__text + .msg__text { margin-top: var(--s-2); }
+
+.typing { display: flex; gap: 5px; padding-top: 4px; }
+.typing span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted-dim);
+  animation: blink 1.3s var(--ease) infinite;
+}
+.typing span:nth-child(2) { animation-delay: .18s; }
+.typing span:nth-child(3) { animation-delay: .36s; }
+
+@keyframes blink { 0%,60%,100% { opacity: .25; } 30% { opacity: 1; } }
+
+/* The pre-work checklist — ten lines, collapsed by default */
+.prep {
+  margin-top: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(17, 19, 24, .6);
+  overflow: hidden;
+}
+
+.prep__row { border-bottom: 1px solid var(--line); }
+.prep__row:last-child { border-bottom: 0; }
+
+.prep__head {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 12px var(--s-2);
+  text-align: left;
+  transition: background var(--fast) var(--ease);
+}
+.prep__head:hover { background: rgba(255, 255, 255, .03); }
+
+.prep__tick {
+  position: relative;
+  flex: 0 0 auto;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.prep__tick::after {
+  content: "";
+  position: absolute; left: 5px; top: 2.5px;
+  width: 3px; height: 7px;
+  border: solid var(--bg);
+  border-width: 0 1.7px 1.7px 0;
+  transform: rotate(42deg);
+}
+
+.prep__label { flex: 1; font-size: 14.5px; color: #E5E7EB; }
+
+.prep__result {
+  font-size: 12.5px;
+  font-family: var(--mono);
+  color: var(--muted-dim);
+  white-space: nowrap;
+}
+
+.prep__chev {
+  flex: 0 0 auto;
+  color: var(--muted-dim);
+  transition: transform var(--fast) var(--ease);
+}
+.prep__row.is-open .prep__chev { transform: rotate(90deg); }
+
+.prep__detail {
+  display: none;
+  padding: 0 var(--s-2) var(--s-2) 43px;
+  font-size: 14px; line-height: 1.6;
+  color: var(--muted);
+}
+.prep__row.is-open .prep__detail { display: block; }
+
+.prep__open {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: var(--s-1);
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.prep__open:hover { color: var(--text); border-color: var(--line-strong); }
+
+/* Grouped answer lists (done / not done / assumed / scenarios) */
+.blocks { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+
+.block {
+  padding: var(--s-2);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(17, 19, 24, .6);
+}
+
+.block__title {
+  margin: 0 0 10px;
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.block--assumed .block__title { color: var(--st-clarify); }
+
+.block ul { margin: 0; padding-left: 18px; }
+.block li { font-size: 14px; line-height: 1.65; color: #D1D5DB; }
+.block li + li { margin-top: 4px; }
+
+.block__run {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted-dim);
+}
+
+/* Confirmation card before shipping */
+.confirm {
+  margin-top: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.confirm__row { padding: var(--s-2); border-bottom: 1px solid var(--line); }
+.confirm__row:last-of-type { border-bottom: 0; }
+.confirm__repo { font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.confirm__branch { display: block; margin-top: 6px; font-family: var(--mono); font-size: 12.5px; color: #E5E7EB; }
+.confirm__what { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+
+.confirm__actions { display: flex; gap: var(--s-1); padding: var(--s-2); border-top: 1px solid var(--line); }
+
+.btn {
+  height: 34px; padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: 13.5px; font-weight: 500;
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.btn:hover { color: var(--text); border-color: var(--line-strong); }
+.btn--primary { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.btn--primary:hover { color: var(--bg); box-shadow: 0 0 20px rgba(85, 255, 153, .3); }
+
+.links { display: flex; flex-direction: column; gap: 6px; margin-top: var(--s-1); }
+.links a { color: var(--accent); font-size: 14px; font-family: var(--mono); text-decoration: none; }
+.links a:hover { text-decoration: underline; }
+
+/* 10. TASK RAIL ------------------------------------------------------------ */
+
+.tasklist {
+  display: flex; flex-direction: column;
+  flex: 0 0 var(--tasklist-w);
+  width: var(--tasklist-w);
+  border-left: 1px solid var(--line);
+  background: rgba(10, 11, 15, .5);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: flex-basis var(--layout) var(--ease), width var(--layout) var(--ease);
+}
+.tasklist.is-collapsed { flex-basis: var(--tasklist-stub-w); width: var(--tasklist-stub-w); }
+
+.tasklist__head {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--s-2) 0 var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.tasklist__label {
+  font-size: 13px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted-dim);
+  white-space: nowrap;
+}
+
+.tasklist__toggle {
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.tasklist__toggle:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
+.tasklist__body {
+  flex: 1; overflow-y: auto;
+  padding: var(--s-2);
+  display: flex; flex-direction: column; gap: var(--s-1);
+}
+
+.tasklist__stub {
+  display: none;
+  flex-direction: column; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) 0;
+  color: var(--muted);
+  transition: color var(--fast) var(--ease);
+}
+.tasklist__stub:hover { color: var(--text); }
+.tasklist__stub-label { writing-mode: vertical-rl; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.tasklist__stub-count {
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .06);
+  font-size: 12px; font-weight: 600;
+  color: var(--text);
+}
+
+.tasklist.is-collapsed .tasklist__head,
+.tasklist.is-collapsed .tasklist__body { display: none; }
+.tasklist.is-collapsed .tasklist__stub { display: flex; }
+
+.trow {
+  display: block; width: 100%;
+  text-align: left;
+  padding: 14px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.trow:hover { background: var(--card); border-color: var(--line); }
+
+.trow__title { display: block; font-size: 14px; font-weight: 500; line-height: 1.4; }
+.trow__meta { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 12px; color: var(--muted-dim); }
+.trow.is-done .trow__title { color: var(--muted-dim); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.2); }
+
+/* 11. PLAYGROUND SHELL ----------------------------------------------------- */
+
+.playground {
+  display: flex; flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: rgba(9, 10, 14, .55);
+  backdrop-filter: blur(12px);
+  animation: pg-in var(--layout) var(--ease) both;
+}
+
+@keyframes pg-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+.playground__head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-2);
+}
+
+.playground__eyebrow {
+  margin: 0 0 5px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.playground__title { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
+.playground__tools { display: flex; align-items: center; gap: var(--s-2); }
+
+.run-state {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(85, 255, 153, .28);
+  background: rgba(85, 255, 153, .08);
+  font-size: 12px; font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.run-state__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.run-state.is-live .run-state__dot { animation: pulse 1.8s var(--ease) infinite; }
+.run-state.is-shipped { border-color: rgba(91,157,255,.3); background: rgba(91,157,255,.1); color: #9CC5FF; }
+.run-state.is-shipped .run-state__dot { background: #9CC5FF; }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(85,255,153,.4); }
+  70%     { opacity: .6; box-shadow: 0 0 0 6px rgba(85,255,153,0); }
+}
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 2px;
+  padding: 0 var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  position: relative;
+  padding: 10px 14px;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--muted-dim);
+  transition: color var(--fast) var(--ease);
+}
+.tab:hover:not(:disabled) { color: var(--text); }
+.tab:disabled { opacity: .35; cursor: default; }
+
+.tab.is-active { color: var(--text); }
+.tab.is-active::after {
+  content: "";
+  position: absolute; left: 10px; right: 10px; bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.tab__badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: rgba(85, 255, 153, .14);
+  font-size: 10.5px; font-weight: 600;
+  color: var(--accent);
+}
+
+.playground__body { flex: 1; overflow-y: auto; padding: var(--s-3) var(--s-4) var(--s-4); }
+
+.panel { display: none; animation: fade-up var(--slow) var(--ease) both; }
+.panel.is-active { display: block; }
+
+/* 12. EVIDENCE ------------------------------------------------------------- */
+
+.ev {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  overflow: hidden;
+  transition: border-color var(--slow) var(--ease), box-shadow var(--slow) var(--ease);
+}
+.ev + .ev { margin-top: var(--s-2); }
+
+.ev.is-focus {
+  border-color: rgba(85, 255, 153, .4);
+  box-shadow: 0 0 0 1px rgba(85, 255, 153, .15), 0 0 30px -10px rgba(85, 255, 153, .3);
+}
+
+.ev__head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  padding: 12px var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.ev__name { font-size: 13.5px; font-weight: 600; }
+.ev__src {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.ev__body { padding: var(--s-2); font-size: 13.5px; line-height: 1.7; color: var(--muted); }
+
+.kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px var(--s-2); }
+.kv dt { color: var(--muted-dim); font-size: 12.5px; }
+.kv dd { margin: 0; color: #E5E7EB; font-size: 13.5px; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.cols h5 {
+  margin: 0 0 8px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.cols ul { margin: 0; padding: 0; list-style: none; }
+.cols li {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 0;
+  font-size: 13.5px;
+  font-family: var(--mono);
+  color: #E5E7EB;
+}
+.cols .use li::before   { content: "✓"; color: var(--accent); }
+.cols .build li::before { content: "+"; color: var(--st-clarify); }
+
+/* The Figma frame, rendered */
+.frame {
+  display: block; width: 100%;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: #0B0D12;
+  cursor: zoom-in;
+  transition: transform var(--slow) var(--ease);
+}
+.frame:hover { transform: scale(1.01); }
+
+.frame-caption { margin-top: 10px; font-size: 12.5px; color: var(--muted-dim); }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; place-items: center;
+  padding: var(--s-8);
+  background: rgba(3, 4, 6, .88);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+  animation: fade-in var(--slow) var(--ease) both;
+}
+.lightbox svg { width: min(760px, 100%); height: auto; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* 13. PREVIEW + TERMINAL --------------------------------------------------- */
+
+.browser {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: #0B0D12;
+}
+
+.browser__bar {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 10px var(--s-2);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, .02);
+}
+
+.browser__dots { display: flex; gap: 6px; }
+.browser__dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, .13); }
+
+.browser__url {
+  flex: 1;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .04);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+
+.browser__viewport { min-height: 300px; padding: var(--s-4); background: #FAFAFA; color: #111318; }
+
+/* The mock app running inside the preview */
+.app-form { max-width: 420px; margin: 0 auto; font-size: 14px; }
+.app-form h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.app-form p.sub { margin: 0 0 20px; color: #6B7280; font-size: 13.5px; }
+
+.app-form label { display: block; margin-bottom: 6px; font-size: 12.5px; font-weight: 600; color: #374151; }
+.app-form textarea, .app-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  color: #111318;
+  resize: vertical;
+}
+.app-form textarea:focus, .app-form input:focus { outline: 2px solid #111318; outline-offset: 0; }
+
+.app-form .field { margin-bottom: 18px; }
+
+.rate { display: flex; gap: 8px; }
+.rate button {
+  width: 38px; height: 38px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px; font-weight: 600;
+  color: #374151;
+}
+.rate button.is-on { background: #111318; border-color: #111318; color: #fff; }
+
+.counter { margin-top: 6px; font-size: 12px; color: #6B7280; text-align: right; }
+
+.app-form .submit {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: #111318;
+  color: #fff;
+  font-size: 14px; font-weight: 600;
+}
+.app-form .submit:hover { background: #2A2F3A; }
+
+/* Submit above the fields by default; moves below after Beat 4 */
+.app-form .actions { margin-bottom: 20px; }
+.app-form.is-bottom .actions { margin-bottom: 0; margin-top: 4px; order: 99; }
+.app-form.is-bottom { display: flex; flex-direction: column; }
+.app-form.is-bottom h3 { order: 1; }
+.app-form.is-bottom p.sub { order: 2; }
+.app-form.is-bottom .field { order: 3; }
+
+.app-ok {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #ECFDF3;
+  border: 1px solid #A7E8C4;
+  color: #04663A;
+  font-size: 13.5px; font-weight: 500;
+}
+
+.terminal {
+  margin-top: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: #08090C;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: #C7CBD3;
+  max-height: 170px;
+  overflow-y: auto;
+}
+.terminal .cmd  { color: var(--text); }
+.terminal .ok   { color: var(--accent); }
+.terminal .warn { color: var(--st-clarify); }
+.terminal .err  { color: var(--danger); }
+.terminal .dim  { color: var(--muted-dim); }
+
+/* 14. CODE / TESTS / DIFF -------------------------------------------------- */
+
+.files { display: flex; gap: 2px; margin-bottom: var(--s-2); flex-wrap: wrap; }
+
+.file {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--muted-dim);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.file:hover { color: var(--text); background: rgba(255, 255, 255, .05); }
+.file.is-active { color: var(--text); background: rgba(255, 255, 255, .07); }
+.file .mark { color: var(--st-clarify); margin-left: 6px; }
+
+.code {
+  margin: 0;
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: #C7CBD3;
+  white-space: pre;
+  overflow: auto;
+}
+.code .hl { display: block; background: rgba(85, 255, 153, .1); border-left: 2px solid var(--accent); margin-left: -10px; padding-left: 8px; }
+
+.spec {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px var(--s-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  color: #D1D5DB;
+}
+.spec:last-child { border-bottom: 0; }
+.spec__tick { color: var(--accent); font-size: 12px; }
+.spec__time { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted-dim); }
+
+.coverage {
+  display: flex; align-items: center; gap: var(--s-2);
+  margin-top: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.coverage__bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; }
+.coverage__fill { height: 100%; width: 87%; border-radius: 3px; background: var(--accent); }
+.coverage__num { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+
+.diffgroup { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.diffgroup + .diffgroup { margin-top: var(--s-2); }
+
+.diffgroup__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px var(--s-2);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, .02);
+}
+.diffgroup__repo { font-size: 13px; font-weight: 600; }
+.diffgroup__branch { font-family: var(--mono); font-size: 12px; color: var(--muted-dim); }
+
+.diffline { padding: 3px var(--s-2); font-family: var(--mono); font-size: 12.5px; line-height: 1.7; }
+.diffline.add { background: rgba(85, 255, 153, .07); color: #A9F5C9; }
+.diffline.del { background: rgba(255, 107, 107, .07); color: #FFB4B4; }
+.diffline.ctx { color: var(--muted-dim); }
+.difffile { padding: 9px var(--s-2); font-family: var(--mono); font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+
+/* 15. TASK WINDOW — lean kanban -------------------------------------------- */
+
+.scrim {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(3, 4, 6, .6);
+  backdrop-filter: blur(3px);
+  animation: fade-in var(--slow) var(--ease) both;
+}
+
+.taskwindow {
+  position: fixed; z-index: 50;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(1000px, calc(100vw - 120px));
+  max-height: 76vh;
+  display: flex; flex-direction: column;
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  border-radius: var(--r-xl);
+  background: rgba(17, 19, 24, .94);
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 1);
+  animation: window-in var(--slow) var(--ease) both;
+}
+
+@keyframes window-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(.985); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.taskwindow__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); }
+
+.taskwindow__title {
+  margin: 0;
+  display: flex; align-items: center; gap: var(--s-1);
+  font-size: 20px; font-weight: 600; letter-spacing: -0.02em;
+}
+
+.taskwindow__count {
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .07);
+  font-size: 13px; font-weight: 600;
+  color: var(--muted);
+}
+
+.taskwindow__notice {
+  margin: 0 0 var(--s-3);
+  padding: 12px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(255, 179, 92, .22);
+  background: rgba(255, 179, 92, .07);
+  font-size: 14px;
+  color: #F5D2A6;
+}
+.taskwindow__notice strong { color: #FFE7C7; font-weight: 600; }
+
+.kanban {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-2);
+  overflow-y: auto;
+  padding-bottom: var(--s-1);
+}
+
+.col { display: flex; flex-direction: column; min-width: 0; }
+
+.col__head {
+  display: flex; align-items: center; gap: var(--s-1);
+  padding: 0 4px var(--s-1);
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.col__count {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .06);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.col__body { display: flex; flex-direction: column; gap: var(--s-1); }
+
+.kcard {
+  display: block; width: 100%;
+  text-align: left;
+  padding: 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.kcard:hover { background: var(--card-hover); border-color: var(--line-strong); transform: translateY(-1px); }
+
+.kcard__title { display: block; font-size: 13.5px; font-weight: 500; line-height: 1.4; }
+.kcard__tags { display: flex; gap: 5px; margin-top: 9px; flex-wrap: wrap; }
+.kcard__est { font-size: 11.5px; color: var(--muted-dim); }
+
+.kcard.is-running { border-color: rgba(85, 255, 153, .35); }
+
+.taskwindow.is-locked .kcard { cursor: not-allowed; opacity: .45; }
+.taskwindow.is-locked .kcard:hover { background: var(--card); border-color: var(--line); transform: none; }
+.taskwindow.is-locked .kcard.is-running { opacity: 1; }
+
+.col__empty { padding: 12px; font-size: 12.5px; color: var(--muted-dim); }
+
+/* 16. THREADS -------------------------------------------------------------- */
+
+.threads {
+  position: fixed; z-index: 50;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 120px));
+  max-height: 70vh;
+  display: flex; flex-direction: column;
+  padding: var(--s-4) var(--s-4) var(--s-2);
+  border-radius: var(--r-xl);
+  background: rgba(17, 19, 24, .94);
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 1);
+  animation: window-in var(--slow) var(--ease) both;
+}
+
+.threads__list { flex: 1; overflow-y: auto; padding-bottom: var(--s-2); }
+
+.throw {
+  display: flex; align-items: center; gap: var(--s-2);
+  width: 100%;
+  padding: 13px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  text-align: left;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.throw:hover { background: var(--card); border-color: var(--line); }
+
+.throw__kind {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted-dim);
+  border: 1px solid var(--line);
+}
+.throw__kind.is-task { color: var(--accent); border-color: rgba(85,255,153,.28); }
+
+.throw__title { flex: 1; font-size: 14px; }
+.throw__when { font-size: 12px; color: var(--muted-dim); white-space: nowrap; }
+
+/* 17. TOAST ---------------------------------------------------------------- */
+
+.toast {
+  position: fixed; z-index: 60;
+  left: 50%; bottom: var(--s-6);
+  transform: translate(-50%, 12px);
+  padding: 12px var(--s-3);
+  border-radius: var(--r-pill);
+  background: rgba(23, 26, 32, .95);
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 50px -24px rgba(0, 0, 0, 1);
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--slow) var(--ease), transform var(--slow) var(--ease);
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* 18. COMPOSER + UTILITIES ------------------------------------------------- */
+
+.composer-wrap { display: flex; justify-content: center; padding: 0 var(--s-5) var(--s-5); }
+
+.composer {
+  width: 100%; max-width: var(--composer-w);
+  padding: var(--s-3) var(--s-3) var(--s-2);
+  border-radius: var(--r-xl);
+  background: rgba(17, 19, 24, .72);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .95);
+  transition: border-color var(--slow) var(--ease), background var(--slow) var(--ease);
+}
+.composer.is-focused { border-color: var(--line-strong); background: rgba(23, 26, 32, .8); }
+
+.composer__input {
+  display: block; width: 100%;
+  max-height: 200px;
+  padding: 0 var(--s-1) var(--s-2);
+  border: 0;
+  background: transparent;
+  font-size: 17px; line-height: 1.5;
+  letter-spacing: -0.012em;
+  resize: none;
+  overflow-y: auto;
+}
+.composer__input::placeholder { color: var(--muted-dim); }
+.composer__input:focus { outline: none; }
+
+.composer__bar { display: flex; align-items: center; justify-content: space-between; }
+.composer__left, .composer__right { display: flex; align-items: center; gap: var(--s-1); }
+
+.ghost-btn {
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.ghost-btn:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
+.pill-btn {
+  display: flex; align-items: center; gap: 7px;
+  height: 36px; padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: 14px; font-weight: 500;
+  color: var(--muted);
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.pill-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.pill-btn[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: rgba(85, 255, 153, .35);
+  background: rgba(85, 255, 153, .08);
+}
+
+.send-btn {
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  margin-left: 2px;
+  border-radius: 50%;
+  color: var(--bg);
+  background: var(--text);
+  transition: opacity var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--slow) var(--ease);
+}
+.send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 20px rgba(255, 255, 255, .18); }
+.send-btn:disabled { cursor: default; opacity: .28; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .task:hover { transform: none; }
+}
+
+</style>
+</head>
+
+<!-- data-state : home | chat | execute
+     Chat always holds the left. Everything else comes in on the right. -->
+<body data-state="home">
+
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__navy"></div>
+    <div class="ambient__violet"></div>
+  </div>
+
+  <div class="app">
+
+    <!-- ================= SIDEBAR — 70px. Icons still undecided. ================= -->
+    <nav class="rail" aria-label="Primary">
+      <a class="rail__logo" href="#" id="home" aria-label="AAVA home">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M12 3 3.5 20h3.2l1.9-4h6.8l1.9 4h3.2L12 3Zm-2 10.2L12 8.6l2 4.6h-4Z" fill="currentColor"/>
+        </svg>
+      </a>
+
+      <ul class="rail__nav">
+        <li>
+          <button class="rail__btn" type="button" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="m16 16 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+        <li>
+          <!-- Threads: every chat and every task is a resumable session -->
+          <button class="rail__btn" type="button" id="threadsBtn" aria-label="Threads">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M4 6.5h16M4 12h16M4 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+        <li>
+          <button class="rail__btn" type="button" aria-label="Pinned">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M14.5 3 21 9.5l-2.4.5-3.2 3.2.4 3.4-1.6 1.6L9 13l-4.6 4.6M9 13 4.4 8.4 6 6.8l3.4.4 3.2-3.2L14.5 3Z"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </li>
+      </ul>
+
+      <button class="rail__avatar" type="button" aria-label="Dev — account">D</button>
+    </nav>
+
+    <div class="shell">
+
+      <!-- ================= HEADER ================= -->
+      <header class="topbar">
+        <button class="topbar__brand" type="button" id="brandHome" aria-label="Back to start">
+          <span class="topbar__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M12 3 3.5 20h3.2l1.9-4h6.8l1.9 4h3.2L12 3Zm-2 10.2L12 8.6l2 4.6h-4Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="topbar__name">AAVA <span class="topbar__version">3.0</span></span>
+        </button>
+
+        <div class="topbar__actions">
+          <button class="icon-btn icon-btn--dot" type="button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <path d="M18 15.5V11a6 6 0 1 0-12 0v4.5L4.5 18h15L18 15.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M10 20.5a2.2 2.2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn" type="button" id="tasksBtn" aria-label="Tasks" aria-haspopup="dialog" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+              <path d="m4 7.5 2.2 2.2L10.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="m4 17 2.2 2.2L10.5 14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.5 8h6.5M13.5 17.5H20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="body">
+
+        <!-- ================= LEFT: chat, always ================= -->
+        <div class="primary">
+          <main class="stage" id="stage">
+
+            <div class="home" id="homeView">
+              <section class="hero">
+                <h1 class="hero__title">Good Morning, Dev</h1>
+                <p class="hero__sub" id="heroSub">Based on your work, I've identified three tasks that are ready for your attention.</p>
+              </section>
+              <section class="tasks" id="homeTasks" aria-label="Tasks ready for you"></section>
+            </div>
+
+            <div class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation"></div>
+          </main>
+
+          <div class="composer-wrap">
+            <form class="composer" id="composer" autocomplete="off">
+              <label class="sr-only" for="prompt">Message AAVA</label>
+              <textarea id="prompt" class="composer__input" rows="1"
+                        placeholder="You can ask me about the pending tasks or chat about something else..."></textarea>
+
+              <div class="composer__bar">
+                <div class="composer__left">
+                  <button class="ghost-btn" type="button" aria-label="Attach a file">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <path d="M20 11.5 12 19.5a4.6 4.6 0 0 1-6.5-6.5l8-8a3.1 3.1 0 0 1 4.4 4.4l-8 8a1.6 1.6 0 0 1-2.2-2.2l7.3-7.3"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="pill-btn" type="button" id="thinkHarder" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                      <path d="M9 18.5h6M10 21h4M12 3a6 6 0 0 1 3.6 10.8c-.6.5-.9 1-.9 1.7H9.3c0-.7-.3-1.2-.9-1.7A6 6 0 0 1 12 3Z"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Think Harder</span>
+                  </button>
+                </div>
+
+                <div class="composer__right">
+                  <button class="ghost-btn" type="button" aria-label="Dictate">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <button class="send-btn" type="submit" id="send" aria-label="Send message" disabled>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                      <path d="M12 19V5.5M12 5.5 6 11.5M12 5.5l6 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ================= RIGHT: task cards collapse here (chat state) ================= -->
+        <aside class="tasklist" id="tasklist" aria-label="Your tasks">
+          <div class="tasklist__head">
+            <span class="tasklist__label">Tasks</span>
+            <button class="tasklist__toggle" type="button" id="tasklistToggle" aria-expanded="true" aria-controls="tasklistBody" aria-label="Collapse task list">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="m14.5 5-6.5 7 6.5 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="tasklist__body" id="tasklistBody"></div>
+          <button class="tasklist__stub" type="button" id="tasklistStub" aria-label="Expand task list">
+            <span class="tasklist__stub-count" id="stubCount">6</span>
+            <span class="tasklist__stub-label">Tasks</span>
+          </button>
+        </aside>
+
+        <!-- ================= RIGHT: playground (execute state) ================= -->
+        <section class="playground" id="playground" aria-label="Playground">
+          <header class="playground__head">
+            <div class="playground__id">
+              <p class="playground__eyebrow">Playground</p>
+              <h2 class="playground__title" id="pgTitle">—</h2>
+            </div>
+            <div class="playground__tools">
+              <span class="run-state" id="pgState">
+                <span class="run-state__dot" aria-hidden="true"></span><span id="pgStateText">Prep ready</span>
+              </span>
+              <button class="ghost-btn" type="button" id="pgClose" aria-label="Close playground">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Standard surfaces, arranged contextually per task -->
+          <div class="tabs" role="tablist" aria-label="Playground surfaces">
+            <button class="tab is-active" type="button" role="tab" data-tab="evidence" aria-selected="true">Evidence</button>
+            <button class="tab" type="button" role="tab" data-tab="preview" aria-selected="false" disabled>Preview</button>
+            <button class="tab" type="button" role="tab" data-tab="code"     aria-selected="false">Code</button>
+            <button class="tab" type="button" role="tab" data-tab="tests"    aria-selected="false">Tests</button>
+            <button class="tab" type="button" role="tab" data-tab="diff"     aria-selected="false" disabled>Diff</button>
+          </div>
+
+          <div class="playground__body">
+            <div class="panel is-active" data-panel="evidence" id="panelEvidence"></div>
+
+            <div class="panel" data-panel="preview">
+              <div class="browser">
+                <div class="browser__bar">
+                  <span class="browser__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="browser__url">localhost:4200</span>
+                </div>
+                <div class="browser__viewport" id="previewApp"></div>
+              </div>
+              <div class="terminal" id="terminal"></div>
+            </div>
+
+            <div class="panel" data-panel="code">
+              <div class="files" id="codeFiles"></div>
+              <pre class="code" id="codeBody"></pre>
+            </div>
+
+            <div class="panel" data-panel="tests" id="panelTests"></div>
+            <div class="panel" data-panel="diff"  id="panelDiff"></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TASK WINDOW — lean kanban ================= -->
+  <div class="scrim" id="scrim" hidden></div>
+
+  <div class="taskwindow" id="taskwindow" role="dialog" aria-modal="true" aria-labelledby="twTitle" hidden>
+    <header class="taskwindow__head">
+      <h2 class="taskwindow__title" id="twTitle">Tasks <span class="taskwindow__count" id="twCount">6</span></h2>
+      <button class="ghost-btn" type="button" id="twClose" aria-label="Close tasks">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <p class="taskwindow__notice" id="twNotice" hidden>
+      One task runs at a time. Finish or close <strong id="twRunning">the current task</strong> to start another.
+    </p>
+
+    <div class="kanban" id="kanban"></div>
+  </div>
+
+  <!-- ================= THREADS ================= -->
+  <div class="threads" id="threads" role="dialog" aria-modal="true" aria-labelledby="thTitle" hidden>
+    <header class="taskwindow__head">
+      <h2 class="taskwindow__title" id="thTitle">Threads</h2>
+      <button class="ghost-btn" type="button" id="thClose" aria-label="Close threads">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+    <div class="threads__list" id="threadsList"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+          integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script>
+/* ==========================================================================
+   AAVA 3.0 — behaviour
+   Store · State · Thread · Composer · TaskRail · TaskWindow · Threads
+   Playground (Evidence · Preview · Code · Tests · Diff) · T1 scenario
+   ========================================================================== */
+
+(function ($) {
+  'use strict';
+
+  var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pause = function (ms) { return REDUCED ? 0 : ms; };
+
+  /* ======================================================================
+     STORE
+     ====================================================================== */
+  var Store = {
+    tasks: [
+      { id: 'T1', title: 'Add feedback form to AAVA',                    status: 'wip',     est: '2 hrs',   priority: 'P1', dep: 'None',              recommended: true },
+      { id: 'T2', title: 'Create PRD for Rate Limiting for Engineers',   status: 'clarify', est: '1.5 hrs', priority: 'P2', dep: 'Platform team' },
+      { id: 'T3', title: 'Migrate data from MySQL to MongoDB (NoSQL)',   status: 'pending', est: '3 hrs',   priority: 'P2', dep: 'Maintenance window' },
+      { id: 'T4', title: 'Instrument AAVA Edge telemetry',               status: 'wip',     est: '4 hrs',   priority: 'P3', dep: 'None' },
+      { id: 'T5', title: 'Deprecate the legacy artifact store',          status: 'done',    est: '—',       priority: 'P3', dep: 'None' },
+      { id: 'T6', title: 'Write the Experience Studio migration runbook', status: 'done',   est: '—',       priority: 'P3', dep: 'None' }
+    ],
+
+    labels: { wip: 'Partially Done', clarify: 'Awaiting Clarifications', pending: 'Pending', done: 'Done' },
+
+    columns: [
+      { key: 'pending', name: 'Backlog' },
+      { key: 'clarify', name: 'Needs clarification' },
+      { key: 'wip',     name: 'In progress' },
+      { key: 'done',    name: 'Done' }
+    ],
+
+    // Every chat and every task is a resumable session
+    threads: [
+      { kind: 'chat', title: 'Sprint scope questions', when: 'Yesterday' },
+      { kind: 'task', title: 'T4 · Instrument AAVA Edge telemetry', when: '2 days ago' }
+    ],
+
+    get: function (id) {
+      var found = null;
+      $.each(this.tasks, function (_, t) { if (t.id === id) { found = t; return false; } });
+      return found;
+    },
+
+    setStatus: function (id, status) {
+      var t = this.get(id);
+      if (t) t.status = status;
+    }
+  };
+
+  /* ======================================================================
+     T1 SCENARIO DATA
+     ====================================================================== */
+  var T1 = {
+
+    /* The ten pre-work lines. Collapsed by default, each with a result. */
+    prep: [
+      { key: 'jira',   label: 'Read Jira',                    result: 'AAVA-2841',
+        detail: 'Ticket, acceptance criteria and sprint pulled from the connected Jira project.' },
+      { key: 'figma',  label: 'Identified image from Figma',  result: 'Feedback Form v3',
+        detail: 'Matched the ticket to a frame in the product file. Open the evidence to see the design.' },
+      { key: 'play',   label: 'Verified PLAY components',     result: '6 needed',
+        detail: 'Broke the design into six components and checked each one against the PLAY library.' },
+      { key: 'build',  label: 'Identified build vs use',      result: '4 reused · 2 built',
+        detail: 'Four components already existed. Two did not, so I built them. They need their own PR into PLAY.' },
+      { key: 'api',    label: 'Verified API contract',        result: 'POST /api/v1/feedback',
+        detail: 'Endpoint is live and the schema matches what the form needs. No contract change required.' },
+      { key: 'repo',   label: 'Identified code from repo',    result: 'src/app/feedback/',
+        detail: 'Located the feature module and the routing entry the form belongs to.' },
+      { key: 'inject', label: 'Injected the feedback form',   result: '7 files changed',
+        detail: 'Built the Angular page, wired it to the endpoint, registered the route.' },
+      { key: 'tests',  label: 'Ran unit tests',               result: '11 passed · 87%',
+        detail: 'All specs pass. Coverage is above the 80% gate.' },
+      { key: 'checks', label: 'Checks passed',                result: 'build · lint · contract',
+        detail: 'Build clean, lint clean, response shape matches the contract. Three assumptions logged.' },
+      { key: 'ready',  label: 'Prep is ready',                result: 'awaiting your review',
+        detail: 'Nothing is pushed. Ask me to run it, or tell me what to change.' }
+    ],
+
+    /* Evidence panel — one block per line */
+    evidence: function () {
+      return [
+        this.evJira(), this.evFigma(), this.evPlay(), this.evBuild(), this.evApi(),
+        this.evRepo(), this.evInject(), this.evTests(), this.evChecks(), this.evReady()
+      ].join('');
+    },
+
+    block: function (key, name, src, body) {
+      return '<div class="ev" id="ev-' + key + '">' +
+             '<div class="ev__head"><span class="ev__name">' + name + '</span>' +
+             '<span class="ev__src">' + src + '</span></div>' +
+             '<div class="ev__body">' + body + '</div></div>';
+    },
+
+    evJira: function () {
+      return this.block('jira', 'Read Jira', 'Jira',
+        '<dl class="kv">' +
+        '<dt>Ticket</dt><dd>AAVA-2841</dd>' +
+        '<dt>Title</dt><dd>Add feedback form to AAVA</dd>' +
+        '<dt>Sprint</dt><dd>Sprint 34</dd>' +
+        '<dt>Acceptance</dt><dd>Rating 1–5 · comment up to 500 characters · success and error states</dd>' +
+        '<dt>Status</dt><dd>In Progress</dd>' +
+        '</dl>');
+    },
+
+    /* The Figma frame, rendered as an image. Click to open full size. */
+    figmaFrame: function () {
+      return '<svg viewBox="0 0 520 300" class="frame" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Feedback Form v3 design frame">' +
+        '<rect width="520" height="300" fill="#0B0D12"/>' +
+        '<rect x="130" y="24" width="260" height="252" rx="10" fill="#15181F" stroke="rgba(255,255,255,.1)"/>' +
+        '<rect x="150" y="46" width="112" height="12" rx="3" fill="rgba(255,255,255,.75)"/>' +
+        '<rect x="150" y="66" width="168" height="7" rx="3" fill="rgba(255,255,255,.22)"/>' +
+        '<rect x="150" y="94" width="54" height="7" rx="3" fill="rgba(255,255,255,.35)"/>' +
+        '<rect x="150" y="108" width="26" height="26" rx="6" fill="none" stroke="rgba(255,255,255,.22)"/>' +
+        '<rect x="182" y="108" width="26" height="26" rx="6" fill="none" stroke="rgba(255,255,255,.22)"/>' +
+        '<rect x="214" y="108" width="26" height="26" rx="6" fill="#55FF99" opacity=".85"/>' +
+        '<rect x="246" y="108" width="26" height="26" rx="6" fill="none" stroke="rgba(255,255,255,.22)"/>' +
+        '<rect x="278" y="108" width="26" height="26" rx="6" fill="none" stroke="rgba(255,255,255,.22)"/>' +
+        '<rect x="150" y="152" width="62" height="7" rx="3" fill="rgba(255,255,255,.35)"/>' +
+        '<rect x="150" y="166" width="220" height="58" rx="7" fill="none" stroke="rgba(255,255,255,.22)"/>' +
+        '<rect x="320" y="230" width="50" height="6" rx="3" fill="rgba(255,255,255,.18)"/>' +
+        '<rect x="150" y="244" width="86" height="26" rx="7" fill="rgba(255,255,255,.85)"/>' +
+        '<text x="24" y="34" fill="#6B7280" font-family="monospace" font-size="11">Feedback Form v3</text>' +
+        '</svg>';
+    },
+
+    evFigma: function () {
+      return this.block('figma', 'Identified image from Figma', 'Figma',
+        this.figmaFrame() +
+        '<p class="frame-caption">Feedback Form v3 · last modified 3 days ago · click to enlarge</p>');
+    },
+
+    evPlay: function () {
+      return this.block('play', 'Verified PLAY components', 'PLAY library',
+        'Design broken into six components, each checked against the library index.' +
+        '<div class="cols" style="margin-top:12px">' +
+        '<div><h5>Found</h5><ul class="use"><li>Input</li><li>Textarea</li><li>RatingScale</li><li>Button</li></ul></div>' +
+        '<div><h5>Missing</h5><ul class="build"><li>FormField</li><li>CharacterCounter</li></ul></div>' +
+        '</div>');
+    },
+
+    evBuild: function () {
+      return this.block('build', 'Identified build vs use', 'Decision',
+        'Reuse first. Only what the library could not cover was built.' +
+        '<dl class="kv" style="margin-top:12px">' +
+        '<dt>Reused</dt><dd>Input · Textarea · RatingScale · Button</dd>' +
+        '<dt>Built</dt><dd>FormField · CharacterCounter</dd>' +
+        '<dt>Destination</dt><dd>Separate PR into the PLAY library</dd>' +
+        '</dl>');
+    },
+
+    evApi: function () {
+      return this.block('api', 'Verified API contract', 'OpenAPI',
+        '<dl class="kv">' +
+        '<dt>Endpoint</dt><dd>POST /api/v1/feedback</dd>' +
+        '<dt>Request</dt><dd>{ rating: number, comment: string }</dd>' +
+        '<dt>Response</dt><dd>201 { id: string, createdAt: string }</dd>' +
+        '<dt>Status</dt><dd>Live · no contract change needed</dd>' +
+        '</dl>');
+    },
+
+    evRepo: function () {
+      return this.block('repo', 'Identified code from repo', 'Repo',
+        '<dl class="kv">' +
+        '<dt>Repo</dt><dd>aava-product</dd>' +
+        '<dt>Branch</dt><dd>feat/AAVA-2841-feedback-form</dd>' +
+        '<dt>Module</dt><dd>src/app/feedback/</dd>' +
+        '<dt>Route</dt><dd>/feedback registered in app.routes.ts</dd>' +
+        '</dl>');
+    },
+
+    evInject: function () {
+      return this.block('inject', 'Injected the feedback form', '7 files',
+        '<dl class="kv">' +
+        '<dt>Added</dt><dd>feedback-form.component.ts · .html · .scss · .spec.ts</dd>' +
+        '<dt>Added</dt><dd>feedback.service.ts</dd>' +
+        '<dt>Modified</dt><dd>feedback.module.ts · app.routes.ts</dd>' +
+        '</dl>');
+    },
+
+    evTests: function () {
+      return this.block('tests', 'Ran unit tests', 'Karma',
+        '11 specs, all passing. Coverage 87%, above the 80% gate. Full run is on the Tests tab.');
+    },
+
+    evChecks: function () {
+      return this.block('checks', 'Checks passed', 'Self-check',
+        '<dl class="kv">' +
+        '<dt>Build</dt><dd>Clean</dd>' +
+        '<dt>Lint</dt><dd>Clean</dd>' +
+        '<dt>Contract</dt><dd>Response shape matches</dd>' +
+        '<dt>Assumed</dt><dd>Comment required · rating starts unselected · form resets after submit</dd>' +
+        '</dl>');
+    },
+
+    evReady: function () {
+      return this.block('ready', 'Prep is ready', 'Status',
+        'Nothing has been pushed. Two PRs are staged and waiting on your approval.');
+    },
+
+    /* Code tab */
+    files: [
+      { name: 'feedback-form.component.html', changed: true, body:
+        '<form [formGroup]="form" (ngSubmit)="submit()">\n' +
+        '  <h3>How was your experience?</h3>\n\n' +
+        '  <play-rating-scale formControlName="rating"></play-rating-scale>\n\n' +
+        '  <play-form-field label="Comment">\n' +
+        '    <textarea formControlName="comment" maxlength="500"></textarea>\n' +
+        '    <play-character-counter [max]="500"></play-character-counter>\n' +
+        '  </play-form-field>\n\n' +
+        '  <play-button type="submit">Submit</play-button>\n' +
+        '</form>' },
+      { name: 'feedback-form.component.ts', body:
+        '@Component({\n' +
+        '  selector: \'app-feedback-form\',\n' +
+        '  templateUrl: \'./feedback-form.component.html\'\n' +
+        '})\n' +
+        'export class FeedbackFormComponent {\n' +
+        '  form = this.fb.group({\n' +
+        '    rating:  [null, Validators.required],\n' +
+        '    comment: [\'\', [Validators.required, Validators.maxLength(500)]]\n' +
+        '  });\n\n' +
+        '  submit() {\n' +
+        '    if (this.form.invalid) return;\n' +
+        '    this.api.send(this.form.value).subscribe(() => this.form.reset());\n' +
+        '  }\n' +
+        '}' },
+      { name: 'feedback.service.ts', body:
+        '@Injectable({ providedIn: \'root\' })\n' +
+        'export class FeedbackService {\n' +
+        '  send(payload: Feedback) {\n' +
+        '    return this.http.post<FeedbackResponse>(\'/api/v1/feedback\', payload);\n' +
+        '  }\n' +
+        '}' }
+    ],
+
+    specs: [
+      'creates the component', 'renders the rating scale', 'renders the comment field',
+      'requires a rating', 'requires a comment', 'caps the comment at 500 characters',
+      'counts characters as you type', 'posts to the feedback endpoint',
+      'shows the success state', 'shows the error state', 'resets after a successful submit'
+    ]
+  };
+
+  /* ======================================================================
+     TOAST
+     ====================================================================== */
+  var Toast = {
+    timer: null,
+    show: function (msg) {
+      var $t = $('#toast').text(msg).addClass('is-visible');
+      window.clearTimeout(this.timer);
+      this.timer = window.setTimeout(function () { $t.removeClass('is-visible'); }, 3400);
+    }
+  };
+
+  /* ======================================================================
+     STATE — home | chat | execute
+     ====================================================================== */
+  var State = {
+    current: 'home',
+    running: null,
+
+    go: function (next, task) {
+      this.current = next;
+      $('body').attr('data-state', next);
+
+      if (next === 'home') { this.running = null; Thread.clear(); }
+      if (next === 'chat') { this.running = null; TaskRail.render(); }
+      if (next === 'execute') { this.running = task.id; Playground.open(task); }
+
+      $('#tasksBtn').toggleClass('is-locked', next === 'execute');
+      Composer.focus();
+    },
+
+    isRunning: function () { return this.current === 'execute'; }
+  };
+
+  /* ======================================================================
+     THREAD — conversation
+     ====================================================================== */
+  var Thread = {
+    init: function () { this.$el = $('#thread'); },
+    clear: function () { this.$el.empty(); },
+
+    user: function (text) {
+      this.$el.append($('<div class="msg msg--user"></div>').text(text));
+      this.scroll();
+    },
+
+    /* AAVA turn. `html` is optional markup appended under the text. */
+    aava: function (lines, html, done) {
+      var self = this;
+      var $msg = $('<div class="msg msg--aava"><span class="msg__from">AAVA</span>' +
+                   '<div class="typing"><span></span><span></span><span></span></div></div>');
+      this.$el.append($msg);
+      this.scroll();
+
+      window.setTimeout(function () {
+        $msg.find('.typing').remove();
+        $.each([].concat(lines || []), function (_, line) {
+          $msg.append($('<p class="msg__text"></p>').text(line));
+        });
+        if (html) $msg.append(html);
+        self.scroll();
+        if (done) done();
+      }, pause(620));
+    },
+
+    scroll: function () {
+      var el = document.getElementById('stage');
+      window.setTimeout(function () {
+        el.scrollTo({ top: el.scrollHeight, behavior: REDUCED ? 'auto' : 'smooth' });
+      }, 30);
+    }
+  };
+
+  /* ======================================================================
+     PLAYGROUND
+     ====================================================================== */
+  var Playground = {
+    init: function () {
+      var self = this;
+
+      $('#pgClose').on('click', function () { State.go('chat'); });
+
+      $('.tabs').on('click', '.tab', function () {
+        if (this.disabled) return;
+        self.tab($(this).data('tab'));
+      });
+
+      // Figma frame opens full size
+      $('#panelEvidence').on('click', '.frame', function () {
+        $('<div class="lightbox"></div>').html(T1.figmaFrame()).appendTo('body')
+          .on('click', function () { $(this).remove(); });
+      });
+
+      this.buildCode();
+      this.buildTests();
+      this.buildPreview();
+    },
+
+    open: function (task) {
+      $('#pgTitle').text(task.title);
+      $('#pgState').removeClass('is-live is-shipped');
+      $('#pgStateText').text('Prep ready');
+
+      $('#panelEvidence').html(T1.evidence());
+
+      $('.tab[data-tab="preview"]').prop('disabled', true);
+      $('.tab[data-tab="diff"]').prop('disabled', true).find('.tab__badge').remove();
+      this.tab('evidence');
+    },
+
+    tab: function (name) {
+      $('.tab').removeClass('is-active').attr('aria-selected', 'false');
+      $('.tab[data-tab="' + name + '"]').addClass('is-active').attr('aria-selected', 'true');
+      $('.panel').removeClass('is-active');
+      $('.panel[data-panel="' + name + '"]').addClass('is-active');
+    },
+
+    /* Pull an evidence block into view and mark it */
+    focusEvidence: function (key) {
+      this.tab('evidence');
+      var $block = $('#ev-' + key);
+      if (!$block.length) return;
+      $('.ev').removeClass('is-focus');
+      $block.addClass('is-focus');
+      $block[0].scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+    },
+
+    /* ---- Code ---- */
+    buildCode: function () {
+      var $files = $('#codeFiles').empty();
+      $.each(T1.files, function (i, f) {
+        $files.append(
+          $('<button class="file" type="button"></button>')
+            .toggleClass('is-active', i === 0)
+            .attr('data-index', i)
+            .text(f.name)
+        );
+      });
+      this.showFile(0);
+
+      var self = this;
+      $files.on('click', '.file', function () {
+        $('.file').removeClass('is-active');
+        $(this).addClass('is-active');
+        self.showFile($(this).data('index'));
+      });
+    },
+
+    showFile: function (index) {
+      this.fileIndex = index;
+      var file = T1.files[index];
+      var body = file.body;
+
+      // After Beat 4 the submit line moves to the bottom and is highlighted
+      if (index === 0 && this.submitMoved) {
+        body = body.replace('\n  <play-button type="submit">Submit</play-button>\n', '\n');
+        body = body.replace('</play-form-field>\n', '</play-form-field>\n\n@@<play-button type="submit">Submit</play-button>@@\n');
+      }
+
+      var $pre = $('#codeBody').empty();
+      $.each(body.split('\n'), function (_, line) {
+        if (line.indexOf('@@') === 0) {
+          $pre.append($('<span class="hl"></span>').text('  ' + line.replace(/@@/g, '')));
+          $pre.append(document.createTextNode('\n'));
+        } else {
+          $pre.append(document.createTextNode(line + '\n'));
+        }
+      });
+    },
+
+    /* ---- Tests ---- */
+    buildTests: function () {
+      var $panel = $('#panelTests').empty();
+      var $list = $('<div class="ev"><div class="ev__head"><span class="ev__name">feedback-form.component.spec.ts</span>' +
+                    '<span class="ev__src">11 passed</span></div></div>');
+      $.each(T1.specs, function (i, spec) {
+        $list.append(
+          $('<div class="spec"><span class="spec__tick">✓</span></div>')
+            .append($('<span></span>').text(spec))
+            .append($('<span class="spec__time"></span>').text((8 + i * 3) + 'ms'))
+        );
+      });
+      $panel.append($list);
+      $panel.append('<div class="coverage"><span class="coverage__num">87%</span>' +
+                    '<div class="coverage__bar"><div class="coverage__fill"></div></div>' +
+                    '<span class="spec__time">gate 80%</span></div>');
+    },
+
+    /* ---- Preview: a real, interactive mock app ---- */
+    buildPreview: function () {
+      $('#previewApp').html(
+        '<div class="app-form" id="appForm">' +
+          '<h3>How was your experience?</h3>' +
+          '<p class="sub">Your feedback goes straight to the product team.</p>' +
+          '<div class="actions"><button class="submit" type="button" id="appSubmit">Submit</button></div>' +
+          '<div class="field"><label>Rating</label><div class="rate" id="appRate">' +
+            '<button type="button">1</button><button type="button">2</button>' +
+            '<button type="button">3</button><button type="button">4</button>' +
+            '<button type="button">5</button>' +
+          '</div></div>' +
+          '<div class="field"><label>Comment</label>' +
+            '<textarea rows="3" id="appComment" maxlength="500"></textarea>' +
+            '<div class="counter" id="appCount">0 / 500</div>' +
+          '</div>' +
+        '</div>'
+      );
+
+      $('#appRate').on('click', 'button', function () {
+        $('#appRate button').removeClass('is-on');
+        $(this).addClass('is-on');
+      });
+
+      $('#previewApp').on('input', '#appComment', function () {
+        $('#appCount').text($(this).val().length + ' / 500');
+      });
+
+      $('#previewApp').on('click', '#appSubmit', function () {
+        if (!$('#appRate .is-on').length || !$.trim($('#appComment').val())) {
+          Toast.show('Rating and comment are both required — that is one of the assumptions.');
+          return;
+        }
+        $('#previewApp').html('<div class="app-ok">Thanks — your feedback was submitted. ' +
+                              '(Stubbed response, not the live endpoint.)</div>');
+      });
+    },
+
+    /* ---- Terminal ---- */
+    term: function (lines, done) {
+      var $t = $('#terminal');
+      var i = 0;
+
+      (function next() {
+        if (i >= lines.length) { if (done) done(); return; }
+        var line = lines[i++];
+        $t.append($('<div></div>').addClass(line[0]).text(line[1]));
+        $t.scrollTop($t[0].scrollHeight);
+        window.setTimeout(next, pause(line[2] || 420));
+      })();
+    }
+  };
+
+  /* ======================================================================
+     T1 BEATS — the scripted scenario
+     ====================================================================== */
+  var Beats = {
+
+    /* Beat 1 — the pre-work list */
+    prep: function () {
+      var $list = $('<div class="prep"></div>');
+
+      $.each(T1.prep, function (i, item) {
+        $list.append(
+          $('<div class="prep__row"></div>').attr('data-key', item.key).append(
+            $('<button class="prep__head" type="button"></button>')
+              .append('<span class="prep__tick" aria-hidden="true"></span>')
+              .append($('<span class="prep__label"></span>').text((i + 1) + '. ' + item.label))
+              .append($('<span class="prep__result"></span>').text(item.result))
+              .append('<svg class="prep__chev" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">' +
+                      '<path d="m9.5 5 6.5 7-6.5 7" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+                      'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+          ).append(
+            $('<div class="prep__detail"></div>')
+              .append($('<span></span>').text(item.detail))
+              .append('<br><button class="prep__open" type="button">Open evidence</button>')
+          )
+        );
+      });
+
+      Thread.aava(['I have done some pre-work.'], $list, function () {
+        Thread.aava(['Nothing is pushed. Ask me to run it when you want to see it.']);
+      });
+    },
+
+    /* Beat 2 — show me the output */
+    run: function () {
+      $('.tab[data-tab="preview"]').prop('disabled', false);
+      Playground.tab('preview');
+      $('#pgState').addClass('is-live');
+      $('#pgStateText').text('Running');
+
+      $('#terminal').empty();
+      Playground.term([
+        ['cmd', '$ npm install', 500],
+        ['dim', 'up to date, 1284 packages in 2.1s', 600],
+        ['cmd', '$ npm run start', 500],
+        ['dim', 'Building...', 900],
+        ['ok',  '✓ Browser application bundle generation complete.', 500],
+        ['ok',  '✓ Compiled successfully.', 400],
+        ['dim', '→ Local: http://localhost:4200', 300]
+      ]);
+
+      Thread.aava([
+        'Starting the dev server.',
+        'Running on :4200. It is live — type in it and submit it. Submissions hit a stubbed response, not the real endpoint.'
+      ]);
+    },
+
+    /* Beat 3 — what is done and what is not */
+    coverage: function () {
+      var html =
+        '<div class="blocks">' +
+          this.block('Done', ['Form layout matching the Figma frame', 'Rating scale, 1–5',
+            'Comment field with a 500 character limit', 'POST to the feedback endpoint',
+            'Success and error states', '11 unit specs']) +
+          this.block('Not done', ['File attachments — in the Figma frame, not in the acceptance criteria',
+            'Anonymous submission — no field in the API contract. Blocked on the platform team.']) +
+          this.block('I assumed', ['The comment field is required',
+            'Rating starts unselected rather than at 3',
+            'The form resets after a successful submit'], 'assumed') +
+          this.block('Open scenarios', ['Empty submit', 'Network failure mid-submit',
+            'Character limit hit exactly', 'Duplicate submit from a double click']) +
+        '</div>';
+
+      Thread.aava([], $(html));
+    },
+
+    block: function (title, items, modifier) {
+      var lis = $.map(items, function (i) { return '<li>' + i + '</li>'; }).join('');
+      return '<div class="block' + (modifier ? ' block--' + modifier : '') + '">' +
+             '<h4 class="block__title">' + title + '</h4><ul>' + lis + '</ul></div>';
+    },
+
+    /* Beat 4 — move the submit button */
+    move: function () {
+      Thread.aava(['Moving Submit below the comment field. One file — feedback-form.component.html.'], null, function () {
+
+        Playground.submitMoved = true;
+        $('.file').removeClass('is-active').eq(0).addClass('is-active');
+        if (!$('.file').eq(0).find('.mark').length) $('.file').eq(0).append('<span class="mark">●</span>');
+        Playground.showFile(0);
+        Playground.tab('code');
+
+        window.setTimeout(function () {
+          $('#appForm').addClass('is-bottom');
+          Playground.term([['ok', '✓ Compiled successfully. Reloading...', 300]]);
+          Beats.buildDiff();
+          $('.tab[data-tab="diff"]').prop('disabled', false);
+          if (!$('.tab[data-tab="diff"] .tab__badge').length) {
+            $('.tab[data-tab="diff"]').append('<span class="tab__badge">1</span>');
+          }
+          Playground.tab('preview');
+          Thread.aava(['Done. Reloaded — check the preview. Tests still pass.']);
+        }, pause(1100));
+      });
+    },
+
+    buildDiff: function () {
+      $('#panelDiff').html(
+        '<div class="diffgroup">' +
+          '<div class="diffgroup__head"><span class="diffgroup__repo">PLAY component library</span>' +
+          '<span class="diffgroup__branch">feat/play-formfield-charactercounter</span></div>' +
+          '<div class="difffile">+ src/lib/form-field/form-field.component.ts</div>' +
+          '<div class="difffile">+ src/lib/character-counter/character-counter.component.ts</div>' +
+        '</div>' +
+        '<div class="diffgroup">' +
+          '<div class="diffgroup__head"><span class="diffgroup__repo">Product</span>' +
+          '<span class="diffgroup__branch">feat/AAVA-2841-feedback-form</span></div>' +
+          '<div class="difffile">~ src/app/feedback/feedback-form.component.html</div>' +
+          '<div class="diffline ctx">  &lt;/play-form-field&gt;</div>' +
+          '<div class="diffline del">- &lt;play-button type="submit"&gt;Submit&lt;/play-button&gt;  (was above the fields)</div>' +
+          '<div class="diffline add">+ &lt;play-button type="submit"&gt;Submit&lt;/play-button&gt;  (now below)</div>' +
+          '<div class="difffile">+ 6 more files</div>' +
+        '</div>'
+      );
+    },
+
+    /* Beat 5 — raise the PRs */
+    ship: function () {
+      var $confirm = $(
+        '<div class="confirm">' +
+          '<div class="confirm__row"><span class="confirm__repo">PLAY</span>' +
+            '<span class="confirm__branch">feat/play-formfield-charactercounter → main</span>' +
+            '<span class="confirm__what">FormField, CharacterCounter</span></div>' +
+          '<div class="confirm__row"><span class="confirm__repo">Product</span>' +
+            '<span class="confirm__branch">feat/AAVA-2841-feedback-form → develop</span>' +
+            '<span class="confirm__what">Feedback page, API integration, 11 specs passing</span></div>' +
+          '<div class="confirm__actions">' +
+            '<button class="btn btn--primary" type="button" id="doShip">Raise both PRs</button>' +
+            '<button class="btn" type="button" id="cancelShip">Not yet</button>' +
+          '</div>' +
+        '</div>'
+      );
+
+      Thread.aava(['Two PRs, two repos. Both linked to AAVA-2841. Confirm and I will raise them.'], $confirm);
+    },
+
+    shipped: function () {
+      $('#pgState').removeClass('is-live').addClass('is-shipped');
+      $('#pgStateText').text('In review');
+      Store.setStatus('T1', 'done');
+      TaskRail.render();
+      TaskWindow.render();
+
+      Thread.aava(['Both raised.'], $(
+        '<div class="links">' +
+          '<a href="#">PLAY → PR #218</a>' +
+          '<a href="#">Product → PR #1043</a>' +
+        '</div>'
+      ), function () {
+        Thread.aava(['AAVA-2841 moved to In Review. This thread is saved — reopen it from the sidebar any time.']);
+      });
+    },
+
+    /* Route what Dev types to a beat */
+    route: function (text) {
+      var q = text.toLowerCase();
+
+      if (/\b(pr|raise|ship|merge|approve|push)\b/.test(q)) { this.ship(); return true; }
+      if (/(move|bottom|below|reorder)/.test(q))            { this.move(); return true; }
+      if (/(done|not done|cover|scenario|missing|gap|assum)/.test(q)) { this.coverage(); return true; }
+      if (/(run|show|output|preview|see it|live|npm)/.test(q)) { this.run(); return true; }
+      return false;
+    }
+  };
+
+  /* ======================================================================
+     COMPOSER
+     ====================================================================== */
+  var Composer = {
+    init: function () {
+      this.$form  = $('#composer');
+      this.$input = $('#prompt');
+      this.$send  = $('#send');
+
+      this.$input
+        .on('input',   $.proxy(this.onInput, this))
+        .on('focus',   function () { Composer.$form.addClass('is-focused'); })
+        .on('blur',    function () { Composer.$form.removeClass('is-focused'); })
+        .on('keydown', $.proxy(this.onKeydown, this));
+
+      $('#thinkHarder').on('click', function () {
+        var on = $(this).attr('aria-pressed') === 'true';
+        $(this).attr('aria-pressed', String(!on));
+      });
+
+      this.$form.on('submit', $.proxy(this.onSubmit, this));
+    },
+
+    onInput: function () {
+      var el = this.$input[0];
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+      this.$send.prop('disabled', !this.value());
+    },
+
+    onKeydown: function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.$form.trigger('submit'); }
+    },
+
+    onSubmit: function (e) {
+      e.preventDefault();
+      var text = this.value();
+      if (!text) return;
+
+      // Flow 1 — typing from Start moves into conversation
+      if (State.current === 'home') State.go('chat');
+
+      Thread.user(text);
+      this.reset();
+
+      if (State.isRunning() && Beats.route(text)) return;
+      Thread.aava(this.reply(text));
+    },
+
+    reply: function (text) {
+      var q = text.toLowerCase();
+
+      if (State.isRunning()) {
+        return ['I can run it, show you what is covered, change something, or raise the PRs. Say which.'];
+      }
+      if (/(why|recommend|first)/.test(q)) {
+        return ['T1 is first because every dependency is resolved. T2 is waiting on two answers from the platform team, and T3 needs a maintenance window.'];
+      }
+      return ['One task is partly done, one is waiting on clarifications, one has not started. Pick any of them and I will take it into the playground.'];
+    },
+
+    value: function () { return $.trim(this.$input.val()); },
+    reset: function () { this.$input.val('').trigger('input'); },
+    focus: function () { this.$input.trigger('focus'); },
+    fill:  function (t) { this.$input.val(t).trigger('input').trigger('focus'); }
+  };
+
+  /* ======================================================================
+     TASK CARDS + ROWS
+     ====================================================================== */
+  function priorityTag(task) {
+    return '<span class="tag tag--' + task.priority.toLowerCase() + '">' + task.priority + '</span>';
+  }
+
+  function depTag(task) {
+    var blocked = task.dep !== 'None';
+    return '<span class="tag' + (blocked ? ' tag--blocked' : '') + '">' +
+           (blocked ? 'Blocked · ' + task.dep : 'No dependency') + '</span>';
+  }
+
+  var Cards = {
+    render: function () {
+      var $wrap = $('#homeTasks').empty();
+
+      $.each(Store.tasks.slice(0, 3), function (_, task) {
+        $wrap.append(
+          $('<article class="task" tabindex="0"></article>')
+            .attr('data-task', task.id)
+            .toggleClass('task--recommended', !!task.recommended)
+            .append(
+              $('<div class="task__body"></div>')
+                .append($('<h2 class="task__title"></h2>').text(task.title))
+                .append(
+                  $('<div class="task__foot"></div>')
+                    .append(
+                      $('<p class="task__meta"></p>')
+                        .append('<span class="dot dot--' + task.status + '"></span>')
+                        .append($('<span></span>').text(Store.labels[task.status]))
+                        .append('<span class="task__sep"></span>')
+                        .append($('<span class="task__est"></span>').text(task.est))
+                    )
+                    .append('<div class="task__tags">' + priorityTag(task) + depTag(task) + '</div>')
+                )
+            )
+        );
+      });
+
+      $('#heroSub').text('Based on your work, I\u2019ve identified three tasks that are ready for your attention.');
+    }
+  };
+
+  function taskRow(task) {
+    return $('<button class="trow" type="button"></button>')
+      .attr('data-task', task.id)
+      .toggleClass('is-done', task.status === 'done')
+      .append($('<span class="trow__title"></span>').text(task.title))
+      .append(
+        $('<span class="trow__meta"></span>')
+          .append('<span class="dot dot--' + task.status + '"></span>')
+          .append($('<span></span>').text(Store.labels[task.status]))
+          .append('<span class="task__sep"></span>')
+          .append($('<span></span>').text(task.priority))
+      );
+  }
+
+  /* ======================================================================
+     TASK RAIL
+     ====================================================================== */
+  var TaskRail = {
+    init: function () {
+      var self = this;
+      $('#tasklistToggle').on('click', function () { self.collapse(true); });
+      $('#tasklistStub').on('click',   function () { self.collapse(false); });
+      $('#tasklistBody').on('click', '.trow', function () { Tasks.open($(this).data('task')); });
+      this.render();
+    },
+
+    collapse: function (yes) {
+      $('#tasklist').toggleClass('is-collapsed', yes);
+      $('#tasklistToggle').attr('aria-expanded', String(!yes));
+    },
+
+    render: function () {
+      var $body = $('#tasklistBody').empty();
+      $.each(Store.tasks, function (_, task) { $body.append(taskRow(task)); });
+      $('#stubCount').text(Store.tasks.length);
+    }
+  };
+
+  /* ======================================================================
+     TASK WINDOW — lean kanban
+     ====================================================================== */
+  var TaskWindow = {
+    init: function () {
+      var self = this;
+      $('#tasksBtn').on('click', function () { self.open(); });
+      $('#twClose, #scrim').on('click', function () { self.close(); Threads.close(); });
+      $('#kanban').on('click', '.kcard', function () { Tasks.open($(this).data('task')); });
+      this.render();
+    },
+
+    open: function () {
+      var locked = State.isRunning();
+
+      if (locked) {
+        var task = Store.get(State.running);
+        $('#twRunning').text(task ? task.title : 'the current task');
+        Toast.show('One task runs at a time.');
+      }
+
+      $('#twNotice').prop('hidden', !locked);
+      $('#taskwindow').toggleClass('is-locked', locked).prop('hidden', false);
+      $('#scrim').prop('hidden', false);
+      $('#tasksBtn').attr('aria-expanded', 'true');
+      this.render();
+    },
+
+    close: function () {
+      $('#taskwindow').prop('hidden', true);
+      if ($('#threads').prop('hidden')) $('#scrim').prop('hidden', true);
+      $('#tasksBtn').attr('aria-expanded', 'false');
+    },
+
+    isOpen: function () { return !$('#taskwindow').prop('hidden'); },
+
+    render: function () {
+      var $k = $('#kanban').empty();
+      $('#twCount').text(Store.tasks.length);
+
+      $.each(Store.columns, function (_, col) {
+        var rows = $.grep(Store.tasks, function (t) { return t.status === col.key; });
+
+        var $col = $('<div class="col"></div>').append(
+          $('<div class="col__head"></div>')
+            .append($('<span></span>').text(col.name))
+            .append($('<span class="col__count"></span>').text(rows.length))
+        );
+
+        var $body = $('<div class="col__body"></div>');
+
+        if (!rows.length) {
+          $body.append('<div class="col__empty">Empty</div>');
+        } else {
+          $.each(rows, function (_, task) {
+            $body.append(
+              $('<button class="kcard" type="button"></button>')
+                .attr('data-task', task.id)
+                .toggleClass('is-running', State.running === task.id)
+                .append($('<span class="kcard__title"></span>').text(task.title))
+                .append('<div class="kcard__tags">' + priorityTag(task) +
+                        '<span class="kcard__est">' + task.est + '</span></div>')
+            );
+          });
+        }
+
+        $k.append($col.append($body));
+      });
+    }
+  };
+
+  /* ======================================================================
+     THREADS — resumable sessions
+     ====================================================================== */
+  var Threads = {
+    init: function () {
+      var self = this;
+      $('#threadsBtn').on('click', function () { self.open(); });
+      $('#thClose').on('click', function () { self.close(); });
+      $('#threadsList').on('click', '.throw', function () {
+        self.close();
+        Toast.show('Resuming — memory and evidence come back with the thread.');
+      });
+    },
+
+    open: function () {
+      this.render();
+      $('#threads').prop('hidden', false);
+      $('#scrim').prop('hidden', false);
+    },
+
+    close: function () {
+      $('#threads').prop('hidden', true);
+      if ($('#taskwindow').prop('hidden')) $('#scrim').prop('hidden', true);
+    },
+
+    isOpen: function () { return !$('#threads').prop('hidden'); },
+
+    add: function (kind, title) {
+      Store.threads.unshift({ kind: kind, title: title, when: 'Just now' });
+    },
+
+    render: function () {
+      var $list = $('#threadsList').empty();
+      $.each(Store.threads, function (_, t) {
+        $list.append(
+          $('<button class="throw" type="button"></button>')
+            .append($('<span class="throw__kind"></span>').addClass(t.kind === 'task' ? 'is-task' : '').text(t.kind))
+            .append($('<span class="throw__title"></span>').text(t.title))
+            .append($('<span class="throw__when"></span>').text(t.when))
+        );
+      });
+    }
+  };
+
+  /* ======================================================================
+     TASKS — pick and execute
+     ====================================================================== */
+  var Tasks = {
+    init: function () {
+      $('#homeTasks').on('click', '.task', function () { Tasks.open($(this).data('task')); });
+      $('#homeTasks').on('keydown', '.task', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $(this).trigger('click'); }
+      });
+
+      // A prep line expands, and pulls its evidence into the playground
+      $('#thread').on('click', '.prep__head', function () {
+        $(this).closest('.prep__row').toggleClass('is-open');
+      });
+      $('#thread').on('click', '.prep__open', function () {
+        Playground.focusEvidence($(this).closest('.prep__row').data('key'));
+      });
+
+      $('#thread').on('click', '#doShip',     function () { $(this).closest('.confirm').remove(); Beats.shipped(); });
+      $('#thread').on('click', '#cancelShip', function () { $(this).closest('.confirm').remove(); });
+    },
+
+    open: function (id) {
+      if (State.isRunning()) {
+        Toast.show('One task runs at a time. Close the playground to start another.');
+        return;
+      }
+
+      var task = Store.get(id);
+      if (!task) return;
+
+      TaskWindow.close();
+      Threads.add('task', task.id + ' · ' + task.title);
+
+      if (task.status !== 'done') Store.setStatus(id, 'wip');
+      TaskRail.render();
+
+      Thread.user('Let\u2019s work on: ' + task.title);
+      State.go('execute', task);
+
+      // T1 is the modelled scenario. Others get the shell only.
+      if (id === 'T1') {
+        Beats.prep();
+      } else {
+        Thread.aava(['I have not done the pre-work for this one yet. T1 is the modelled scenario in this prototype.']);
+      }
+    }
+  };
+
+  /* ======================================================================
+     AMBIENT
+     ====================================================================== */
+  var Ambient = {
+    DEPTH: { navy: 22, violet: -16 },
+
+    init: function () {
+      if (REDUCED) return;
+      this.$navy = $('.ambient__navy');
+      this.$violet = $('.ambient__violet');
+      this.frame = null;
+      $(document).on('mousemove', $.proxy(this.onMove, this));
+    },
+
+    onMove: function (e) {
+      if (this.frame) return;
+      var x = (e.clientX / window.innerWidth) - 0.5;
+      var y = (e.clientY / window.innerHeight) - 0.5;
+      var self = this;
+
+      this.frame = window.requestAnimationFrame(function () {
+        self.$navy.css('margin',   (y * self.DEPTH.navy)   + 'px ' + (x * self.DEPTH.navy)   + 'px');
+        self.$violet.css('margin', (y * self.DEPTH.violet) + 'px ' + (x * self.DEPTH.violet) + 'px');
+        self.frame = null;
+      });
+    }
+  };
+
+  /* ======================================================================
+     BOOT
+     ====================================================================== */
+  $(function () {
+    Thread.init();
+    Cards.render();
+    Composer.init();
+    Tasks.init();
+    TaskRail.init();
+    TaskWindow.init();
+    Threads.init();
+    Playground.init();
+    Ambient.init();
+
+    $('#home, #brandHome').on('click', function (e) {
+      e.preventDefault();
+      TaskWindow.close();
+      Threads.close();
+      State.go('home');
+    });
+
+    $(document).on('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if ($('.lightbox').length)  { $('.lightbox').remove(); return; }
+      if (Threads.isOpen())       { Threads.close(); return; }
+      if (TaskWindow.isOpen())    { TaskWindow.close(); return; }
+      if (State.isRunning())      { State.go('chat'); }
+    });
+  });
+
+})(jQuery);
+
+</script>
+</body>
+</html>

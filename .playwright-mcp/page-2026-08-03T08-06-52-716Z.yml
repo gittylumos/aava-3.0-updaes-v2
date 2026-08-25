@@ -1,0 +1,37 @@
+- generic [ref=f2e3]:
+  - navigation "Primary" [ref=f2e4]:
+    - button "AAVA home" [ref=f2e5]
+    - button "Search" [ref=f2e8]
+    - button "Threads" [ref=f2e12]
+    - button "Pinned" [ref=f2e15]
+    - button "Dev — account" [ref=f2e18]: D
+  - generic [ref=f2e19]:
+    - banner [ref=f2e20]:
+      - button "AAVA 3.0" [ref=f2e21]:
+        - text: AAVA
+        - generic [ref=f2e22]: "3.0"
+      - generic [ref=f2e23]:
+        - button "Notifications" [ref=f2e24]
+        - button "Tasks" [ref=f2e28]
+    - main [ref=f2e33]:
+      - generic [ref=f2e34]:
+        - generic [ref=f2e35]:
+          - heading "Good morning, Dev" [level=1] [ref=f2e36]
+          - paragraph [ref=f2e37]: Three tasks are ready for your attention. One of them I've already prepared end to end.
+        - generic [ref=f2e38]:
+          - button "Add feedback form to AAVA Partially done · 2 hrs" [ref=f2e40]:
+            - heading "Add feedback form to AAVA" [level=2] [ref=f2e41]
+            - generic [ref=f2e42]: Partially done · 2 hrs
+          - button "Create PRD for Rate Limiting for Engineers Awaiting clarifications · 1.5 hrs" [ref=f2e45]:
+            - heading "Create PRD for Rate Limiting for Engineers" [level=2] [ref=f2e46]
+            - generic [ref=f2e47]: Awaiting clarifications · 1.5 hrs
+          - button "Migrate data from MySQL to MongoDB (NoSQL) Pending · 3 hrs" [ref=f2e50]:
+            - heading "Migrate data from MySQL to MongoDB (NoSQL)" [level=2] [ref=f2e51]
+            - generic [ref=f2e52]: Pending · 3 hrs
+    - generic [ref=f2e56]:
+      - generic [ref=f2e57]: Message AAVA
+      - textbox "Message AAVA" [ref=f2e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f2e59]:
+        - button "Think Harder" [ref=f2e60]
+        - button "Send message" [disabled] [ref=f2e61]

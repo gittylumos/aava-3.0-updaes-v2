@@ -1,0 +1,120 @@
+- generic [ref=f3e3]:
+  - navigation "Primary" [ref=f3e4]:
+    - button "AAVA home" [ref=f3e5] [cursor=pointer]
+    - button "Search" [ref=f3e8] [cursor=pointer]
+    - button "Threads" [ref=f3e12] [cursor=pointer]
+    - button "Pinned" [ref=f3e15] [cursor=pointer]
+    - button "Dev — account" [ref=f3e18] [cursor=pointer]: D
+  - generic [ref=f3e19]:
+    - banner [ref=f3e20]:
+      - button "AAVA 3.0" [ref=f3e21] [cursor=pointer]:
+        - text: AAVA
+        - generic [ref=f3e22]: "3.0"
+      - generic [ref=f3e23]:
+        - button "Notifications" [ref=f3e24] [cursor=pointer]
+        - button "Tasks" [ref=f3e28] [cursor=pointer]
+    - main [ref=f3e33]:
+      - generic [ref=f3e64]:
+        - log "Conversation" [ref=f3e67]:
+          - generic [ref=f3e68]: "Let's work on: Add feedback form to AAVA"
+          - generic [ref=f3e69]:
+            - paragraph [ref=f3e70]: AAVA
+            - paragraph [ref=f3e238]: I have done some pre-work.
+            - generic [ref=f3e239]:
+              - button "✓ 1 Read Jira AAVA-2841" [ref=f3e241] [cursor=pointer]:
+                - generic [ref=f3e242]: ✓
+                - generic [ref=f3e243]: "1"
+                - generic [ref=f3e244]: Read Jira
+                - generic [ref=f3e245]: AAVA-2841
+              - button "✓ 2 Identified image from Figma Feedback Form v3" [ref=f3e249] [cursor=pointer]:
+                - generic [ref=f3e250]: ✓
+                - generic [ref=f3e251]: "2"
+                - generic [ref=f3e252]: Identified image from Figma
+                - generic [ref=f3e253]: Feedback Form v3
+              - button "✓ 3 Verified PLAY components 6 needed" [ref=f3e257] [cursor=pointer]:
+                - generic [ref=f3e258]: ✓
+                - generic [ref=f3e259]: "3"
+                - generic [ref=f3e260]: Verified PLAY components
+                - generic [ref=f3e261]: 6 needed
+              - button "✓ 4 Identified build vs use 4 reused · 2 built" [ref=f3e265] [cursor=pointer]:
+                - generic [ref=f3e266]: ✓
+                - generic [ref=f3e267]: "4"
+                - generic [ref=f3e268]: Identified build vs use
+                - generic [ref=f3e269]: 4 reused · 2 built
+              - button "✓ 5 Verified API contract POST /api/v1/feedback" [ref=f3e273] [cursor=pointer]:
+                - generic [ref=f3e274]: ✓
+                - generic [ref=f3e275]: "5"
+                - generic [ref=f3e276]: Verified API contract
+                - generic [ref=f3e277]: POST /api/v1/feedback
+              - button "✓ 6 Identified code from repo src/app/feedback/" [ref=f3e281] [cursor=pointer]:
+                - generic [ref=f3e282]: ✓
+                - generic [ref=f3e283]: "6"
+                - generic [ref=f3e284]: Identified code from repo
+                - generic [ref=f3e285]: src/app/feedback/
+              - button "✓ 7 Injected the feedback form 7 files changed" [ref=f3e289] [cursor=pointer]:
+                - generic [ref=f3e290]: ✓
+                - generic [ref=f3e291]: "7"
+                - generic [ref=f3e292]: Injected the feedback form
+                - generic [ref=f3e293]: 7 files changed
+              - button "✓ 8 Ran unit tests 11 passed · 87%" [ref=f3e297] [cursor=pointer]:
+                - generic [ref=f3e298]: ✓
+                - generic [ref=f3e299]: "8"
+                - generic [ref=f3e300]: Ran unit tests
+                - generic [ref=f3e301]: 11 passed · 87%
+              - button "✓ 9 Checks passed build · lint · contract" [ref=f3e305] [cursor=pointer]:
+                - generic [ref=f3e306]: ✓
+                - generic [ref=f3e307]: "9"
+                - generic [ref=f3e308]: Checks passed
+                - generic [ref=f3e309]: build · lint · contract
+              - button "✓ 10 Prep is ready awaiting your review" [ref=f3e313] [cursor=pointer]:
+                - generic [ref=f3e314]: ✓
+                - generic [ref=f3e315]: "10"
+                - generic [ref=f3e316]: Prep is ready
+                - generic [ref=f3e317]: awaiting your review
+          - generic [ref=f3e320]:
+            - paragraph [ref=f3e321]: AAVA
+            - paragraph [ref=f3e322]: Nothing is pushed. Ask me to run it when you want to see it.
+          - generic [ref=f3e326]: Run it and show me the output
+        - region "Playground" [ref=f3e76]:
+          - generic [ref=f3e77]:
+            - generic [ref=f3e78]:
+              - paragraph [ref=f3e79]: Playground
+              - heading "Add feedback form to AAVA" [level=2] [ref=f3e80]
+            - generic [ref=f3e81]:
+              - generic [ref=f3e82]: Running
+              - button "Close playground" [ref=f3e84] [cursor=pointer]: ✕
+          - generic [ref=f3e85]:
+            - tablist [ref=f3e86]:
+              - tab "Evidence" [ref=f3e87] [cursor=pointer]
+              - tab "Preview" [selected] [ref=f3e327] [cursor=pointer]
+              - tab "Code" [ref=f3e88] [cursor=pointer]
+              - tab "Tests" [ref=f3e89] [cursor=pointer]
+              - tab "Diff" [disabled]
+            - tabpanel "Preview" [ref=f3e328]:
+              - generic [ref=f3e329]:
+                - generic [ref=f3e330]:
+                  - generic [ref=f3e331]: localhost:4200
+                  - generic [ref=f3e338]:
+                    - heading "How was your experience?" [level=3] [ref=f3e339]
+                    - paragraph [ref=f3e340]: Your feedback goes straight to the product team.
+                    - button "Submit" [ref=f3e342] [cursor=pointer]
+                    - generic [ref=f3e343]:
+                      - generic [ref=f3e344]: Rating
+                      - generic [ref=f3e345]:
+                        - button "1" [ref=f3e346] [cursor=pointer]
+                        - button "2" [ref=f3e347] [cursor=pointer]
+                        - button "3" [ref=f3e348] [cursor=pointer]
+                        - button "4" [ref=f3e349] [cursor=pointer]
+                        - button "5" [ref=f3e350] [cursor=pointer]
+                    - generic [ref=f3e351]:
+                      - generic [ref=f3e352]: Comment
+                      - textbox [ref=f3e353]
+                      - generic [ref=f3e354]: 0 / 500
+                - generic [ref=f3e355]: $ npm install
+    - generic [ref=f3e56]:
+      - generic [ref=f3e57]: Message AAVA
+      - textbox "Message AAVA" [ref=f3e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f3e59]:
+        - button "Think Harder" [ref=f3e60] [cursor=pointer]
+        - button "Send message" [disabled] [ref=f3e61] [cursor=pointer]

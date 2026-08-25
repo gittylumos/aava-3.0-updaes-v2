@@ -1,0 +1,29 @@
+[     108ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:14333
+[ 2469005ms] [ERROR] [vite] ReferenceError: prefersReducedMotion is not defined
+    at http://localhost:5174/src/state/useJourney.ts?t=1785748779267:4:17 @ http://localhost:5174/@vite/client:528
+[ 2469009ms] [ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5174/@vite/client:528
+[ 2476841ms] [ERROR] React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ App 1. useReducer                 useReducer
+2. useRef                     useRef
+3. useEffect                  useRef
+ @ http://localhost:5174/@vite/client:528
+[ 2476850ms] Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:4325:12)
+    at updateEffectImpl (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:4849:15)
+    at Object.useEffect (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:13249:5)
+    at exports.useEffect (http://localhost:5174/node_modules/.vite/deps/react.js?v=657e0bc2:716:31)
+    at App (http://localhost:5174/src/App.tsx?t=1785748787103:30:2)
+    at Object.react_stack_bottom_frame (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:12864:12)
+    at renderWithHooks (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:4211:19)
+    at updateFunctionComponent (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:5567:16)
+    at beginWork (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:6138:20)
+    at runWithFiberInDEV (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:850:66)
+[ 2476847ms] [WARNING] %s
+
+%s
+ An error occurred in the <App> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5174/@vite/client:528

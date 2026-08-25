@@ -1,0 +1,186 @@
+- generic [ref=f4e3]:
+  - navigation "Primary" [ref=f4e4]:
+    - button "AAVA home" [ref=f4e5] [cursor=pointer]
+    - button "Search" [ref=f4e8] [cursor=pointer]
+    - button "Threads" [ref=f4e12] [cursor=pointer]
+    - button "Pinned" [ref=f4e15] [cursor=pointer]
+    - button "Dev — account" [ref=f4e18] [cursor=pointer]: D
+  - generic [ref=f4e19]:
+    - banner [ref=f4e20]:
+      - button "AAVA 3.0" [ref=f4e21] [cursor=pointer]:
+        - text: AAVA
+        - generic [ref=f4e22]: "3.0"
+      - generic [ref=f4e23]:
+        - button "Notifications" [ref=f4e24] [cursor=pointer]
+        - button "Tasks" [ref=f4e28] [cursor=pointer]
+    - main [ref=f4e33]:
+      - generic [ref=f4e64]:
+        - log "Conversation" [ref=f4e67]:
+          - generic [ref=f4e68]: "Let's work on: Add feedback form to AAVA"
+          - generic [ref=f4e69]:
+            - paragraph [ref=f4e70]: AAVA
+            - paragraph [ref=f4e71]: I have done some pre-work.
+            - generic [ref=f4e72]:
+              - button "✓ 1 Read Jira AAVA-2841" [ref=f4e74] [cursor=pointer]:
+                - generic [ref=f4e75]: ✓
+                - generic [ref=f4e76]: "1"
+                - generic [ref=f4e77]: Read Jira
+                - generic [ref=f4e78]: AAVA-2841
+              - button "✓ 2 Identified image from Figma Feedback Form v3" [ref=f4e82] [cursor=pointer]:
+                - generic [ref=f4e83]: ✓
+                - generic [ref=f4e84]: "2"
+                - generic [ref=f4e85]: Identified image from Figma
+                - generic [ref=f4e86]: Feedback Form v3
+              - button "✓ 3 Verified PLAY components 6 needed" [ref=f4e90] [cursor=pointer]:
+                - generic [ref=f4e91]: ✓
+                - generic [ref=f4e92]: "3"
+                - generic [ref=f4e93]: Verified PLAY components
+                - generic [ref=f4e94]: 6 needed
+              - button "✓ 4 Identified build vs use 4 reused · 2 built" [ref=f4e98] [cursor=pointer]:
+                - generic [ref=f4e99]: ✓
+                - generic [ref=f4e100]: "4"
+                - generic [ref=f4e101]: Identified build vs use
+                - generic [ref=f4e102]: 4 reused · 2 built
+              - button "✓ 5 Verified API contract POST /api/v1/feedback" [ref=f4e106] [cursor=pointer]:
+                - generic [ref=f4e107]: ✓
+                - generic [ref=f4e108]: "5"
+                - generic [ref=f4e109]: Verified API contract
+                - generic [ref=f4e110]: POST /api/v1/feedback
+              - button "✓ 6 Identified code from repo src/app/feedback/" [ref=f4e114] [cursor=pointer]:
+                - generic [ref=f4e115]: ✓
+                - generic [ref=f4e116]: "6"
+                - generic [ref=f4e117]: Identified code from repo
+                - generic [ref=f4e118]: src/app/feedback/
+              - button "✓ 7 Injected the feedback form 7 files changed" [ref=f4e122] [cursor=pointer]:
+                - generic [ref=f4e123]: ✓
+                - generic [ref=f4e124]: "7"
+                - generic [ref=f4e125]: Injected the feedback form
+                - generic [ref=f4e126]: 7 files changed
+              - button "✓ 8 Ran unit tests 11 passed · 87%" [ref=f4e130] [cursor=pointer]:
+                - generic [ref=f4e131]: ✓
+                - generic [ref=f4e132]: "8"
+                - generic [ref=f4e133]: Ran unit tests
+                - generic [ref=f4e134]: 11 passed · 87%
+              - button "✓ 9 Checks passed build · lint · contract" [ref=f4e138] [cursor=pointer]:
+                - generic [ref=f4e139]: ✓
+                - generic [ref=f4e140]: "9"
+                - generic [ref=f4e141]: Checks passed
+                - generic [ref=f4e142]: build · lint · contract
+              - button "✓ 10 Prep is ready awaiting your review" [ref=f4e146] [cursor=pointer]:
+                - generic [ref=f4e147]: ✓
+                - generic [ref=f4e148]: "10"
+                - generic [ref=f4e149]: Prep is ready
+                - generic [ref=f4e150]: awaiting your review
+          - generic [ref=f4e153]:
+            - paragraph [ref=f4e154]: AAVA
+            - paragraph [ref=f4e155]: Nothing is pushed. Ask me to run it when you want to see it.
+          - generic [ref=f4e156]: Run it and show me the output
+          - generic [ref=f4e157]:
+            - paragraph [ref=f4e158]: AAVA
+            - paragraph [ref=f4e159]: Starting the dev server.
+            - paragraph [ref=f4e160]: Running on :4200. It is live — type in it and submit it. Submissions hit a stubbed response, not the real endpoint.
+          - generic [ref=f4e161]: Move Submit below the comment field
+          - generic [ref=f4e162]:
+            - paragraph [ref=f4e163]: AAVA
+            - paragraph [ref=f4e164]: Moving Submit below the comment field. One file — feedback-form.component.html.
+          - generic [ref=f4e165]:
+            - paragraph [ref=f4e166]: AAVA
+            - paragraph [ref=f4e167]: Done. Reloaded — check the preview. Tests still pass.
+          - generic [ref=f4e226]: Raise the PRs
+          - generic [ref=f4e227]:
+            - paragraph [ref=f4e228]: AAVA
+            - paragraph [ref=f4e229]: Two PRs, two repos. Both linked to AAVA-2841. Confirm and I will raise them.
+            - generic [ref=f4e230]:
+              - generic [ref=f4e231]:
+                - generic [ref=f4e232]: PLAY
+                - generic [ref=f4e233]: feat/play-formfield-charactercounter → main
+                - generic [ref=f4e234]: FormField, CharacterCounter
+              - generic [ref=f4e235]:
+                - generic [ref=f4e236]: Product
+                - generic [ref=f4e237]: feat/AAVA-2841-feedback-form → develop
+                - generic [ref=f4e238]: Feedback page, API integration, 11 specs passing
+          - generic [ref=f4e239]:
+            - paragraph [ref=f4e240]: AAVA
+            - paragraph [ref=f4e241]: Both raised.
+            - generic [ref=f4e242]:
+              - generic [ref=f4e243]: "PLAY → PR #218"
+              - generic [ref=f4e244]: "Product → PR #1043"
+          - generic [ref=f4e245]:
+            - paragraph [ref=f4e246]: AAVA
+            - paragraph [ref=f4e247]: AAVA-2841 moved to In Review. This thread is saved — reopen it from the rail any time.
+        - region "Playground" [ref=f4e172]:
+          - generic [ref=f4e173]:
+            - generic [ref=f4e174]:
+              - paragraph [ref=f4e175]: Playground
+              - heading "Add feedback form to AAVA" [level=2] [ref=f4e176]
+            - generic [ref=f4e177]:
+              - generic [ref=f4e178]: In review
+              - button "Close playground" [ref=f4e180] [cursor=pointer]: ✕
+          - generic [ref=f4e181]:
+            - tablist [ref=f4e182]:
+              - tab "Evidence" [ref=f4e183] [cursor=pointer]
+              - tab "Preview" [ref=f4e184] [cursor=pointer]
+              - tab "Code" [ref=f4e185] [cursor=pointer]
+              - tab "Tests" [active] [selected] [ref=f4e186] [cursor=pointer]
+              - tab "Diff 1" [ref=f4e187] [cursor=pointer]:
+                - text: Diff
+                - generic [ref=f4e188]: "1"
+            - tabpanel "Tests" [ref=f4e248]:
+              - generic [ref=f4e249]:
+                - generic [ref=f4e250]:
+                  - generic [ref=f4e251]: feedback-form.component.spec.ts
+                  - generic [ref=f4e252]: 11 passed
+                - generic [ref=f4e253]:
+                  - generic [ref=f4e254]: ✓
+                  - generic [ref=f4e255]: creates the component
+                  - generic [ref=f4e256]: 8ms
+                - generic [ref=f4e257]:
+                  - generic [ref=f4e258]: ✓
+                  - generic [ref=f4e259]: renders the rating scale
+                  - generic [ref=f4e260]: 11ms
+                - generic [ref=f4e261]:
+                  - generic [ref=f4e262]: ✓
+                  - generic [ref=f4e263]: renders the comment field
+                  - generic [ref=f4e264]: 14ms
+                - generic [ref=f4e265]:
+                  - generic [ref=f4e266]: ✓
+                  - generic [ref=f4e267]: requires a rating
+                  - generic [ref=f4e268]: 17ms
+                - generic [ref=f4e269]:
+                  - generic [ref=f4e270]: ✓
+                  - generic [ref=f4e271]: requires a comment
+                  - generic [ref=f4e272]: 20ms
+                - generic [ref=f4e273]:
+                  - generic [ref=f4e274]: ✓
+                  - generic [ref=f4e275]: caps the comment at 500 characters
+                  - generic [ref=f4e276]: 23ms
+                - generic [ref=f4e277]:
+                  - generic [ref=f4e278]: ✓
+                  - generic [ref=f4e279]: counts characters as you type
+                  - generic [ref=f4e280]: 26ms
+                - generic [ref=f4e281]:
+                  - generic [ref=f4e282]: ✓
+                  - generic [ref=f4e283]: posts to the feedback endpoint
+                  - generic [ref=f4e284]: 29ms
+                - generic [ref=f4e285]:
+                  - generic [ref=f4e286]: ✓
+                  - generic [ref=f4e287]: shows the success state
+                  - generic [ref=f4e288]: 32ms
+                - generic [ref=f4e289]:
+                  - generic [ref=f4e290]: ✓
+                  - generic [ref=f4e291]: shows the error state
+                  - generic [ref=f4e292]: 35ms
+                - generic [ref=f4e293]:
+                  - generic [ref=f4e294]: ✓
+                  - generic [ref=f4e295]: resets after a successful submit
+                  - generic [ref=f4e296]: 38ms
+                - generic [ref=f4e297]:
+                  - generic [ref=f4e298]: 87%
+                  - generic [ref=f4e301]: gate 80%
+    - generic [ref=f4e56]:
+      - generic [ref=f4e57]: Message AAVA
+      - textbox "Message AAVA" [ref=f4e58]:
+        - /placeholder: You can ask me about the pending tasks or chat about something else…
+      - generic [ref=f4e59]:
+        - button "Think Harder" [ref=f4e60] [cursor=pointer]
+        - button "Send message" [disabled] [ref=f4e61] [cursor=pointer]

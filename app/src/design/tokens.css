@@ -1,0 +1,225 @@
+/* AAVA 3.0 — Design Token Specification v1, dark mode.
+ *
+ * Values come from the token spec. Names are kept from the earlier system so
+ * components did not all need rewriting; the mapping to spec tokens is noted
+ * against each group.
+ *
+ * THE ONE EXCEPTION: the spec contains no aurora. Aurora is retained by explicit
+ * decision, in exactly three places — the recommended-card ring, the brand mark,
+ * and the composer's send button — plus the ambient field it gives its name to.
+ * Nowhere else. Everything that carries meaning (status, brand, focus, borders)
+ * comes from the spec.
+ */
+
+@property --aurora-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+:root {
+  /* Dark is the product's look, whatever the OS is set to. Declared in CSS
+     rather than only from JS so scrollbars, native controls and the first
+     painted frame are dark too; the light theme below opts back out. */
+  color-scheme: dark;
+
+  /* -- 01 Primary Brand — Deep Indigo ---------------------------------- */
+  --brand: #6366F1;          /* brand.primary  — CTAs, active nav, key links   */
+  --brand-hover: #818CF8;    /* brand.hover                                    */
+  --brand-pressed: #4F46E5;  /* brand.pressed  — selected tabs, pressed state  */
+
+  /* -- 2.1 Surfaces & backgrounds -------------------------------------- */
+  --ground: #0F1117;         /* dark.bg.primary   — page canvas                */
+  --slab: #181B25;           /* dark.bg.secondary — cards, panels              */
+  --slab-raised: #212530;    /* dark.bg.tertiary  — popovers, modals, tooltips */
+
+  /* Cards use bg.secondary. Kept fully opaque on purpose: any transparency lets
+     the recommended card's bloom tint its interior, which reads as a different
+     background — the one thing the ring affordance must never become. */
+  --card: #181B25;
+  --card-hover: #212530;
+
+  /* -- 2.2 Typography --------------------------------------------------- */
+  --text: #F1F5F9;           /* dark.text.primary   — 17.22:1, AAA             */
+  --text-dim: #CBD5E1;       /* derived, sits between primary and secondary    */
+  --muted: #94A3B8;          /* dark.text.secondary — descriptions, metadata   */
+  --muted-deep: #64748B;     /* dark.text.tertiary  — disabled, placeholder    */
+
+  /* -- 2.3 Borders & separators ----------------------------------------- */
+  --border: #2D3348;         /* dark.border.default                            */
+  --glass-line: #2D3348;
+  --glass-line-soft: #232839;
+
+  /* Translucent overlays for chrome. Not in the spec; tinted toward the
+     indigo brand rather than pure white so they sit on the canvas correctly. */
+  --glass: rgba(148, 163, 184, .06);
+  --glass-strong: rgba(148, 163, 184, .11);
+
+  /* Neutral wash ladder — the single mechanism that lets the whole UI invert.
+     In dark these lift a surface toward white; in light they press it toward
+     ink. Every translucent overlay in the app resolves through one of these
+     rather than hardcoding rgba(255,255,255,…), which is invisible on white. */
+  --wash-1: rgba(255, 255, 255, .02);
+  --wash-2: rgba(255, 255, 255, .035);
+  --wash-3: rgba(255, 255, 255, .055);
+  --wash-4: rgba(255, 255, 255, .075);
+  --wash-5: rgba(255, 255, 255, .11);
+  --wash-6: rgba(255, 255, 255, .22);
+
+
+  /* Elevation. A .55 black shadow reads as grime on white, so light mode uses a
+     shallower, cooler shadow and leans on borders for separation instead. */
+  --shadow-panel: 0 16px 50px rgba(0, 0, 0, .55);
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, .55);
+  --shadow-composer: 0 12px 40px rgba(0, 0, 0, .5);
+  --shadow-drawer: -24px 0 60px rgba(0, 0, 0, .5);
+
+  /* Primary buttons (send, gate accept). Brand teal→blue, dark enough to
+     carry white text on both grounds, so it does not fork by theme. */
+  --primary-grad: linear-gradient(264deg, #1B9CAD 4.19%, #287FD0 99.25%);
+
+  /* Ambient field lobe opacities. */
+  --lobe-1: .13;
+  --lobe-2: .10;
+  --lobe-3: .055;
+
+  /* Modal scrim. */
+  --scrim: rgba(4, 4, 8, .7);
+
+  /* Code and terminal stay dark in BOTH themes, deliberately. The syntax palette
+     is tuned for a dark ground, terminals are conventionally dark, and every
+     serious tool (Stripe, Linear, Vercel) keeps them dark in light mode too.
+     Retinting them would mean retuning six syntax colours for no real gain. */
+  --code-bg: #0B0A12;
+  /* The preview is the USER'S app, not code — it must follow the theme, or
+     light mode shows a dark panel with dark-on-dark text inside it. */
+  --preview-bg: #0D0C14;
+  /* Text that sits ON a --text-coloured fill; must invert with the theme. */
+  --on-text: #0B0A12;
+
+  /* Focus. The spec assigns brand.primary to focused input borders, so focus
+     is brand-coloured by specification rather than by preference. */
+  --focus-ring: var(--brand);
+
+  /* -- 2.4 Semantic colours (text + surface pairs) ---------------------- */
+  --ok: #34D399;             --ok-surface: #064E3B;    /* success  9.82:1 AA   */
+  --warn: #FBBF24;           --warn-surface: #451A03;  /* warning              */
+  --danger: #FCA5A5;         --danger-surface: #450A0A;/* error    9.94:1 AA   */
+  --done: #60A5FA;           --done-surface: #1E3A5F;  /* info                 */
+  --pending: #64748B;        /* neutral / not-started, uses text.tertiary       */
+
+  /* -- Zone identity (TEE spec) ----------------------------------------- */
+  /* The five zones each carry one colour, as in the TEE deck. `tint` is the
+     zone block's own faint ground (a wash that says "this is the Conversation"
+     without shouting); `accent` is its marker/label/active colour. Dark values
+     are the deck's exact fills; the hue is what stays constant across channels,
+     so a Sidebar block on mobile reads as the same zone as on web. */
+  --zone-sidebar-tint: #201C33;      --zone-sidebar-accent: #A99BEA;   /* violet */
+  --zone-conversation-tint: #0F2723; --zone-conversation-accent: #4FC2A3; /* green */
+  --zone-canvas-tint: #101F33;       --zone-canvas-accent: #5B9DFF;    /* blue   */
+  --zone-toolbar-tint: #2A1D0F;      --zone-toolbar-accent: #E0A65E;   /* amber  */
+  --zone-watch-tint: #191F27;        --zone-watch-accent: #93A3B5;     /* slate  */
+
+  /* -- Aurora — the documented exception -------------------------------- */
+  --aurora-1: #FF7AC6;
+  --aurora-2: #A78BFA;
+  --aurora-3: #5B9DFF;
+
+  /* -- Shape, motion, metrics ------------------------------------------- */
+  --r-sm: 8px;  --r-md: 12px;  --r-lg: 16px;  --r-xl: 22px;  --r-pill: 999px;
+
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --spring-fast: 180ms;
+  --spring-slow: 340ms;
+  --layout: 460ms;
+  --dur: 180ms;
+  --dur-exit: 110ms;
+
+  --rail-w: 70px;
+  --sidebar-w: 268px;
+  --hit: 40px;
+  --font-ui: 'Geist Variable', -apple-system, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* ==========================================================================
+   LIGHT MODE — token spec §03
+   Not an inversion. In dark, glow and translucency separate surfaces; on white
+   there is nothing to glow against, so borders and a tighter surface ramp do
+   that work instead. Hence the wash ladder flips to ink, and shadows replace
+   the ambient bloom.
+   ========================================================================== */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --brand: #4F46E5;          /* light brand.primary — 6.29:1 on white, AA */
+  --brand-hover: #6366F1;
+  --brand-pressed: #3730A3;
+
+  --ground: #FFFFFF;         /* light.bg.primary   */
+  --slab: #F8F9FA;           /* light.bg.secondary */
+  --slab-raised: #F1F3F5;    /* light.bg.tertiary  */
+  --card: #FFFFFF;
+  --card-hover: #F8F9FA;
+
+  --text: #111827;           /* light.text.primary   — 17.74:1, AAA */
+  --text-dim: #374151;
+  --muted: #4B5563;          /* light.text.secondary */
+  --muted-deep: #9CA3AF;     /* light.text.tertiary  */
+
+  --border: #E5E7EB;         /* light.border.default */
+  --glass-line: #E5E7EB;
+  --glass-line-soft: #EEF0F3;
+
+  --glass: rgba(17, 24, 39, .035);
+  --glass-strong: rgba(17, 24, 39, .07);
+
+  /* The ladder inverts: ink instead of white. */
+  --wash-1: rgba(17, 24, 39, .015);
+  --wash-2: rgba(17, 24, 39, .028);
+  --wash-3: rgba(17, 24, 39, .045);
+  --wash-4: rgba(17, 24, 39, .062);
+  --wash-5: rgba(17, 24, 39, .09);
+  --wash-6: rgba(17, 24, 39, .18);
+
+  --scrim: rgba(17, 24, 39, .32);
+
+  /* Barely there on white — enough to stop the canvas being flat, not enough
+     to read as a wash of colour. */
+  --lobe-1: .055;
+  --lobe-2: .045;
+  --lobe-3: .025;
+
+  --shadow-panel: 0 10px 30px rgba(17, 24, 39, .09);
+  --shadow-pop: 0 12px 32px rgba(17, 24, 39, .12);
+  --shadow-composer: 0 8px 26px rgba(17, 24, 39, .08);
+  --shadow-drawer: -18px 0 44px rgba(17, 24, 39, .12);
+
+  --ok: #047857;             --ok-surface: #ECFDF5;
+  --warn: #B45309;           --warn-surface: #FFFBEB;
+  --danger: #DC2626;         --danger-surface: #FEF2F2;
+  --done: #1D4ED8;           --done-surface: #EFF6FF;
+  --pending: #9CA3AF;
+
+  /* Fill sitting on --text is now dark, so its label must be light. */
+  --on-text: #FFFFFF;
+  --preview-bg: #FFFFFF;
+
+  /* Zone identity, light. Same five hues, lifted to faint tints on white and
+     darkened accents that hold contrast. The hue is preserved so a zone reads
+     as itself in either theme. */
+  --zone-sidebar-tint: #F1EFFB;      --zone-sidebar-accent: #6D5FC7;
+  --zone-conversation-tint: #E9F6F1; --zone-conversation-accent: #1E8F70;
+  --zone-canvas-tint: #EAF2FD;       --zone-canvas-accent: #2F6FD0;
+  --zone-toolbar-tint: #FBF2E6;      --zone-toolbar-accent: #B0741F;
+  --zone-watch-tint: #EEF1F5;        --zone-watch-accent: #5A6B7E;
+}

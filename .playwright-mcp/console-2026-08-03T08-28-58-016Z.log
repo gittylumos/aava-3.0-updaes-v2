@@ -1,0 +1,28 @@
+[     424ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:14333
+[  134395ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5174/@vite/client:528
+[  134398ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5174/@vite/client:528
+[  134410ms] TypeError: Cannot read properties of null (reading 'useRef')
+    at exports.useRef (http://localhost:5174/node_modules/.vite/deps/react.js?v=657e0bc2:745:30)
+    at TooltipProvider (http://localhost:5174/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=10f1ceaf:2012:40)
+    at Object.react_stack_bottom_frame (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:12864:12)
+    at renderWithHooks (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:4211:19)
+    at updateFunctionComponent (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:5567:16)
+    at beginWork (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:6138:20)
+    at runWithFiberInDEV (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:850:66)
+    at performUnitOfWork (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:8427:92)
+    at workLoopSync (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:8323:37)
+    at renderRootSync (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=54d5397b:8307:6)
+[  134406ms] [WARNING] %s
+
+%s
+ An error occurred in the <TooltipProvider> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5174/@vite/client:528
+[  134815ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=657e0bc2:14333

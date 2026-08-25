@@ -1,0 +1,249 @@
+- generic:
+  - generic:
+    - generic:
+      - navigation:
+        - button
+        - button
+        - button
+        - button
+        - button: D
+      - generic:
+        - banner:
+          - button:
+            - text: AAVA
+            - generic: "3.0"
+          - generic:
+            - button
+            - button
+        - main:
+          - generic:
+            - generic:
+              - generic:
+                - log "Conversation":
+                  - generic: "Let's work on: Add feedback form to AAVA"
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: I have done some pre-work.
+                    - generic:
+                      - generic:
+                        - button "✓ 1 Read Jira AAVA-2841":
+                          - generic: ✓
+                          - generic: "1"
+                          - generic: Read Jira
+                          - generic: AAVA-2841
+                      - generic:
+                        - button "✓ 2 Identified image from Figma Feedback Form v3":
+                          - generic: ✓
+                          - generic: "2"
+                          - generic: Identified image from Figma
+                          - generic: Feedback Form v3
+                      - generic:
+                        - button "✓ 3 Verified PLAY components 6 needed":
+                          - generic: ✓
+                          - generic: "3"
+                          - generic: Verified PLAY components
+                          - generic: 6 needed
+                      - generic:
+                        - button "✓ 4 Identified build vs use 4 reused · 2 built":
+                          - generic: ✓
+                          - generic: "4"
+                          - generic: Identified build vs use
+                          - generic: 4 reused · 2 built
+                      - generic:
+                        - button "✓ 5 Verified API contract POST /api/v1/feedback":
+                          - generic: ✓
+                          - generic: "5"
+                          - generic: Verified API contract
+                          - generic: POST /api/v1/feedback
+                      - generic:
+                        - button "✓ 6 Identified code from repo src/app/feedback/":
+                          - generic: ✓
+                          - generic: "6"
+                          - generic: Identified code from repo
+                          - generic: src/app/feedback/
+                      - generic:
+                        - button "✓ 7 Injected the feedback form 7 files changed":
+                          - generic: ✓
+                          - generic: "7"
+                          - generic: Injected the feedback form
+                          - generic: 7 files changed
+                      - generic:
+                        - button "✓ 8 Ran unit tests 11 passed · 87%":
+                          - generic: ✓
+                          - generic: "8"
+                          - generic: Ran unit tests
+                          - generic: 11 passed · 87%
+                      - generic:
+                        - button "✓ 9 Checks passed build · lint · contract":
+                          - generic: ✓
+                          - generic: "9"
+                          - generic: Checks passed
+                          - generic: build · lint · contract
+                      - generic:
+                        - button "✓ 10 Prep is ready awaiting your review":
+                          - generic: ✓
+                          - generic: "10"
+                          - generic: Prep is ready
+                          - generic: awaiting your review
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Nothing is pushed. Ask me to run it when you want to see it.
+                  - generic: Run it and show me the output
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Starting the dev server.
+                    - paragraph: Running on :4200. It is live — type in it and submit it. Submissions hit a stubbed response, not the real endpoint.
+                  - generic: Move Submit below the comment field
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Moving Submit below the comment field. One file — feedback-form.component.html.
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Done. Reloaded — check the preview. Tests still pass.
+                  - generic: Raise the PRs
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Two PRs, two repos. Both linked to AAVA-2841. Confirm and I will raise them.
+                    - generic:
+                      - generic:
+                        - generic: PLAY
+                        - generic: feat/play-formfield-charactercounter → main
+                        - generic: FormField, CharacterCounter
+                      - generic:
+                        - generic: Product
+                        - generic: feat/AAVA-2841-feedback-form → develop
+                        - generic: Feedback page, API integration, 11 specs passing
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: Both raised.
+                    - generic:
+                      - generic: "PLAY → PR #218"
+                      - generic: "Product → PR #1043"
+                  - generic:
+                    - paragraph: AAVA
+                    - paragraph: AAVA-2841 moved to In Review. This thread is saved — reopen it from the rail any time.
+            - generic:
+              - region:
+                - generic:
+                  - generic:
+                    - paragraph: Playground
+                    - heading [level=2]: Add feedback form to AAVA
+                  - generic:
+                    - generic: In review
+                    - button: ✕
+                - generic:
+                  - tablist:
+                    - tab: Evidence
+                    - tab: Preview
+                    - tab: Code
+                    - tab [selected]: Tests
+                    - tab:
+                      - text: Diff
+                      - generic: "1"
+                  - generic:
+                    - tabpanel:
+                      - generic:
+                        - generic:
+                          - generic: feedback-form.component.spec.ts
+                          - generic: 11 passed
+                        - generic:
+                          - generic: ✓
+                          - generic: creates the component
+                          - generic: 8ms
+                        - generic:
+                          - generic: ✓
+                          - generic: renders the rating scale
+                          - generic: 11ms
+                        - generic:
+                          - generic: ✓
+                          - generic: renders the comment field
+                          - generic: 14ms
+                        - generic:
+                          - generic: ✓
+                          - generic: requires a rating
+                          - generic: 17ms
+                        - generic:
+                          - generic: ✓
+                          - generic: requires a comment
+                          - generic: 20ms
+                        - generic:
+                          - generic: ✓
+                          - generic: caps the comment at 500 characters
+                          - generic: 23ms
+                        - generic:
+                          - generic: ✓
+                          - generic: counts characters as you type
+                          - generic: 26ms
+                        - generic:
+                          - generic: ✓
+                          - generic: posts to the feedback endpoint
+                          - generic: 29ms
+                        - generic:
+                          - generic: ✓
+                          - generic: shows the success state
+                          - generic: 32ms
+                        - generic:
+                          - generic: ✓
+                          - generic: shows the error state
+                          - generic: 35ms
+                        - generic:
+                          - generic: ✓
+                          - generic: resets after a successful submit
+                          - generic: 38ms
+                        - generic:
+                          - generic: 87%
+                          - generic: gate 80%
+        - generic:
+          - generic:
+            - generic: Message AAVA
+            - textbox:
+              - /placeholder: You can ask me about the pending tasks or chat about something else…
+            - generic:
+              - button: Think Harder
+              - button [disabled]
+  - dialog [ref=f4e303]:
+    - generic [ref=f4e304]:
+      - heading "Tasks 6" [level=2] [ref=f4e305]
+      - button "Close tasks" [active] [ref=f4e306] [cursor=pointer]: ✕
+    - generic [ref=f4e307]:
+      - generic [ref=f4e308]:
+        - text: One task runs at a time. Finish or close
+        - strong [ref=f4e309]: Add feedback form to AAVA
+        - text: to start another.
+      - button "Open as a separate thread" [disabled] [ref=f4e310]
+    - generic [ref=f4e311]:
+      - generic [ref=f4e312]:
+        - generic [ref=f4e313]:
+          - generic [ref=f4e314]: Backlog
+          - generic [ref=f4e315]: "1"
+        - button "Migrate data from MySQL to MongoDB (NoSQL) P2 · 3 hrs" [ref=f4e317] [cursor=pointer]:
+          - generic [ref=f4e318]: Migrate data from MySQL to MongoDB (NoSQL)
+          - generic [ref=f4e319]: P2 · 3 hrs
+      - generic [ref=f4e320]:
+        - generic [ref=f4e321]:
+          - generic [ref=f4e322]: Needs clarification
+          - generic [ref=f4e323]: "1"
+        - button "Create PRD for Rate Limiting for Engineers P2 · 1.5 hrs" [ref=f4e325] [cursor=pointer]:
+          - generic [ref=f4e326]: Create PRD for Rate Limiting for Engineers
+          - generic [ref=f4e327]: P2 · 1.5 hrs
+      - generic [ref=f4e328]:
+        - generic [ref=f4e329]:
+          - generic [ref=f4e330]: In progress
+          - generic [ref=f4e331]: "1"
+        - button "Instrument AAVA Edge telemetry P3 · 4 hrs" [ref=f4e333] [cursor=pointer]:
+          - generic [ref=f4e334]: Instrument AAVA Edge telemetry
+          - generic [ref=f4e335]: P3 · 4 hrs
+      - generic [ref=f4e336]:
+        - generic [ref=f4e337]:
+          - generic [ref=f4e338]: Done
+          - generic [ref=f4e339]: "3"
+        - generic [ref=f4e340]:
+          - button "Add feedback form to AAVA P1 · 2 hrs" [ref=f4e341] [cursor=pointer]:
+            - generic [ref=f4e342]: Add feedback form to AAVA
+            - generic [ref=f4e343]: P1 · 2 hrs
+          - button "Deprecate the legacy artifact store P3 · —" [ref=f4e344] [cursor=pointer]:
+            - generic [ref=f4e345]: Deprecate the legacy artifact store
+            - generic [ref=f4e346]: P3 · —
+          - button "Write the Experience Studio migration runbook P3 · —" [ref=f4e347] [cursor=pointer]:
+            - generic [ref=f4e348]: Write the Experience Studio migration runbook
+            - generic [ref=f4e349]: P3 · —
