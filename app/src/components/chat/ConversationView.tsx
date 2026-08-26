@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { AppState, Chip, TabId } from '../../state/types'
 import { Thread } from './Thread'
@@ -18,8 +19,18 @@ interface Props {
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc) => void
+  onRecordAnswer?: (messageId: string, text: string) => void
   onToggleContext?: () => void
   onTogglePanel?: () => void
+  /** Open the "all files in this session" modal. */
+  onShowFiles?: () => void
+  /** Show the agent-topology graph in the canvas. */
+  onShowGraph?: () => void
+  /** Pending inline-comment changes — shown in a tray above the composer. */
+  changes?: { quote: string; note: string }[]
+  onApplyChanges?: () => void
+  onDiscardChanges?: () => void
+  onRemoveChange?: (index: number) => void
   composer: React.ReactNode
 }
 
@@ -32,7 +43,8 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, progress, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, composer, onToggleContext, onTogglePanel,
+  state, chips, progress, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
   const object = state.activeObject
@@ -114,14 +126,23 @@ export function ConversationView({
               </svg>
               PRD_v2.4.docx
             </span>
-            <EdgeToggle
-              on={panelOpen}
-              onClick={onTogglePanel}
-              label={panelOpen ? 'Hide workspace' : 'Show workspace'}
-              className="ml-auto"
-            >
-              <IconRightPanel size={15} />
-            </EdgeToggle>
+            <div className="ml-auto flex items-center gap-1">
+              {/* The agentic process topology — opens the graph in the canvas. */}
+              <EdgeToggle on={false} onClick={onShowGraph} label="Show agent workflow">
+                <IconWorkflow size={15} />
+              </EdgeToggle>
+              {/* Every file created in this session. */}
+              <EdgeToggle on={false} onClick={onShowFiles} label="All files in this session">
+                <IconFileSearch size={15} />
+              </EdgeToggle>
+              <EdgeToggle
+                on={panelOpen}
+                onClick={onTogglePanel}
+                label={panelOpen ? 'Hide workspace' : 'Show workspace'}
+              >
+                <IconRightPanel size={15} />
+              </EdgeToggle>
+            </div>
           </div>
         )}
 
@@ -129,7 +150,7 @@ export function ConversationView({
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} />
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer} />
           </div>
         </div>
 
@@ -141,6 +162,12 @@ export function ConversationView({
             is what lets its corners stay curved all the way round. */}
         <div className="px-8">
           <div className="mx-auto w-full" style={colStyle}>
+            {/* Pending inline-comment changes stack here, right above the prompt
+                bar — the way generative editors surface edits before applying. */}
+            {changes.length > 0 && (
+              <ChangesTray changes={changes}
+                onApply={onApplyChanges} onDiscard={onDiscardChanges} onRemove={onRemoveChange} />
+            )}
             {progress ? (
               <div className="mb-7 overflow-hidden rounded-[var(--r-lg)]"
                 style={{ background: 'var(--glass-strong)', border: '1px solid var(--glass-line)' }}>
@@ -152,6 +179,75 @@ export function ConversationView({
         </div>
       </div>
     </motion.div>
+  )
+}
+
+/* The pending inline-comment changes, stacked above the composer — a count that
+   expands to the list, with Discard / Apply for the batch. */
+function ChangesTray({ changes, onApply, onDiscard, onRemove }: {
+  changes: { quote: string; note: string }[]
+  onApply?: () => void; onDiscard?: () => void; onRemove?: (i: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mb-2.5 overflow-hidden rounded-[var(--r-lg)]"
+      style={{ background: 'var(--glass-strong)', border: '1px solid var(--glass-line)' }}>
+      {open && (
+        <div className="max-h-[200px] overflow-auto px-3.5 pt-3" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
+          {changes.map((c, i) => (
+            <div key={i} className="flex items-start gap-2.5 py-2">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-[6px] text-[10px] font-semibold" style={{ background: 'var(--wash-3)', color: 'var(--muted)' }}>{i + 1}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11.5px] italic" style={{ color: 'var(--muted)' }}>“{c.quote}”</span>
+                <span className="block text-[13px]" style={{ color: 'var(--text-dim)' }}>{c.note}</span>
+              </span>
+              <button onClick={() => onRemove?.(i)} aria-label="Remove change"
+                className="press mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-[5px] hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted-deep)' }}>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3.5 py-2.5">
+        <button onClick={() => setOpen((o) => !o)} className="press flex items-center gap-1.5 text-[13px] font-medium" style={{ color: 'var(--text-dim)' }}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transform: open ? 'rotate(90deg)' : undefined, transition: 'transform .15s' }}><path d="M9 6l6 6-6 6" /></svg>
+          {changes.length} change{changes.length === 1 ? '' : 's'}
+        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => { setOpen(false); onDiscard?.() }}
+            className="press rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium"
+            style={{ background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-line-soft)' }}>
+            Discard
+          </button>
+          <button onClick={() => { setOpen(false); onApply?.() }}
+            className="press rounded-[9px] px-4 py-1.5 text-[12.5px] font-medium"
+            style={{ background: 'var(--brand)', color: '#fff' }}>
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* A document with a magnifier — "all files in this session". */
+function IconFileSearch({ size = 15 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M14 3v4h4" />
+      <circle cx="16.5" cy="15.5" r="2.6" /><path d="m20 19-1.6-1.6" />
+    </svg>
+  )
+}
+
+/* Three linked nodes — the agent-workflow topology. */
+function IconWorkflow({ size = 15 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="4" width="7" height="5" rx="1.5" /><rect x="14" y="15" width="7" height="5" rx="1.5" />
+      <rect x="3" y="15" width="7" height="5" rx="1.5" /><path d="M6.5 9v6M10 17.5h4M6.5 12h8.5a2 2 0 0 1 2 2v1" />
+    </svg>
   )
 }
 

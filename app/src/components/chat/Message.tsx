@@ -15,9 +15,10 @@ interface Props {
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc) => void
+  onRecordAnswer?: (messageId: string, text: string) => void
 }
 
-export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact }: Props) {
+export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer }: Props) {
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -41,7 +42,8 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
           {msg.block && (
             <Block block={msg.block} live={msg.live !== false} preview={preview}
               onAccept={onAccept} onDismiss={() => onDismiss(msg.id)} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} />
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}
+              onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} answer={msg.answer} />
           )}
         </>
       )}

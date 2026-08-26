@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconBell, IconMoon, IconSun } from './components/chrome/icons'
 import { AnimatePresence } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
@@ -11,6 +11,9 @@ import { ConversationView } from './components/chat/ConversationView'
 import { TaskProgress } from './components/chat/TaskProgress'
 import { TabWorkspace } from './components/playground/TabWorkspace'
 import { DocumentCanvas } from './prd/DocumentCanvas'
+import { AgentGraph } from './prd/AgentGraph'
+import { FilesPanel, type SessionFile } from './prd/FilesPanel'
+import type { BacklogDoc } from './prd/backlog'
 import { FeedbackApp, previewTemplate, readTemplate } from './components/playground/FeedbackApp'
 import { TasksView } from './components/tasks/TasksView'
 import { Notifications } from './components/overlays/Notifications'
@@ -45,6 +48,32 @@ export default function App() {
      whichever column it belongs to, so it remounts when the arrangement
      changes — holding the text here makes that remount invisible. */
   const [draft, setDraft] = useState('')
+
+  /* The right canvas shows one of three things: the active document, the session
+     files list, or the agent-workflow topology. Held here above the arrangements. */
+  const [canvasMode, setCanvasMode] = useState<'doc' | 'files' | 'graph'>('doc')
+  /* Pending inline-comment changes — lifted here so the tray renders above the
+     composer (in the conversation column) while comments are made in the canvas. */
+  const [docChanges, setDocChanges] = useState<{ quote: string; note: string }[]>([])
+
+  /* Every artefact the run has produced, newest first — the source for both the
+     files modal and (via Open) the canvas. Read off the document cards in the
+     thread, deduped by document, so it always matches what was generated. */
+  const sessionFiles = useMemo<SessionFile[]>(() => {
+    /* Keyed by file name so a doc shown twice (e.g. stories then its flagged
+       revision, same stories.md) appears once — the latest wins, and Open reveals
+       that version. */
+    const seen = new Map<string, BacklogDoc>()
+    for (const m of j.state.messages) {
+      if (m.block?.kind === 'document' && m.block.doc) seen.set(m.block.name, m.block.doc)
+    }
+    const entries = [...seen.entries()].reverse()
+    return entries.map(([name, doc], i) => ({ doc, name, when: clockAgo(i) }))
+  }, [j.state.messages])
+
+  const openDoc = (doc: BacklogDoc) => { setCanvasMode('doc'); j.openObjectDoc(doc) }
+  const showGraph = () => { setCanvasMode('graph'); j.setPanelOpen(true) }
+  const showFiles = () => { setCanvasMode('files'); j.setPanelOpen(true) }
 
   /* Prompt-bar settings live here, above the composer, so they survive the
      composer's remount when the arrangement changes — the same reason the draft
@@ -229,9 +258,16 @@ export default function App() {
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
-                    onOpenArtifact={(doc) => (doc ? j.openObjectDoc(doc) : j.setPanelOpen(true))}
+                    onOpenArtifact={(doc) => (doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
+                    onShowFiles={showFiles}
+                    onShowGraph={showGraph}
+                    changes={docChanges}
+                    onApplyChanges={() => { j.toast(`Applied ${docChanges.length} change${docChanges.length === 1 ? '' : 's'}`); setDocChanges([]) }}
+                    onDiscardChanges={() => setDocChanges([])}
+                    onRemoveChange={(i) => setDocChanges((cs) => cs.filter((_, idx) => idx !== i))}
                     /* Only joined when there is a panel to join to — a chat
                        thread with no task keeps the free-standing composer. */
                     composer={composerFor(!!progress)}
@@ -255,6 +291,25 @@ export default function App() {
               onFile={j.setFile}
               onEdit={j.editFile}
             />
+          ) : inObject && canvasMode === 'graph' ? (
+            /* The agent-workflow topology — shown in place of the document when
+               the workflow icon is pressed. Closing it returns to the document
+               if one is ready, otherwise folds the panel away. */
+            <AgentGraph
+              messages={j.state.messages}
+              watch={j.state.watchLog}
+              onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
+            />
+          ) : inObject && canvasMode === 'files' ? (
+            /* The session files list, in the panel (not a modal). Picking a file
+               opens it in the document canvas. */
+            <FilesPanel
+              files={sessionFiles}
+              watch={j.state.watchLog}
+              activeDoc={j.state.activeObject?.activeDoc}
+              onOpen={openDoc}
+              onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
+            />
           ) : inObject && j.state.activeObject?.docReady ? (
             /* A document object opens in the document canvas (Preview/Code +
                Share/Expand/Download/History/Close), Watch docked beneath. The
@@ -265,6 +320,9 @@ export default function App() {
               watch={j.state.watchLog}
               onToast={j.toast}
               onCollapse={() => j.setPanelOpen(false)}
+              files={sessionFiles}
+              onSelectDoc={openDoc}
+              onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
             />
           ) : undefined}
         />
@@ -293,4 +351,15 @@ export default function App() {
       <Toast text={j.state.toast} />
     </>
   )
+}
+
+/* Synthetic clock times for the files list — newest first, counting back from a
+   fixed base. There is no real clock in the prototype; this keeps the list
+   reading like the reference (a time per file) without inventing a source. */
+function clockAgo(i: number): string {
+  const base = 14 * 60 + 12 // 14:12
+  const t = Math.max(0, base - i * 3)
+  const h = Math.floor(t / 60)
+  const m = t % 60
+  return `${h}:${String(m).padStart(2, '0')}`
 }
