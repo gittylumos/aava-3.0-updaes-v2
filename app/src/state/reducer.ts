@@ -482,6 +482,18 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
       return { ...state, messages }
     }
 
+    /* A connector card advanced — flip the newest one to its next state
+       (searching → offer → connecting → done). */
+    case 'connectState': {
+      const idx = state.messages.map((m) => m.block?.kind).lastIndexOf('connect')
+      if (idx === -1) return state
+      const target = state.messages[idx]
+      if (target.block?.kind !== 'connect') return state
+      const messages = [...state.messages]
+      messages[idx] = { ...target, block: { ...target.block, state: effect.state } }
+      return { ...state, messages }
+    }
+
     /* The backlog run moved to a new phase document — swap what the canvas shows
        and bring the panel into view. */
     case 'setDoc':
@@ -690,6 +702,16 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'APPLY':
       return applyEffect(state, action.effect)
+
+    /* A gate's inline note — store what the user typed and retire the gate, so
+       the answered card shows their note back. */
+    case 'RECORD_ANSWER':
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === action.messageId ? { ...m, answer: action.text, live: false } : m,
+        ),
+      }
 
     /* An artefact card's Open — reveal that backlog document in the canvas. */
     case 'SET_OBJECT_DOC':

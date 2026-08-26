@@ -34,6 +34,9 @@ export interface WatchEntry {
   text: string
   tone: 'info' | 'ok' | 'warn'
 }
+/** The lifecycle of a connector card — searching → not found (offer) →
+    connecting → connected. */
+export type ConnectState = 'searching' | 'offer' | 'connecting' | 'done'
 export type TaskStatus = 'wip' | 'clarify' | 'pending' | 'done'
 export type TabId = 'evidence' | 'preview' | 'code' | 'tests' | 'diff'
 export type RunKind = 'prep' | 'live' | 'shipped'
@@ -103,8 +106,9 @@ export type BlockSpec =
   | { kind: 'confirm'; rows: ConfirmRow[]; acceptLabel: string; cancelLabel: string; acceptBeat: string
       step?: number; title?: string }
   /** `file` makes a link openable — it opens that source file in the workspace.
-      Without one the link is a flat reference (a raised PR, say). */
-  | { kind: 'links'; links: { label: string; file?: string }[] }
+      `href` makes it an external link (a raised ticket in Jira, say), rendered
+      as a blue hyperlink. Without either the link is a flat reference. */
+  | { kind: 'links'; links: { label: string; file?: string; href?: string }[] }
   /** `title` groups the steps into a collapsible accordion — while running it is
       open and animating; once every step is done it folds to the title with a
       count, the way agent tools summarise a finished run. */
@@ -121,11 +125,22 @@ export type BlockSpec =
       a card naming the capability, what it maps to, and what it can do. */
   | { kind: 'capability'; searching: boolean; badge?: string; maps?: string; chips?: string[] }
   /** The proposed plan — a numbered list of steps AAVA will run, shown before
-      execution starts so the user can approve or change it. */
-  | { kind: 'plan'; count: number; steps: { title: string; detail: string }[] }
-  /** A "push to Jira" card — the finished backlog, one primary action carrying
-      the Jira logo. `beat` runs the sync. */
-  | { kind: 'sync'; title: string; detail: string; beat: string }
+      execution starts. `title` overrides the default header ("Initiate Process"
+      for the combined plan+approve card); `action` adds a footer CTA that both
+      approves and starts the run, so the plan and its approval are one card. */
+  | { kind: 'plan'; count: number; title?: string; steps: { title: string; detail: string }[]
+      action?: { label: string; beat: string } }
+  /** A "push to Jira" card — one primary action carrying the Jira logo (`beat`).
+      An optional secondary action ("Proceed for now") continues the run without
+      pushing; both advance to the next phase. Shown after every phase gate. */
+  | { kind: 'sync'; title: string; detail: string; beat: string
+      secondaryLabel?: string; secondaryBeat?: string }
+  /** A connector card — searching for a service integration, offering to connect
+      it, and the connecting/connected states. Drives the Azure DevOps push:
+      shimmer while searching, a Connect button once "not found", a spinner while
+      connecting, a tick once done. `beat` fires from the Connect button. */
+  | { kind: 'connect'; service: string; detail: string; beat: string
+      state: ConnectState; logo?: 'azure' | 'jira' }
   /** A human-in-the-loop decision gate. Three visual variants:
       - 'buttons' (default): one pill button per branch — the phase gates.
       - 'action': a single primary action on a titled card — access requests,
@@ -139,9 +154,14 @@ export type BlockSpec =
       icon?: 'person' | 'question' | 'shield' | 'sparkle'
       /** e.g. "1 of 3" — shown on the clarify panel. */
       counter?: string
-      /** Placeholder for the clarify panel's free-text "Other…" row. */
+      /** Placeholder for the clarify panel's free-text "Other…" row, and for a
+          `collect` option's inline textarea. */
       placeholder?: string
-      options: { label: string; beat: string; primary?: boolean; sub?: string }[]
+      /** `collect` turns a buttons-variant option into a "reveal a textarea and
+          record what you type" action — clicking it opens an inline text box
+          rather than firing straight away; Send records the note and fires the
+          beat. */
+      options: { label: string; beat: string; primary?: boolean; sub?: string; collect?: boolean }[]
       summary?: { label: string; detail?: string }[] }
 
 export interface Message {
@@ -154,6 +174,9 @@ export interface Message {
   live?: boolean
   /** True while the text is still revealing, so it streams once and never re-streams. */
   stream?: boolean
+  /** What the user typed into a gate's inline textarea before answering — shown
+      back inside the retired gate card as their recorded note. */
+  answer?: string
 }
 
 export type Effect =
@@ -178,6 +201,9 @@ export type Effect =
   | { type: 'setDoc'; doc: BacklogDoc }
   /** Resolve the newest capability block from searching to matched. */
   | { type: 'capabilityMatched' }
+  /** Advance the newest connector card to a new state (searching → offer →
+      connecting → done). */
+  | { type: 'connectState'; state: ConnectState }
   /** Move the open PRD object to a new phase — swaps what the Canvas renders. */
   | { type: 'prdPhase'; phase: PrdPhase }
   | { type: 'wait'; ms: number }
@@ -388,3 +414,6 @@ export type Action =
   | { type: 'SWITCH_PROFILE' }
   /** Open a specific backlog document in the canvas — an artefact card's Open. */
   | { type: 'SET_OBJECT_DOC'; doc: BacklogDoc }
+  /** Record what the user typed into a gate's inline textarea, and retire the
+      gate — the note is shown back inside the answered card. */
+  | { type: 'RECORD_ANSWER'; messageId: string; text: string }

@@ -3,7 +3,7 @@ import { TASKS, initialState, prepStart, reducer, threadIdForTask } from './redu
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
-import { backlogOpening, backlogReply, BACKLOG_BEATS } from '../prd/backlogFlow'
+import { backlogOpening, backlogReply, backlogRouter, BACKLOG_BEATS } from '../prd/backlogFlow'
 import type { BacklogDoc } from '../prd/backlog'
 import { searchHits, taskNotifications } from '../data/chrome'
 import type { Effect, Overlay, Scenario, TabId, Thread } from './types'
@@ -205,11 +205,13 @@ export function useJourney() {
     /* Inside a PRD object: typed feedback drives the refinement loops, and the
        decision-card buttons run PRD beats through runBeat. Anything the router
        does not recognise gets a gentle nudge rather than a task-shaped reply. */
-    /* Inside a backlog run: typed comments are acknowledged and folded into the
-       current canvas draft; the phase gates advance via the decision buttons. */
+    /* Inside a backlog run: two follow-up scenarios are recognised from what the
+       user types — supplying a custom format, and pushing to Azure DevOps — and
+       drive their own beats. Anything else is a light acknowledgement that folds
+       the comment into the current draft; the phase gates advance via buttons. */
     if (state.activeObject?.kind === 'backlog') {
       dispatch({ type: 'USER_SAY', text })
-      play(backlogReply())
+      play(backlogRouter(text) ?? backlogReply())
       return
     }
 
@@ -334,6 +336,8 @@ export function useJourney() {
     setTab: (tab: TabId) => dispatch({ type: 'SET_TAB', tab }),
     /* An artefact card's Open — reveal that backlog document in the canvas. */
     openObjectDoc: (doc: BacklogDoc) => dispatch({ type: 'SET_OBJECT_DOC', doc }),
+    /* A gate's inline note — record it on the gate before its beat fires. */
+    recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
     setFile: (file: string) => dispatch({ type: 'SET_FILE', file }),
     /* A file link in the conversation opens that file in the workspace. Both
        halves are needed: the tab id resolves from the active file, and the

@@ -8,16 +8,22 @@
  */
 
 export type BacklogDoc =
-  | 'intake' | 'epics' | 'epics-fields' | 'features' | 'stories' | 'stories-flags' | 'sprint'
+  | 'intake' | 'epics' | 'epics-fields' | 'features' | 'features-gaps' | 'stories' | 'stories-flags' | 'sprint'
+  /* The user's own tabular format — adopted for the docs but off the Jira-publish
+     path, since it does not match the team's defined structure. */
+  | 'epics-custom' | 'features-custom'
 
 export const BACKLOG_FILE: Record<BacklogDoc, string> = {
   intake: 'intake-summary.md',
   epics: 'epics.md',
   'epics-fields': 'epics.md',
   features: 'features.md',
+  'features-gaps': 'features.md',
   stories: 'stories.md',
   'stories-flags': 'stories.md',
   sprint: 'sprint-plan.md',
+  'epics-custom': 'epics-custom.md',
+  'features-custom': 'features-custom.md',
 }
 
 const INTAKE = `# Intake summary — WireFrame Studio v1.0
@@ -124,10 +130,12 @@ ${fields ? '**Start date** — Month 7  ·  **End date** — Month 9\n' : ''}**P
 **Priority** — ${fields ? 'P2 — runs continuously from Month 4' : 'P2 — Phase 2–3 (phase month to confirm)'}
 `
 
-const FEATURES = `# Features — WireFrame Studio
+const featuresMd = (gaps: boolean) => `# Features — WireFrame Studio
 
 23 features across the 7 epics. Template per feature: Requirement, Acceptance criteria, Priority. Grouped under the parent epic.
-
+${gaps ? `
+> ⚠ **3 features are missing required fields** — target start date, end date and priority. They are highlighted inline below and will need those fields before they can enter a sprint.
+` : ''}
 ## Under Epic 01 — Intelligent Canvas Editor
 
 **Feature 1.1 — Drag-and-Drop Canvas Engine · P0**
@@ -136,8 +144,8 @@ Fluid drag-and-drop for adding, positioning and resizing components on an infini
 **Feature 1.2 — Smart Guides & Alignment · P0**
 Automatic alignment guides, grid overlay, smart spacing. *Acceptance:* guides appear within 50ms of dragging near another element; spacing matches design-system rules.
 
-**Feature 1.3 — Responsive Device Preview · P1**
-Real-time preview across mobile, tablet and desktop. *Acceptance:* toggle 3 device previews; layout adapts in real time; renders within 1s.
+**Feature 1.3 — Responsive Device Preview · ${gaps ? '⚠ priority TBD' : 'P1'}**
+Real-time preview across mobile, tablet and desktop. *Acceptance:* toggle 3 device previews; layout adapts in real time; renders within 1s.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
 
 **Feature 1.4 — Edit History & Undo/Redo · P0**
 Full undo/redo with a visible 50-action history panel. *Acceptance:* responds within 100ms; panel shows description + timestamp; jump to any point.
@@ -189,8 +197,8 @@ Import tokens from Figma, Sketch or JSON. *Acceptance:* paste a Figma URL or upl
 **Feature 5.2 — Compliance Checking & Flagging · P1**
 Scan against imported design-system rules. *Acceptance:* runs on save; flags non-compliant elements with fixes; auto-fix.
 
-**Feature 5.3 — Bi-Directional Sync · P2**
-Push updates to source and pull upstream changes. *Acceptance:* Figma changes reflect within 60s; user notified of upstream changes.
+**Feature 5.3 — Bi-Directional Sync · ${gaps ? '⚠ priority TBD' : 'P2'}**
+Push updates to source and pull upstream changes. *Acceptance:* Figma changes reflect within 60s; user notified of upstream changes.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
 
 ## Under Epic 06 — Prototyping & Export
 
@@ -208,8 +216,8 @@ Annotated specs with measurements, spacing, colours and names. *Acceptance:* spe
 **Feature 7.1 — Interactive Tutorial & Wizard · P1**
 5-minute guided tutorial with template wizard. *Acceptance:* completes in under 5 minutes; first wireframe made during it; skippable.
 
-**Feature 7.2 — Contextual AI Tooltips · P2**
-In-context AI tooltips explaining features. *Acceptance:* appear on hover for unfamiliar UI; globally dismissible; frequency reduces over time.
+**Feature 7.2 — Contextual AI Tooltips · ${gaps ? '⚠ priority TBD' : 'P2'}**
+In-context AI tooltips explaining features. *Acceptance:* appear on hover for unfamiliar UI; globally dismissible; frequency reduces over time.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
 `
 
 const storiesMd = (flags: boolean) => `# User stories — WireFrame Studio
@@ -273,15 +281,69 @@ const SPRINT = `# Sprint plan — WireFrame Studio · MVP
 - Performance & QA sweep · Onboarding tutorial draft
 `
 
+/* The user's own tabular format — a compact one-row-per-item table. Adopted for
+   the docs on request, but flagged off-standard: it does not carry every field
+   the team's Jira-publish template requires, so it stays off that path. */
+const EPICS_CUSTOM = `# Epics — WireFrame Studio (custom format)
+
+> ⚠ **Off-standard layout.** Generated in your requested tabular format. This does
+> not match the team's defined epic structure, so it is **not published to Jira**.
+
+| # | Epic | Priority | Phase | Owner |
+|---|------|----------|-------|-------|
+| E01 | Intelligent Canvas Editor | P0 | MVP · Phase 1 | Canvas team |
+| E02 | Component & Template Library | P0 | MVP · Phase 1 | Library team |
+| E03 | AI-Powered Design Assistant | P1 | Alpha · Phase 2 | AI team |
+| E04 | Real-Time Collaboration | P0 | MVP → Phase 3 | Collab team |
+| E05 | Design System Integration | P1 | Alpha · Phase 2 | Platform team |
+| E06 | Prototyping & Export | P1 | Beta · Phase 3 | Export team |
+| E07 | User Onboarding & Education | P2 | Phase 2–3 | Growth team |
+`
+
+const FEATURES_CUSTOM = `# Features — WireFrame Studio (custom format)
+
+> ⚠ **Off-standard layout.** Generated in your requested tabular format. This does
+> not match the team's defined feature structure, so it is **not published to Jira**.
+
+| ID | Feature | Epic | Priority |
+|----|---------|------|----------|
+| F1.1 | Drag-and-Drop Canvas Engine | E01 | P0 |
+| F1.2 | Smart Guides & Alignment | E01 | P0 |
+| F1.3 | Responsive Device Preview | E01 | P1 |
+| F1.4 | Edit History & Undo/Redo | E01 | P0 |
+| F2.1 | Pre-Built Component Library | E02 | P0 |
+| F2.2 | Custom Component Creation | E02 | P1 |
+| F2.3 | Industry Template Gallery | E02 | P1 |
+| F2.4 | Component Properties Panel | E02 | P0 |
+| F3.1 | Text-to-Wireframe Generation | E03 | P1 |
+| F3.2 | Contextual Layout Suggestions | E03 | P1 |
+| F3.3 | Best Practice Alerts | E03 | P2 |
+| F4.1 | Multi-User Live Editing | E04 | P0 |
+| F4.2 | Comment Threads & Mentions | E04 | P0 |
+| F4.3 | Version History & Branching | E04 | P1 |
+| F4.4 | Permissions & Access Control | E04 | P1 |
+| F5.1 | Design Token Import | E05 | P1 |
+| F5.2 | Compliance Checking & Flagging | E05 | P1 |
+| F5.3 | Bi-Directional Sync | E05 | P2 |
+| F6.1 | Interactive Prototype Mode | E06 | P1 |
+| F6.2 | Multi-Format Export | E06 | P0 |
+| F6.3 | Developer Handoff Specs | E06 | P1 |
+| F7.1 | Interactive Tutorial & Wizard | E07 | P1 |
+| F7.2 | Contextual AI Tooltips | E07 | P2 |
+`
+
 /** The markdown for a given phase document (some phases have a variant view). */
 export function backlogMarkdown(doc: BacklogDoc): string {
   switch (doc) {
     case 'intake': return INTAKE
     case 'epics': return epicsMd(false, false)
     case 'epics-fields': return epicsMd(true, true)
-    case 'features': return FEATURES
+    case 'features': return featuresMd(false)
+    case 'features-gaps': return featuresMd(true)
     case 'stories': return storiesMd(false)
     case 'stories-flags': return storiesMd(true)
     case 'sprint': return SPRINT
+    case 'epics-custom': return EPICS_CUSTOM
+    case 'features-custom': return FEATURES_CUSTOM
   }
 }

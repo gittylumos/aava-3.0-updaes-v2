@@ -18,36 +18,53 @@ interface Props {
   /** Reveal the artefact panel — the document card's Open button. A doc opens
       that specific backlog document; no doc just reveals the panel. */
   onOpenArtifact?: (doc?: BacklogDoc) => void
+  /** Record what the user typed into a gate's inline textarea (the gate's own
+      message id is already bound in). */
+  onRecordAnswer?: (text: string) => void
+  /** The note the user recorded on this gate, shown back once it is answered. */
+  answer?: string
 }
 
-export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact }: Props) {
+export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, answer }: Props) {
   if (block.kind === 'tools') return <ToolSteps steps={block.steps} done={block.done} title={block.title} />
 
   if (block.kind === 'capability') return <Capability block={block} />
-  if (block.kind === 'plan') return <Plan block={block} />
+  if (block.kind === 'connect') return <Connect block={block} live={live} onAccept={onAccept} />
+  if (block.kind === 'plan') return <Plan block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} />
 
-  /* The finished backlog — one engaging action carrying the Jira logo. Laid out
-     like the artefact card, but "Push to Jira" instead of "Open". */
+  /* A Jira push offer — shown after every phase gate. The primary action carries
+     the Jira logo and publishes that level; the secondary ("Proceed for now")
+     continues the run without pushing. Both advance to the next phase. */
   if (block.kind === 'sync') {
     return (
-      <div className="mt-3 flex w-full max-w-[460px] items-center gap-3 rounded-[var(--r-md)] px-3.5 py-3"
+      <div className="mt-3 w-full max-w-[460px] rounded-[var(--r-md)] px-3.5 py-3"
         style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[9px]"
-          style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-          <JiraLogo size={22} />
-        </span>
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <span className="truncate text-[13px] font-semibold">{block.title}</span>
-          <span className="text-[11.5px]" style={{ color: 'var(--muted)' }}>{block.detail}</span>
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[9px]"
+            style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+            <JiraLogo size={22} />
+          </span>
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <span className="truncate text-[13px] font-semibold">{block.title}</span>
+            <span className="text-[11.5px]" style={{ color: 'var(--muted)' }}>{block.detail}</span>
+          </div>
+          {!live && <span className="shrink-0 text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Pushed</span>}
         </div>
-        {live ? (
-          <button onClick={() => { onDismiss(); onAccept(block.beat) }}
-            className="press flex shrink-0 items-center gap-2 rounded-[9px] px-3 py-2 text-[12.5px] font-medium"
-            style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
-            <JiraLogo size={16} /> Push to Jira
-          </button>
-        ) : (
-          <span className="shrink-0 text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Pushed</span>
+        {live && (
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            {block.secondaryLabel && block.secondaryBeat && (
+              <button onClick={() => { onDismiss(); onAccept(block.secondaryBeat!) }}
+                className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
+                style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+                {block.secondaryLabel}
+              </button>
+            )}
+            <button onClick={() => { onDismiss(); onAccept(block.beat) }}
+              className="press flex shrink-0 items-center gap-2 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
+              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+              <JiraLogo size={16} /> Push to Jira
+            </button>
+          </div>
         )}
       </div>
     )
@@ -206,10 +223,20 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
     return (
       <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2">
         {block.links.map((l) =>
-          /* A file link opens the file in the workspace, so it is a real link —
-             underlined, and it goes somewhere. A PR reference has nowhere to go
-             in a prototype, so it stays a pill and does not pretend otherwise. */
-          l.file ? (
+          /* A file link opens the file in the workspace; an href link points at an
+             external destination (a raised Jira ticket). Both are real links —
+             underlined, and they go somewhere. A reference with neither has
+             nowhere to go in a prototype, so it stays a pill. */
+          l.href ? (
+            <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+              className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
+              style={{ color: 'var(--done)' }}>
+              {l.label}
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+              </svg>
+            </a>
+          ) : l.file ? (
             <button key={l.label} onClick={() => onOpenFile?.(l.file!)}
               className="mono press text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
@@ -227,7 +254,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
   /* A human-in-the-loop gate. Three variants share the golden "waiting on you"
      treatment while live; how they ask differs. */
   if (block.kind === 'decision') {
-    return <Decision block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} />
+    return <Decision block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} onRecordAnswer={onRecordAnswer} answer={answer} />
   }
 
   // confirm
@@ -302,8 +329,9 @@ const gateShell = (live: boolean) => ({
   background: 'var(--glass)', border: `1px solid ${live ? 'var(--warn)' : 'var(--glass-line)'}`,
 })
 
-function Decision({ block, live, onAccept, onDismiss }: {
+function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: {
   block: DecisionSpec; live: boolean; onAccept: (beat: string) => void; onDismiss: () => void
+  onRecordAnswer?: (text: string) => void; answer?: string
 }) {
   const fire = (beat: string) => { onDismiss(); onAccept(beat) }
 
@@ -367,6 +395,32 @@ function Decision({ block, live, onAccept, onDismiss }: {
   }
 
   // buttons (default)
+  return <ButtonsGate block={block} live={live} fire={fire} onRecordAnswer={onRecordAnswer} answer={answer} />
+}
+
+/* The phase gate — a pill per branch. A `collect` option does not fire straight
+   away: it reveals an inline textarea, and Send records the note (shown back in
+   the answered card) before the beat runs. */
+function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
+  block: DecisionSpec; live: boolean; fire: (beat: string) => void
+  onRecordAnswer?: (text: string) => void; answer?: string
+}) {
+  /* Which option opened its textarea, and what has been typed into it. */
+  const [collecting, setCollecting] = useState<number | null>(null)
+  const [note, setNote] = useState('')
+  const opts = [...block.options].sort((a, b) => (a.primary ? 1 : 0) - (b.primary ? 1 : 0))
+
+  const pick = (opt: DecisionSpec['options'][number], i: number) => {
+    if (opt.collect) { setCollecting(collecting === i ? null : i); return }
+    fire(opt.beat)
+  }
+  const send = (beat: string) => {
+    const text = note.trim()
+    if (!text) return
+    onRecordAnswer?.(text)   // records the note + retires the gate
+    fire(beat)               // then runs the branch
+  }
+
   return (
     <div className="mt-3 rounded-[var(--r-md)] p-3" style={gateShell(live)}>
       <div className="mb-2.5">
@@ -389,14 +443,46 @@ function Decision({ block, live, onAccept, onDismiss }: {
           ))}
         </div>
       )}
-      <p className="mb-3 text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{block.question}</p>
-      {live && (
-        /* Right-aligned, secondary on the left and the primary on the right —
-           the default reading order for a confirm. Primary is plain white on
-           black, no gradient. */
-        <div className="flex flex-wrap justify-end gap-2">
-          {[...block.options].sort((a, b) => (a.primary ? 1 : 0) - (b.primary ? 1 : 0)).map((opt) => (
-            <button key={opt.label} onClick={() => fire(opt.beat)}
+      <p className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{block.question}</p>
+
+      {/* The recorded note, shown back once the gate is answered. */}
+      {!live && answer && (
+        <div className="mt-2.5 rounded-[8px] px-3 py-2 text-[12.5px]"
+          style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }}>
+          <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Your note</span>
+          {answer}
+        </div>
+      )}
+
+      {live && collecting !== null && (
+        /* Collecting a note — the two option buttons are REPLACED by the textarea
+           and a Cancel/Send pair. Cancel returns to the original buttons. */
+        <div className="mt-3">
+          <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)}
+            placeholder={block.placeholder ?? 'Please describe here…'}
+            className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+            style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
+            <button onClick={() => { setCollecting(null); setNote('') }}
+              className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
+              style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+              Cancel
+            </button>
+            <button onClick={() => send(opts[collecting].beat)} disabled={!note.trim()}
+              className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium disabled:opacity-40"
+              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+
+      {live && collecting === null && (
+        /* Right-aligned, secondary on the left and the primary on the right.
+            Primary is plain white on black, no gradient. */
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          {opts.map((opt, i) => (
+            <button key={opt.label} onClick={() => pick(opt, i)}
               className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
               style={opt.primary
                 ? { background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }
@@ -517,13 +603,20 @@ function Capability({ block }: { block: Extract<BlockSpec, { kind: 'capability' 
   )
 }
 
-/* The proposed plan — numbered steps AAVA will run, shown before it starts. */
-function Plan({ block }: { block: Extract<BlockSpec, { kind: 'plan' }> }) {
+/* The plan card. With an `action` it is the combined "Initiate Process" card —
+   the plan and its approval in one: the numbered steps, then a Proceed CTA that
+   both approves the plan and starts the run. Without one it is a plain record. */
+function Plan({ block, live, onAccept, onDismiss }: {
+  block: Extract<BlockSpec, { kind: 'plan' }>; live: boolean
+  onAccept: (beat: string) => void; onDismiss: () => void
+}) {
+  const proceed = () => { if (block.action) { onDismiss(); onAccept(block.action.beat) } }
   return (
-    <div className="mt-3 overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+    <div className="mt-3 overflow-hidden rounded-[var(--r-md)]"
+      style={{ background: 'var(--glass)', border: `1px solid ${live && block.action ? 'var(--warn)' : 'var(--glass-line)'}` }}>
       <div className="px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[.14em]"
         style={{ color: 'var(--muted-deep)', borderBottom: '1px solid var(--glass-line-soft)' }}>
-        Proposed plan · {block.count} steps
+        {block.title ?? 'Proposed plan'} · {block.count} steps
       </div>
       {block.steps.map((s, i) => (
         <div key={s.title} className="flex gap-3 px-3.5 py-2.5"
@@ -536,6 +629,74 @@ function Plan({ block }: { block: Extract<BlockSpec, { kind: 'plan' }> }) {
           </div>
         </div>
       ))}
+      {block.action && (
+        <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.13em]"
+            style={{ color: live ? 'var(--warn)' : 'var(--muted-deep)' }}>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" /></svg>
+            {live ? 'Review & approve' : 'Started'}
+          </span>
+          {live ? (
+            <button onClick={proceed}
+              className="press flex items-center gap-1.5 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
+              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+              {block.action.label}
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          ) : (
+            <span className="text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Approved</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* A connector card — the Azure DevOps push. It searches, offers a Connect
+   button when nothing is wired, then shows connecting and connected states. */
+function Connect({ block, live, onAccept }: {
+  block: Extract<BlockSpec, { kind: 'connect' }>; live: boolean; onAccept: (beat: string) => void
+}) {
+  if (block.state === 'searching') {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-[13px]">
+        <span className="grid h-4 w-4 shrink-0 place-items-center" style={{ color: 'var(--muted)' }}><GateGlyphSparkle /></span>
+        <span className="aava-shimmer">Searching for an {block.service} connector…</span>
+      </div>
+    )
+  }
+  const connecting = block.state === 'connecting'
+  const done = block.state === 'done'
+  return (
+    <div className="mt-3 flex w-full max-w-[460px] items-center gap-3 rounded-[var(--r-md)] px-3.5 py-3"
+      style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[9px]"
+        style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+        <AzureLogo size={22} />
+      </span>
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <span className="truncate text-[13px] font-semibold">{block.service}</span>
+        <span className="text-[11.5px]" style={{ color: 'var(--muted)' }}>{block.detail}</span>
+      </div>
+      {done ? (
+        <span className="flex shrink-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--ok)' }}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12 4 4L19 7" /></svg>
+          Connected
+        </span>
+      ) : connecting ? (
+        <span className="flex shrink-0 items-center gap-2 text-[12px]" style={{ color: 'var(--muted)' }}>
+          <span className="h-4 w-4 animate-spin rounded-full" style={{ border: '2px solid var(--glass-line)', borderTopColor: 'var(--muted)' }} />
+          Connecting…
+        </span>
+      ) : live ? (
+        <button onClick={() => onAccept(block.beat)}
+          className="press shrink-0 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
+          style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+          Connect
+        </button>
+      ) : (
+        <span className="shrink-0 text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Connect</span>
+      )}
     </div>
   )
 }
@@ -562,6 +723,16 @@ function JiraLogo({ size = 18 }: { size?: number }) {
       <path d={`M21 0 ${el}`} fill="url(#jira-grad)" />
       <path d={`M10.5 10.5 ${el}`} fill="#2684FF" />
       <path d={`M0 21 ${el}`} fill="url(#jira-grad)" />
+    </svg>
+  )
+}
+
+/* The Azure DevOps mark — the blue infinity/swirl, recreated as a clean SVG.
+   Used on the "connect to Azure DevOps" card. */
+function AzureLogo({ size = 20 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden>
+      <path fill="#0078D4" d="M2 22.9 6.3 17l7.6-6.3 8.4-3.1v6.5l-7.3 4.9-8.5 5.5-1.2 3.6zm5.6 2.4 9.7-3.7v-9.3l5.3-3.1 5.8 2.6v9.4L23 27.9l-9.8 2.4-5.6-5z" />
     </svg>
   )
 }

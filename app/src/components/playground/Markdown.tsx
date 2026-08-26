@@ -1,9 +1,10 @@
 /* A small markdown renderer — enough for the documents this app generates.
  *
  * Deliberately not a full CommonMark implementation: it handles the constructs
- * the PRD document uses (h1–h3, paragraphs, bullet lists, bold, inline code, a
- * horizontal rule) and nothing else, so it stays a few lines and cannot surprise
- * us. The Code view shows the same source verbatim; this is the Preview.
+ * these documents use (h1–h3, paragraphs, bullet lists, bold, inline code, a
+ * horizontal rule, blockquote callouts and pipe tables) and nothing else, so it
+ * stays small and cannot surprise us. The Code view shows the same source
+ * verbatim; this is the Preview.
  */
 import { Fragment } from 'react'
 
@@ -24,11 +25,17 @@ function inline(text: string): React.ReactNode[] {
   return out
 }
 
+/** Split a pipe-table row into its cells, dropping the leading/trailing pipes. */
+function cells(row: string): string[] {
+  return row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map((c) => c.trim())
+}
+
 export function Markdown({ source }: { source: string }) {
   const lines = source.replace(/\r\n/g, '\n').split('\n')
   const blocks: React.ReactNode[] = []
   let para: string[] = []
   let list: string[] = []
+  let quote: string[] = []
   let key = 0
 
   const flushPara = () => {
@@ -50,9 +57,54 @@ export function Markdown({ source }: { source: string }) {
     )
     list = []
   }
+  /* A blockquote callout — used for the "off-standard" and "missing fields"
+     warnings. Rendered as a tinted, left-ruled panel. */
+  const flushQuote = () => {
+    if (!quote.length) return
+    blocks.push(
+      <div key={key++} className="mt-3 rounded-r-[8px] py-2 pl-3 pr-3 text-[13px] leading-[1.6]"
+        style={{ background: 'var(--warn-surface)', borderLeft: '2px solid var(--warn)', color: 'var(--text-dim)' }}>
+        {quote.map((q, i) => <div key={i}>{inline(q)}</div>)}
+      </div>,
+    )
+    quote = []
+  }
 
-  for (const raw of lines) {
-    const line = raw.trimEnd()
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd()
+
+    /* A pipe table: a header row, a |---| separator, then body rows. Consumed as
+       a block so the small line-loop below never sees the individual rows. */
+    if (/^\s*\|/.test(line) && /^\s*\|?[\s:-]*-[\s:|-]*$/.test((lines[i + 1] ?? '').trim())) {
+      flushPara(); flushList(); flushQuote()
+      const head = cells(line)
+      const rows: string[][] = []
+      let j = i + 2
+      while (j < lines.length && /^\s*\|/.test(lines[j])) { rows.push(cells(lines[j])); j++ }
+      i = j - 1
+      blocks.push(
+        <div key={key++} className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr>{head.map((h, c) => (
+                <th key={c} className="border px-2.5 py-1.5 text-left font-semibold"
+                  style={{ borderColor: 'var(--glass-line-soft)', background: 'var(--wash-2)', color: 'var(--text)' }}>{inline(h)}</th>
+              ))}</tr>
+            </thead>
+            <tbody>{rows.map((r, ri) => (
+              <tr key={ri}>{r.map((cell, c) => (
+                <td key={c} className="border px-2.5 py-1.5 align-top"
+                  style={{ borderColor: 'var(--glass-line-soft)', color: 'var(--text-dim)' }}>{inline(cell)}</td>
+              ))}</tr>
+            ))}</tbody>
+          </table>
+        </div>,
+      )
+      continue
+    }
+
+    if (/^\s*>\s?/.test(line)) { flushPara(); flushList(); quote.push(line.replace(/^\s*>\s?/, '')); continue }
+    flushQuote()
     if (/^\s*[-*]\s+/.test(line)) { flushPara(); list.push(line.replace(/^\s*[-*]\s+/, '')); continue }
     flushList()
     if (line.trim() === '') { flushPara(); continue }
@@ -67,7 +119,7 @@ export function Markdown({ source }: { source: string }) {
     }
     para.push(line.trim())
   }
-  flushPara(); flushList()
+  flushPara(); flushList(); flushQuote()
 
   return <article className="max-w-[760px]">{blocks}</article>
 }
