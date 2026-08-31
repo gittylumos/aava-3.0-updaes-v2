@@ -8,7 +8,7 @@
  * the model for the version list: timestamped entries, each offering Preview or
  * Restore on hover. The Watch zone stays docked beneath it.
  */
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useDismiss } from '../state/useDismiss'
 import { WatchBar } from '../zones/WatchBar'
@@ -30,11 +30,15 @@ interface Props {
   files?: SessionFile[]
   /** Switch the canvas to another document (from the filename dropdown). */
   onSelectDoc?: (doc: BacklogDoc) => void
-  /** A comment was sent — it stacks in the changes tray above the composer. */
-  onAddChange?: (change: { quote: string; note: string }) => void
+  /** A comment was sent — it stacks in the changes tray above the composer.
+      `range` is the live DOM selection, kept so the passage stays highlighted. */
+  onAddChange?: (change: { quote: string; note: string; range?: Range }) => void
+  /** The pending comment changes, so the selected passages stay highlighted with
+      their change number until they are applied or discarded. */
+  changes?: { quote: string; note: string; range?: Range }[]
 }
 
-export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [], onSelectDoc, onAddChange }: Props) {
+export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [], onSelectDoc, onAddChange, changes = [] }: Props) {
   const isBacklog = object.kind === 'backlog'
   const doc = object.activeDoc ?? 'intake'
   const md = useMemo(
@@ -51,16 +55,18 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
   /* Inline commenting — toggle it on, select any text in the document, and a
      small input (a mini prompt bar) appears where the selection is. */
   const [commenting, setCommenting] = useState(false)
-  const [pin, setPin] = useState<{ quote: string; top: number; left: number } | null>(null)
+  const [pin, setPin] = useState<{ quote: string; top: number; left: number; range: Range } | null>(null)
   const [note, setNote] = useState('')
   const cardRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const onSelect = () => {
     if (!commenting) return
     const s = window.getSelection()
     const text = s?.toString().trim() ?? ''
     if (!s || !text || s.rangeCount === 0) { setPin(null); return }
-    const rect = s.getRangeAt(0).getBoundingClientRect()
+    const range = s.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
     const box = cardRef.current?.getBoundingClientRect()
     if (!box) return
     setNote('')
@@ -68,16 +74,30 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
       quote: text.length > 60 ? text.slice(0, 57) + '…' : text,
       top: rect.bottom - box.top + 8,
       left: Math.min(Math.max(rect.left - box.left, 12), box.width - 320),
+      range: range.cloneRange(),
     })
   }
-  /* Send a comment → it stacks in the changes tray above the composer;
+  /* Send a comment → it stacks in the changes tray above the composer, and the
+     selected passage stays highlighted (with its change number) in the doc;
      commenting stays armed so more selections can be added before applying. */
   const sendComment = () => {
     if (!note.trim() || !pin) return
-    onAddChange?.({ quote: pin.quote, note: note.trim() })
+    onAddChange?.({ quote: pin.quote, note: note.trim(), range: pin.range })
     setPin(null); setNote('')
     window.getSelection()?.removeAllRanges()
   }
+
+  /* Paint the pending comment passages with the CSS Custom Highlight API — no DOM
+     mutation, so it survives re-renders and clears itself when changes empty. */
+  useEffect(() => {
+    const HL = (globalThis as { Highlight?: typeof Highlight }).Highlight
+    const store = (CSS as unknown as { highlights?: Map<string, Highlight> }).highlights
+    if (!HL || !store) return
+    const ranges = changes.map((c) => c.range).filter((r): r is Range => !!r)
+    if (!ranges.length) { store.delete('aava-comment'); return }
+    try { store.set('aava-comment', new HL(...ranges)) } catch { store.delete('aava-comment') }
+    return () => { store.delete('aava-comment') }
+  }, [changes])
 
   const download = (format: (typeof FORMATS)[number]) => {
     setMenu('none')
@@ -96,9 +116,28 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
     <div className="min-h-0 flex-1 overflow-auto px-6 py-5"
       onMouseUp={onSelect}
       style={commenting ? { cursor: 'text' } : undefined}>
-      {view === 'preview'
-        ? <Markdown source={md} />
-        : <pre className="mono max-w-full overflow-x-auto whitespace-pre-wrap text-[12.5px] leading-[1.65]" style={{ color: 'var(--text-dim)' }}>{md}</pre>}
+      <style>{`::highlight(aava-comment){ background: rgba(124,124,255,.30); border-radius: 2px; }`}</style>
+      <div ref={contentRef} className="relative">
+        {view === 'preview'
+          ? <Markdown source={md} />
+          : <pre className="mono max-w-full overflow-x-auto whitespace-pre-wrap text-[12.5px] leading-[1.65]" style={{ color: 'var(--text-dim)' }}>{md}</pre>}
+        {/* Numbered markers on each highlighted passage — the same numbers as the
+            changes tray above the composer. Position is content-relative, so they
+            stay glued to the text as the doc scrolls. */}
+        {view === 'preview' && changes.map((c, i) => {
+          if (!c.range) return null
+          const r = c.range.getBoundingClientRect()
+          const box = contentRef.current?.getBoundingClientRect()
+          if (!box || (r.width === 0 && r.height === 0)) return null
+          return (
+            <span key={i} aria-hidden
+              className="pointer-events-none absolute grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-semibold shadow"
+              style={{ top: r.top - box.top - 9, left: r.left - box.left - 9, background: 'var(--brand)', color: '#fff', zIndex: 5 }}>
+              {i + 1}
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 
@@ -133,7 +172,7 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
       >
         {/* Toolbar — the Preview/Code switch on the left, object actions right. */}
         <div ref={bar} className="relative flex items-center gap-2.5 px-2.5 py-2" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-          <ViewTabs view={view} onChange={setView} />
+          <ViewTabs view={view} onChange={(v) => { setView(v); if (v === 'code') { setCommenting(false); setPin(null) } }} />
           {/* Filename is a highlighted switcher — the chevron opens an overlay of
               every session file; picking one replaces the canvas content. */}
           <button onClick={() => setMenu(menu === 'files' ? 'none' : 'files')} aria-pressed={menu === 'files'}
@@ -146,8 +185,12 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
           <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]"
             style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
             <ToolBtn label="Share" onClick={() => onToast('Share link copied')}><Icon.Share /></ToolBtn>
-            <ToolBtn label={commenting ? 'Done commenting' : 'Comment on the doc'} active={commenting}
-              onClick={() => { setCommenting((c) => !c); setPin(null) }}><Icon.Comment /></ToolBtn>
+            {/* Inline commenting is a preview‑only affordance — there is nothing to
+                annotate in the raw source view. */}
+            {view === 'preview' && (
+              <ToolBtn label={commenting ? 'Done commenting' : 'Comment on the doc'} active={commenting}
+                onClick={() => { setCommenting((c) => !c); setPin(null) }}><Icon.Comment /></ToolBtn>
+            )}
             <ToolBtn label="Expand" onClick={() => setExpanded(true)}><Icon.Expand /></ToolBtn>
             <ToolBtn label="Download" active={menu === 'download'} onClick={() => setMenu(menu === 'download' ? 'none' : 'download')}><Icon.Download /></ToolBtn>
             <ToolBtn label="Version history" active={menu === 'history'} onClick={() => setMenu(menu === 'history' ? 'none' : 'history')}><Icon.History /></ToolBtn>
@@ -214,7 +257,7 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
             <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{object.title}</span>
             <span className="mono text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>{file}</span>
             <div className="ml-auto flex items-center gap-2">
-              <ViewTabs view={view} onChange={setView} />
+              <ViewTabs view={view} onChange={(v) => { setView(v); if (v === 'code') { setCommenting(false); setPin(null) } }} />
               <ToolBtn label="Exit full screen" onClick={() => setExpanded(false)}><Icon.Collapse /></ToolBtn>
             </div>
           </div>

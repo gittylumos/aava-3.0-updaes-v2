@@ -30,7 +30,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
 
   if (block.kind === 'capability') return <Capability block={block} />
   if (block.kind === 'connect') return <Connect block={block} live={live} onAccept={onAccept} />
-  if (block.kind === 'plan') return <Plan block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} />
+  if (block.kind === 'plan') return <Plan block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} onRecordAnswer={onRecordAnswer} answer={answer} />
 
   /* A Jira push offer — shown after every phase gate. The primary action carries
      the Jira logo and publishes that level; the secondary ("Proceed for now")
@@ -48,21 +48,23 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
             <span className="truncate text-[13px] font-semibold">{block.title}</span>
             <span className="text-[11.5px]" style={{ color: 'var(--muted)' }}>{block.detail}</span>
           </div>
-          {!live && <span className="shrink-0 text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Pushed</span>}
+          {/* Retired state reflects the choice — "Published" only if they actually
+              pushed; "Skipped" if they chose to skip instead. */}
+          {!live && <span className="shrink-0 text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>{answer === 'proceeded' ? 'Skipped' : 'Published'}</span>}
         </div>
         {live && (
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             {block.secondaryLabel && block.secondaryBeat && (
-              <button onClick={() => { onDismiss(); onAccept(block.secondaryBeat!) }}
+              <button onClick={() => { onRecordAnswer?.('proceeded'); onAccept(block.secondaryBeat!) }}
                 className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
                 style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
                 {block.secondaryLabel}
               </button>
             )}
             <button onClick={() => { onDismiss(); onAccept(block.beat) }}
-              className="press flex shrink-0 items-center gap-2 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
+              className="press shrink-0 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
               style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
-              <JiraLogo size={16} /> Push to Jira
+              Publish
             </button>
           </div>
         )}
@@ -609,6 +611,7 @@ function Capability({ block }: { block: Extract<BlockSpec, { kind: 'capability' 
 function Plan({ block, live, onAccept, onDismiss }: {
   block: Extract<BlockSpec, { kind: 'plan' }>; live: boolean
   onAccept: (beat: string) => void; onDismiss: () => void
+  onRecordAnswer?: (text: string) => void; answer?: string
 }) {
   const proceed = () => { if (block.action) { onDismiss(); onAccept(block.action.beat) } }
   return (
@@ -629,23 +632,28 @@ function Plan({ block, live, onAccept, onDismiss }: {
           </div>
         </div>
       ))}
+
       {block.action && (
-        <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.13em]"
-            style={{ color: live ? 'var(--warn)' : 'var(--muted-deep)' }}>
-            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" /></svg>
-            {live ? 'Review & approve' : 'Started'}
-          </span>
-          {live ? (
-            <button onClick={proceed}
-              className="press flex items-center gap-1.5 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
-              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
-              {block.action.label}
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </button>
-          ) : (
-            <span className="text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Approved</span>
-          )}
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
+          <div className={`flex items-center ${live ? 'justify-end' : 'justify-between'}`}>
+            {!live && (
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.13em]"
+                style={{ color: 'var(--muted-deep)' }}>
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" /></svg>
+                Started
+              </span>
+            )}
+            {live ? (
+              <button onClick={proceed}
+                className="press flex items-center gap-1.5 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
+                style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+                {block.action.label}
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </button>
+            ) : (
+              <span className="text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Approved</span>
+            )}
+          </div>
         </div>
       )}
     </div>

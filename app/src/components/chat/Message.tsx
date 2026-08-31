@@ -16,9 +16,11 @@ interface Props {
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc) => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  /** This message's block is pinned to the composer slot — skip it inline. */
+  pinned?: boolean
 }
 
-export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer }: Props) {
+export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, pinned }: Props) {
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -28,6 +30,11 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
       </motion.div>
     )
   }
+
+  /* While this message's block is pinned to the composer slot, only its text
+     lines belong in the thread. A block-only message (no lines) shows nothing
+     inline until it is answered and un-pinned. */
+  if (pinned && msg.lines.length === 0 && !msg.typing) return null
 
   /* No name label. Only one of the two speakers gets a bubble, and only one is
      right-aligned — the side of the column a message sits on already says who
@@ -39,7 +46,7 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
           {msg.stream
             ? <StreamingLines msg={msg} />
             : msg.lines.map((line, i) => <Line key={i}>{line}</Line>)}
-          {msg.block && (
+          {msg.block && !pinned && (
             <Block block={msg.block} live={msg.live !== false} preview={preview}
               onAccept={onAccept} onDismiss={() => onDismiss(msg.id)} onOpenFile={onOpenFile}
               onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}

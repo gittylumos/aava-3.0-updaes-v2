@@ -12,10 +12,14 @@ import type { PrepStep } from '../../state/types'
  * `at` is the whole status model — before it is done, on it is you, after it is
  * ahead — so the ticks and the marker can never contradict each other.
  */
-export function TaskProgress({ steps, at, onOpenEvidence }: {
+export function TaskProgress({ steps, at, onOpenEvidence, currentWaiting = true }: {
   steps: PrepStep[]
   at: number
   onOpenEvidence: (key: string) => void
+  /** Whether the current step is genuinely a gate awaiting the user. Scenario
+      runs are parked at their gate (default true); a live run passes false while
+      a step is mid-generation, so the bar does not claim "waiting on you" then. */
+  currentWaiting?: boolean
 }) {
   const done = Math.min(at, steps.length)
   const current = steps[at]
@@ -53,7 +57,7 @@ export function TaskProgress({ steps, at, onOpenEvidence }: {
           full list is open, which shows the same row in place. */}
       {current && (
         <div className="px-2 py-1.5 group-data-[state=open]:hidden">
-          <Row step={current} state="current" index={at} onOpenEvidence={onOpenEvidence} />
+          <Row step={current} state="current" index={at} onOpenEvidence={onOpenEvidence} currentWaiting={currentWaiting} />
         </div>
       )}
 
@@ -61,18 +65,19 @@ export function TaskProgress({ steps, at, onOpenEvidence }: {
         {steps.map((step, i) => (
           <Row key={step.key} step={step} index={i}
             state={i < at ? 'done' : i === at ? 'current' : 'ahead'}
-            onOpenEvidence={onOpenEvidence} />
+            onOpenEvidence={onOpenEvidence} currentWaiting={currentWaiting} />
         ))}
       </Collapsible.Content>
     </Collapsible.Root>
   )
 }
 
-function Row({ step, state, onOpenEvidence }: {
+function Row({ step, state, onOpenEvidence, currentWaiting = true }: {
   step: PrepStep
   index: number
   state: 'done' | 'current' | 'ahead'
   onOpenEvidence: (key: string) => void
+  currentWaiting?: boolean
 }) {
   const current = state === 'current'
 
@@ -93,22 +98,11 @@ function Row({ step, state, onOpenEvidence }: {
           {step.label}
         </span>
         {current && (
-          <span className="text-[11.5px]" style={{ color: 'var(--warn)' }}>
-            {step.gate ? 'Waiting on you' : step.result}
+          <span className="text-[11.5px]" style={{ color: step.gate && currentWaiting ? 'var(--warn)' : 'var(--muted)' }}>
+            {step.gate && currentWaiting ? 'Waiting on you' : step.gate ? 'Drafting…' : step.result}
           </span>
         )}
       </span>
-
-      {/* A gate is a gate whether it is passed, current or still ahead — the
-          badge is keyed off the step, so you can see both of them coming. */}
-      {step.gate && (
-        <span className="flex shrink-0 items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[.08em]"
-          style={current
-            ? { background: 'var(--warn-surface)', color: 'var(--warn)', border: '1px solid var(--warn)' }
-            : { color: 'var(--muted)', border: '1px solid var(--glass-line)' }}>
-          <IconPerson />You
-        </span>
-      )}
 
       {!current && state === 'done' && (
         <span className="mono shrink-0 truncate text-[11px]" style={{ color: 'var(--muted-deep)' }}>
@@ -149,10 +143,3 @@ function Marker({ state }: { state: 'done' | 'current' | 'ahead' }) {
     </svg>
   )
 }
-
-const IconPerson = () => (
-  <svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4">
-    <circle cx="12" cy="8" r="3.4" />
-    <path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" />
-  </svg>
-)

@@ -54,7 +54,7 @@ export default function App() {
   const [canvasMode, setCanvasMode] = useState<'doc' | 'files' | 'graph'>('doc')
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
-  const [docChanges, setDocChanges] = useState<{ quote: string; note: string }[]>([])
+  const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
 
   /* Every artefact the run has produced, newest first — the source for both the
      files modal and (via Open) the canvas. Read off the document cards in the
@@ -71,7 +71,9 @@ export default function App() {
     return entries.map(([name, doc], i) => ({ doc, name, when: clockAgo(i) }))
   }, [j.state.messages])
 
-  const openDoc = (doc: BacklogDoc) => { setCanvasMode('doc'); j.openObjectDoc(doc) }
+  /* Switching docs drops any pending inline comments — they were about the doc
+     you were on, and their highlight ranges belong to that document's DOM. */
+  const openDoc = (doc: BacklogDoc) => { setCanvasMode('doc'); j.openObjectDoc(doc); setDocChanges([]) }
   const showGraph = () => { setCanvasMode('graph'); j.setPanelOpen(true) }
   const showFiles = () => { setCanvasMode('files'); j.setPanelOpen(true) }
 
@@ -265,7 +267,7 @@ export default function App() {
                     onShowFiles={showFiles}
                     onShowGraph={showGraph}
                     changes={docChanges}
-                    onApplyChanges={() => { j.toast(`Applied ${docChanges.length} change${docChanges.length === 1 ? '' : 's'}`); setDocChanges([]) }}
+                    onApplyChanges={() => { j.applyComments(docChanges); setDocChanges([]) }}
                     onDiscardChanges={() => setDocChanges([])}
                     onRemoveChange={(i) => setDocChanges((cs) => cs.filter((_, idx) => idx !== i))}
                     /* Only joined when there is a panel to join to — a chat
@@ -323,6 +325,7 @@ export default function App() {
               files={sessionFiles}
               onSelectDoc={openDoc}
               onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
+              changes={docChanges}
             />
           ) : undefined}
         />

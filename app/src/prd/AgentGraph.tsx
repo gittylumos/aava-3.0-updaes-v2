@@ -1,103 +1,161 @@
-/* The agent-topology canvas — a live, state-driven communication graph.
+/* The Execution-activity canvas — the full run blueprint, preloaded.
  *
- * The exact agents behind the "Epics and Features Generator" run — the same ones
- * named in the capability match — laid out as the process flow: PRD Parser →
- * Epic → Feature → Story generators → DoR checker → Sprint planner → Jira
- * publisher, with the human Reviewer as the approval gate. Nothing is animated
- * at random: each node's state is derived from the actual run (which documents
- * exist, whether a step is executing, whether a gate is waiting), so while the
- * plan is still being approved everything sits idle, and only the agent that is
- * genuinely running carries the pulsing stroke and a flowing edge.
+ * The moment the plan's Proceed is pressed, the entire predefined process map is
+ * laid out — every agent, and now a Reviewer block inlined at each human gate and
+ * a Jira Publisher block inlined at each publish, connected in sequence exactly
+ * the way the agents are. Nothing is universalised: there is a distinct Reviewer
+ * for each level's review and a distinct Publisher for each level's push, so the
+ * blueprint reads as the real, ordered process.
+ *
+ * As the run traverses this fixed structure, each block lights up from its own
+ * run signals — never a timer:
+ *   • an agent turns blue while generating, green when its document lands;
+ *   • a Reviewer turns amber while its gate holds, green once it is answered;
+ *   • a Publisher turns green ("Published") if that level was pushed, amber
+ *     ("Skipped") if it was skipped;
+ *   • everything not yet reached sits grey ("Queued").
+ * Done stays done.
  */
 import { useMemo } from 'react'
 import { WatchBar } from '../zones/WatchBar'
 import type { Message, WatchEntry } from '../state/types'
 
 type Kind = 'agent' | 'tool' | 'human'
-type NodeState = 'running' | 'success' | 'paused' | 'idle'
-type AgentId = 'parse' | 'epics' | 'features' | 'stories' | 'dor' | 'sprint' | 'publish' | 'review'
+type NState = 'running' | 'done' | 'waiting' | 'skipped' | 'queued'
+type AgentId = 'parse' | 'epics' | 'features' | 'stories'
+type GatePhase = 'intake' | 'epics' | 'features'
+type PushPhase = 'epics' | 'features' | 'stories'
 
-interface NodeDef { id: AgentId; kind: Kind; title: string; sub: string; x: number; y: number }
+interface NodeDef {
+  id: string; kind: Kind; title: string; sub: string
+  agent?: AgentId; gate?: GatePhase; push?: PushPhase
+  x: number; y: number
+}
 
 const W = 232
 const H = 108
 
-/* Layout — a zig-zag pipeline: top row left→right, bottom row right→left, with
-   the Reviewer anchored bottom-left as the human gate. */
-const NODES: NodeDef[] = [
-  { id: 'parse', kind: 'agent', title: 'PRD Parser', sub: 'Objectives · roles · requirements', x: 30, y: 60 },
-  { id: 'epics', kind: 'agent', title: 'Epic Generator', sub: 'Clusters requirements into epics', x: 350, y: 60 },
-  { id: 'features', kind: 'agent', title: 'Feature Generator', sub: 'Decomposes epics into features', x: 670, y: 60 },
-  { id: 'stories', kind: 'agent', title: 'Story Generator', sub: 'Writes user stories', x: 990, y: 60 },
-  { id: 'dor', kind: 'agent', title: 'DoR Checker', sub: 'Definition-of-Ready checks', x: 990, y: 350 },
-  { id: 'sprint', kind: 'agent', title: 'Sprint Planner', sub: 'Maps stories into sprints', x: 670, y: 350 },
-  { id: 'publish', kind: 'tool', title: 'Jira Publisher', sub: 'Creates the linked hierarchy', x: 350, y: 350 },
-  { id: 'review', kind: 'human', title: 'Reviewer', sub: 'Human approval gate', x: 30, y: 350 },
+/* The blueprint, in flow order — Reviewer inlined after every level, a Jira
+   Publisher after every level. The run ends by publishing the stories; sprint
+   planning is handed to the scrum master, so there is no sprint node. */
+const BLUEPRINT: Omit<NodeDef, 'x' | 'y'>[] = [
+  { id: 'parse', kind: 'agent', title: 'PRD Parser', sub: 'Objectives · roles · requirements', agent: 'parse' },
+  { id: 'rev-intake', kind: 'human', title: 'Reviewer', sub: 'Confirm the intake summary', gate: 'intake' },
+  { id: 'epics', kind: 'agent', title: 'Epic Generator', sub: 'Clusters requirements into epics', agent: 'epics' },
+  { id: 'rev-epics', kind: 'human', title: 'Reviewer', sub: 'Confirm the epics', gate: 'epics' },
+  { id: 'pub-epics', kind: 'tool', title: 'Jira Publisher', sub: 'Publish the epics', push: 'epics' },
+  { id: 'features', kind: 'agent', title: 'Feature Generator', sub: 'Decomposes epics into features', agent: 'features' },
+  { id: 'rev-features', kind: 'human', title: 'Reviewer', sub: 'Confirm the features', gate: 'features' },
+  { id: 'pub-features', kind: 'tool', title: 'Jira Publisher', sub: 'Publish the features', push: 'features' },
+  { id: 'stories', kind: 'agent', title: 'Story Generator', sub: 'Writes user stories', agent: 'stories' },
+  { id: 'pub-stories', kind: 'tool', title: 'Jira Publisher', sub: 'Publish the stories', push: 'stories' },
 ]
-const byId = (id: AgentId) => NODES.find((n) => n.id === id)!
 
-/* The pipeline order — edges follow this chain. */
-const PIPELINE: AgentId[] = ['parse', 'epics', 'features', 'stories', 'dor', 'sprint', 'publish']
-
-const VB_W = 1252
-const VB_H = 500
+/* Lay the blueprint out as a boustrophedon (snake) — rows alternate direction so
+   the sequence stays connected as it wraps. */
+const PER_ROW = 5
+const X0 = 30, Y0 = 40, XSTEP = 300, YSTEP = 290
+const NODES: NodeDef[] = BLUEPRINT.map((n, i) => {
+  const row = Math.floor(i / PER_ROW)
+  const inRow = i % PER_ROW
+  const col = row % 2 === 0 ? inRow : PER_ROW - 1 - inRow
+  return { ...n, x: X0 + col * XSTEP, y: Y0 + row * YSTEP }
+})
+const VB_W = X0 * 2 + (PER_ROW - 1) * XSTEP + W          // 1494
+const VB_H = Y0 + Math.floor((BLUEPRINT.length - 1) / PER_ROW) * YSTEP + H + 40  // 768
 
 const RUN_BLUE = '#5B9DFF'
-const STATE_COLOR: Record<NodeState, string> = {
-  running: RUN_BLUE, success: 'var(--ok)', paused: 'var(--warn)', idle: 'var(--muted-deep)',
+const STATE_COLOR: Record<NState, string> = {
+  running: RUN_BLUE, done: 'var(--ok)', waiting: 'var(--warn)', skipped: 'var(--warn)', queued: 'var(--muted-deep)',
 }
-const STATE_LABEL: Record<NodeState, string> = {
-  running: 'RUNNING', success: 'DONE', paused: 'REVIEW', idle: 'QUEUED',
+function stateLabel(state: NState, kind: Kind): string {
+  switch (state) {
+    case 'running': return 'RUNNING'
+    case 'waiting': return kind === 'tool' ? 'OFFER' : 'REVIEW'
+    case 'skipped': return 'SKIPPED'
+    case 'queued': return 'QUEUED'
+    case 'done': default: return kind === 'human' ? 'APPROVED' : kind === 'tool' ? 'PUBLISHED' : 'DONE'
+  }
 }
 
-interface Run { done: Set<AgentId>; active: AgentId | null; waiting: boolean; gateNode: AgentId | null }
+interface Run {
+  has: Record<AgentId, boolean>
+  activeAgent: AgentId | null
+  answeredGates: Set<GatePhase>
+  liveGate: GatePhase | null
+  pushes: Partial<Record<PushPhase, { live: boolean; skipped: boolean }>>
+}
 
-/* Derive the live state of every agent from the run so far — no timers, no
-   randomness. `done` from the documents produced, `active` from a status
-   checklist still ticking, `waiting` from a gate holding for the user. */
+const gatePhaseOf = (title: string): GatePhase => {
+  const t = title.toLowerCase()
+  if (/intake|summary/.test(t)) return 'intake'
+  if (/epic/.test(t)) return 'epics'
+  return 'features'
+}
+/* A push card can name more than one level (the "push what you skipped" card
+   lists both epics and features), so it can settle several publisher nodes at
+   once. Detect every level from the title alone — the detail may mention other
+   levels in passing ("58 stories under 23 features"). */
+const pushPhasesOf = (title: string): PushPhase[] => {
+  const t = title.toLowerCase()
+  const phs: PushPhase[] = []
+  if (/stor/.test(t)) phs.push('stories')
+  if (/feature/.test(t)) phs.push('features')
+  if (/epic/.test(t)) phs.push('epics')
+  return phs.length ? phs : ['stories']
+}
+
+/* Derive every block's state from the run so far. */
 function deriveRun(messages: Message[]): Run {
   const docs = new Set<string>()
   let running = false
-  let liveGate = false
-  let pushed = false
+  const answeredGates = new Set<GatePhase>()
+  let liveGate: GatePhase | null = null
+  const pushes: Run['pushes'] = {}
+
   for (const m of messages ?? []) {
     const b = m.block
     if (b?.kind === 'document' && b.doc) docs.add(b.doc)
     if (b?.kind === 'tools' && b.done < b.steps.length) running = true
-    if (m.live !== false && (b?.kind === 'decision' || b?.kind === 'sync')) liveGate = true
-    if (m.from === 'aava' && /pushed the .* to jira|pushed to jira|pushed to azure/i.test(m.lines.join(' '))) pushed = true
+    if (b?.kind === 'decision') {
+      const ph = gatePhaseOf(b.title)
+      if (m.live === false) answeredGates.add(ph)
+      else liveGate = ph
+    }
+    if (b?.kind === 'sync') {
+      const status = { live: m.live !== false, skipped: m.answer === 'proceeded' }
+      for (const p of pushPhasesOf(b.title)) pushes[p] = status
+    }
   }
-  const marker: Record<AgentId, boolean> = {
+
+  const has: Record<AgentId, boolean> = {
     parse: docs.has('intake'),
     epics: docs.has('epics') || docs.has('epics-fields') || docs.has('epics-custom'),
     features: docs.has('features') || docs.has('features-gaps') || docs.has('features-custom'),
     stories: docs.has('stories'),
-    dor: docs.has('stories-flags'),
-    sprint: docs.has('sprint'),
-    publish: pushed,
-    review: false,
   }
-  const done = new Set<AgentId>(PIPELINE.filter((a) => marker[a]))
-  const firstPending = PIPELINE.find((a) => !marker[a]) ?? null
-  const active = running ? firstPending : null
-  // The gate only holds after the run has actually started producing something.
-  const waiting = liveGate && done.size > 0 && !running
-  const gateNode = waiting ? ([...done].pop() ?? null) : null
-  return { done, active, waiting, gateNode }
+  const order: AgentId[] = ['parse', 'epics', 'features', 'stories']
+  const activeAgent = running ? order.find((a) => !has[a]) ?? null : null
+  return { has, activeAgent, answeredGates, liveGate, pushes }
 }
 
-function nodeState(n: NodeDef, run: Run): NodeState {
-  if (n.id === 'review') return run.waiting ? 'paused' : 'idle'
-  if (run.done.has(n.id)) return 'success'
-  if (run.active === n.id) return 'running'
-  return 'idle'
+function nodeState(n: NodeDef, run: Run): NState {
+  if (n.agent) return run.has[n.agent] ? 'done' : run.activeAgent === n.agent ? 'running' : 'queued'
+  if (n.gate) return run.liveGate === n.gate ? 'waiting' : run.answeredGates.has(n.gate) ? 'done' : 'queued'
+  if (n.push) {
+    const p = run.pushes[n.push]
+    if (!p) return 'queued'
+    return p.live ? 'waiting' : p.skipped ? 'skipped' : 'done'
+  }
+  return 'queued'
 }
 
 export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[]; watch: WatchEntry[]; onCollapse: () => void }) {
   const run = useMemo(() => deriveRun(messages), [messages])
+  const states = useMemo(() => NODES.map((n) => nodeState(n, run)), [run])
 
   return (
-    <section aria-label="Canvas — agent workflow" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+    <section aria-label="Canvas — execution activity" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       <div className="m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
         style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
         {/* Toolbar */}
@@ -112,12 +170,12 @@ export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[
             <div className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Epics &amp; Features Generator · EFG-1.0</div>
           </div>
           <button onClick={onCollapse} aria-label="Close" title="Close"
-            className="press grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+            className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
         </div>
 
-        {/* Legend — the node types we actually use, and the status colours. */}
+        {/* Legend */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5 text-[11.5px]"
           style={{ borderBottom: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>
           {(['agent', 'tool', 'human'] as Kind[]).map((k) => (
@@ -134,9 +192,9 @@ export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[
           </span>
         </div>
 
-        {/* The graph. */}
+        {/* The graph — the full blueprint, preloaded. */}
         <div className="min-h-0 flex-1 overflow-auto p-3">
-          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" style={{ minWidth: 620, display: 'block' }} role="img" aria-label="Agent communication graph">
+          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" style={{ minWidth: 640, display: 'block' }} role="img" aria-label="Execution blueprint">
             <defs>
               <style>{`
                 .edge-flow { stroke-dasharray: 7 7; animation: agentMarch .7s linear infinite; }
@@ -147,20 +205,17 @@ export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[
               `}</style>
             </defs>
 
-            {/* Pipeline edges — only the one flowing into the running agent moves. */}
-            {PIPELINE.slice(0, -1).map((from, i) => {
-              const to = PIPELINE[i + 1]
-              const active = run.active === to
-              return <Edge key={`${from}-${to}`} from={byId(from)} to={byId(to)}
-                color={active ? RUN_BLUE : 'var(--glass-line)'} flow={active} label={active ? 'RUNNING' : undefined} />
+            {/* Sequential edges — the one flowing into an active block moves. */}
+            {NODES.slice(0, -1).map((from, i) => {
+              const to = NODES[i + 1]
+              const ts = states[i + 1]
+              const active = ts === 'running' || ts === 'waiting'
+              const color = active ? (ts === 'running' ? RUN_BLUE : 'var(--warn)') : 'var(--glass-line)'
+              const label = active ? (to.kind === 'human' ? 'REVIEW' : to.kind === 'tool' ? 'PUBLISH' : 'RUNNING') : undefined
+              return <Edge key={`${from.id}-${to.id}`} from={from} to={to} color={color} flow={active} label={label} />
             })}
 
-            {/* The approval edge to the Reviewer — drawn only while a gate holds. */}
-            {run.waiting && run.gateNode && (
-              <Edge from={byId(run.gateNode)} to={byId('review')} color="var(--warn)" flow label="APPROVAL" dashed />
-            )}
-
-            {NODES.map((n) => <Card key={n.id} node={n} state={nodeState(n, run)} />)}
+            {NODES.map((n, i) => <Card key={n.id} node={n} state={states[i]} />)}
           </svg>
         </div>
       </div>
@@ -173,17 +228,17 @@ export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[
 }
 
 /* A curved edge between two cards, joining their nearest sides. */
-function Edge({ from, to, color, flow, label, dashed }: {
-  from: NodeDef; to: NodeDef; color: string; flow?: boolean; label?: string; dashed?: boolean
+function Edge({ from, to, color, flow, label }: {
+  from: NodeDef; to: NodeDef; color: string; flow?: boolean; label?: string
 }) {
   const fc = { x: from.x + W / 2, y: from.y + H / 2 }
   const tc = { x: to.x + W / 2, y: to.y + H / 2 }
   const dx = Math.abs(fc.x - tc.x); const dy = Math.abs(fc.y - tc.y)
   let a: { x: number; y: number }; let b: { x: number; y: number }
-  if (dx >= dy) { // horizontal-ish
+  if (dx >= dy) {
     a = { x: fc.x < tc.x ? from.x + W : from.x, y: fc.y }
     b = { x: fc.x < tc.x ? to.x : to.x + W, y: tc.y }
-  } else { // vertical-ish
+  } else {
     a = { x: fc.x, y: fc.y < tc.y ? from.y + H : from.y }
     b = { x: tc.x, y: fc.y < tc.y ? to.y : to.y + H }
   }
@@ -195,26 +250,25 @@ function Edge({ from, to, color, flow, label, dashed }: {
   const idle = color === 'var(--glass-line)'
   return (
     <g>
-      <path d={d} fill="none" stroke={color} strokeWidth={idle ? 2 : 2.6} strokeLinecap="round"
-        className={flow ? 'edge-flow' : undefined} strokeDasharray={dashed && !flow ? '7 7' : undefined} />
-      <path d={`M ${b.x - (dx >= dy ? (b.x > a.x ? 9 : -9) : 0)} ${b.y - (dx >= dy ? 5 : (b.y > a.y ? 9 : -9))} L ${b.x} ${b.y} L ${b.x - (dx >= dy ? (b.x > a.x ? 9 : -9) : 5) } ${b.y + (dx >= dy ? 5 : (b.y > a.y ? 9 : -9))} Z`} fill={color} />
+      <path d={d} fill="none" stroke={color} strokeWidth={idle ? 2 : 2.6} strokeLinecap="round" className={flow ? 'edge-flow' : undefined} />
+      <path d={`M ${b.x - (dx >= dy ? (b.x > a.x ? 9 : -9) : 0)} ${b.y - (dx >= dy ? 5 : (b.y > a.y ? 9 : -9))} L ${b.x} ${b.y} L ${b.x - (dx >= dy ? (b.x > a.x ? 9 : -9) : 5)} ${b.y + (dx >= dy ? 5 : (b.y > a.y ? 9 : -9))} Z`} fill={color} />
       {label && (
         <>
           <rect x={mx - lw / 2} y={my - 12} width={lw} height={24} rx={12} fill="var(--slab-raised)" stroke={color} strokeWidth={1} />
-          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} letterSpacing="0.06em" fill={idle ? 'var(--muted)' : color}>{label}</text>
+          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} letterSpacing="0.06em" fill={color}>{label}</text>
         </>
       )}
     </g>
   )
 }
 
-function Card({ node, state }: { node: NodeDef; state: NodeState }) {
+function Card({ node, state }: { node: NodeDef; state: NState }) {
   const { x, y } = node
   const col = STATE_COLOR[state]
-  const lit = state === 'running' || state === 'paused'
-  const border = state === 'idle' ? 'var(--glass-line)' : col
+  const lit = state === 'running' || state === 'waiting'
+  const border = state === 'queued' ? 'var(--glass-line)' : col
   return (
-    <g opacity={state === 'idle' ? 0.72 : 1}>
+    <g opacity={state === 'queued' ? 0.72 : 1}>
       {lit && (
         <rect x={x - 3} y={y - 3} width={W + 6} height={H + 6} rx={16} fill="none" stroke={col} strokeWidth={2} className="node-pulse" />
       )}
@@ -223,13 +277,13 @@ function Card({ node, state }: { node: NodeDef; state: NodeState }) {
       {/* Header: icon tile + type + status badge. */}
       <g transform={`translate(${x + 14}, ${y + 14})`}>
         <rect width={28} height={28} rx={8} fill="var(--wash-2)" stroke="var(--glass-line-soft)" strokeWidth={1} />
-        <g transform="translate(6,6)" style={{ color: state === 'idle' ? 'var(--muted-deep)' : col }}><KindGlyph kind={node.kind} /></g>
+        <g transform="translate(6,6)" style={{ color: state === 'queued' ? 'var(--muted-deep)' : col }}><KindGlyph kind={node.kind} /></g>
       </g>
       <Badge x={x + 50} y={y + 16} text={node.kind.toUpperCase()} fg="var(--muted)" bg="var(--wash-3)" />
-      <Badge x={x + 50 + node.kind.length * 8 + 20} y={y + 16} text={STATE_LABEL[state]} fg={col} bg="transparent" border={col} dot={lit} />
+      <Badge x={x + 50 + node.kind.length * 8 + 20} y={y + 16} text={stateLabel(state, node.kind)} fg={col} bg="transparent" border={col} dot={lit} />
 
       {/* Title + subtitle. */}
-      <text x={x + 16} y={y + 70} fontSize={15} fontWeight={600} fill={state === 'idle' ? 'var(--muted)' : 'var(--text)'}>{node.title}</text>
+      <text x={x + 16} y={y + 70} fontSize={15} fontWeight={600} fill={state === 'queued' ? 'var(--muted)' : 'var(--text)'}>{node.title}</text>
       <text x={x + 16} y={y + 89} fontSize={11.5} fill="var(--muted)">{node.sub}</text>
     </g>
   )

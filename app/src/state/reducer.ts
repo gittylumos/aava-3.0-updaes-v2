@@ -622,6 +622,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         arrangement: 'split',
+        // Entering the playground collapses the sidebar for room to work.
+        sidebarOpen: false,
         activeTaskId: task.id,
         activeObject: null,
         watchLog: [],
@@ -675,6 +677,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         arrangement: 'split',
+        // Entering the playground collapses the sidebar for room to work.
+        sidebarOpen: false,
         activeTaskId: null,
         activeObject: { kind: action.kind, title: action.title, subject: action.subject, phase: 'analysis', taskId: prdTaskId },
         activeThreadId: threadId,

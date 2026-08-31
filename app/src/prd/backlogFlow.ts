@@ -1,16 +1,74 @@
 /* The PRD-to-backlog run — a scripted, human-in-the-loop flow.
  *
- * Phases (Intake, Epics, Features, Stories, Sprint plan), each one a status
- * checklist (the tools block) resolving in real time, an AAVA turn, the phase's
- * document opening in the canvas, and a gate the user must clear before the run
- * moves on (the golden "waiting on you" decision block). After every phase gate
- * AAVA offers to push that level to Jira — "Push to Jira" or "Proceed for now",
- * both continuing the run. It maps to the "Epics and Features Generator" agentic
- * process; the words follow that script.
+ * Phases (Intake, Epics, Features, Stories), each one a status checklist (the
+ * tools block) resolving in real time, an AAVA turn, the phase's document opening
+ * in the canvas, and a gate the user must clear before the run moves on (the
+ * golden "waiting on you" decision block). After every phase gate AAVA offers to
+ * push that level to Jira — "Publish" or "Skip", both continuing the run. The run
+ * ends by publishing the stories; sprint planning is handed to the scrum master.
+ * It maps to the "Epics and Features Generator" agentic process; the words follow
+ * that script.
  */
-import type { BlockSpec, Effect, ToolStep } from '../state/types'
+import type { BlockSpec, Effect, Message, PrepStep, ToolStep } from '../state/types'
 import type { BacklogDoc } from './backlog'
 import { T } from '../state/timing'
+
+/* Which phase a produced document belongs to — used to drive the run-progress
+   bar and to reopen a phase's doc from it. */
+export const DOC_PHASE: Record<BacklogDoc, string> = {
+  intake: 'intake',
+  epics: 'epics', 'epics-fields': 'epics', 'epics-custom': 'epics',
+  features: 'features', 'features-gaps': 'features', 'features-custom': 'features',
+  stories: 'stories', 'stories-flags': 'stories',
+  sprint: 'sprint',
+}
+
+/* The run-progress steps for the backlog flow. Sprint planning is handed off to
+   the scrum master once the stories are published, so the run itself ends at
+   stories — four phases, shown in the progress bar below the session header once
+   the run starts (after Proceed). */
+const PROGRESS_STEPS: PrepStep[] = [
+  { key: 'intake', label: 'Intake & understanding', result: 'PRD parsed', detail: 'Objectives, roles and requirements', gate: 'intake' },
+  { key: 'epics', label: 'Draft epics', result: '7 epics', detail: 'Cluster requirements into themed epics', gate: 'epics' },
+  { key: 'features', label: 'Break into features', result: '23 features', detail: 'Decompose each confirmed epic', gate: 'features' },
+  { key: 'stories', label: 'Write user stories', result: '58 stories', detail: 'Draft stories, then publish to Jira' },
+]
+const PHASE_INDEX: Record<string, number> = { intake: 0, epics: 1, features: 2, stories: 3 }
+
+/** Where the backlog run stands, derived from the run itself — no separate state
+    to keep in sync. The current phase is the last document's phase while a gate
+    holds (you are reviewing it), or the next phase while a checklist is running
+    (it is being drafted). `waiting` is true only at a gate, so the bar does not
+    claim "waiting on you" mid-generation. `started` gates the whole bar: nothing
+    shows during capability-match and planning, only once the run is underway. */
+export function backlogProgress(messages: Message[]): { steps: PrepStep[]; at: number; started: boolean; waiting: boolean } {
+  let lastDocPhase = -1
+  let gateLive = false
+  let running = false
+  let started = false
+  for (const m of messages) {
+    const b = m.block
+    if (b?.kind === 'document' && b.doc) {
+      const p = PHASE_INDEX[DOC_PHASE[b.doc]]
+      if (p != null) lastDocPhase = Math.max(lastDocPhase, p)
+      started = true
+    }
+    if (b?.kind === 'tools') { started = true; if (b.done < b.steps.length) running = true }
+    if (m.live !== false && b?.kind === 'decision') gateLive = true
+  }
+  /* Current phase = the NEXT one only while a checklist is actively drafting it;
+     otherwise the last document's phase (being reviewed, or between steps). This
+     avoids the flash to the next phase in the gap between a doc landing and its
+     gate appearing. `waiting` (amber) is a golden gate only. */
+  /* Once the final phase's document has landed and nothing is generating, the
+     run's work is complete (publishing is a follow-on action, not a phase) —
+     count all steps done rather than parking on the last one forever. */
+  const lastIdx = PROGRESS_STEPS.length - 1
+  const at = running
+    ? Math.min(lastDocPhase + 1, PROGRESS_STEPS.length)
+    : lastDocPhase >= lastIdx ? PROGRESS_STEPS.length : Math.max(0, lastDocPhase)
+  return { steps: PROGRESS_STEPS, at, started, waiting: gateLive }
+}
 
 type Step = [label: string, result: string, ms?: number]
 
@@ -67,7 +125,7 @@ function pushOffer(count: string, detail: string, pushBeat: string, nextBeat: st
     lines: [`${count} confirmed. Want me to push them to Jira now, or ${next} and publish later?`],
     block: {
       kind: 'sync', title: `Push the ${count} to Jira`, detail,
-      beat: pushBeat, secondaryLabel: 'Proceed for now', secondaryBeat: nextBeat,
+      beat: pushBeat, secondaryLabel: 'Skip', secondaryBeat: nextBeat,
     },
   }
 }
@@ -92,19 +150,18 @@ export function backlogOpening(): Effect[] {
     { type: 'capabilityMatched' },
     { type: 'watch', text: "Matched · Epics and Features Generator (EFG-1.0)", tone: 'ok' },
     { type: 'say', lines: [
-      "Here's how I'll approach it — I'll pause for your review after every level, and I won't touch sprint planning until epics, features and stories are confirmed.",
+      "Here's how I'll approach it — I'll pause for your review after every level, then publish the confirmed backlog to Jira and hand sprint planning to the scrum master.",
     ] },
     /* Plan + approval, one card. Proceed both approves and starts the run. */
     { type: 'say', lines: [], stream: false, block: {
-      kind: 'plan', count: 6, title: 'Initiate Process',
+      kind: 'plan', count: 5, title: 'Epics & Feature Generator Process',
       action: { label: 'Proceed', beat: 'startIntake' },
       steps: [
         { title: 'Intake & understanding', detail: 'Parse the PRD, summarise objectives, roles and requirements' },
         { title: 'Draft epics', detail: 'Cluster 28 requirements into themed epics — pause for review' },
         { title: 'Break into features', detail: 'Decompose each confirmed epic — pause for review' },
-        { title: 'Write user stories', detail: 'Draft stories and run Definition-of-Ready — flag gaps' },
-        { title: 'Confirm (gate)', detail: 'Hold before sprint planning until you say go' },
-        { title: 'Sprint plan', detail: 'Map MVP-scope stories into a sprint grid' },
+        { title: 'Write user stories', detail: 'Draft stories from the confirmed features' },
+        { title: 'Publish to Jira', detail: 'Push the backlog; sprint planning goes to the scrum master' },
       ],
     } },
   ]
@@ -127,10 +184,13 @@ const BUILD_FEATURES: Effect[] = [
     ['Checking each feature against required fields', '3 gaps'],
   ], 'Features · decomposing epics'),
   { type: 'watch', text: '23 features drafted · 3 missing fields', tone: 'warn' },
+  /* Show the features doc first — the gaps are highlighted right in it — then ask
+     to fill them. The doc is already open, so the gate reads against what they see. */
+  artifact('features.md', 'features-gaps'),
   { type: 'say',
     lines: [
-      '23 features across the 7 epics. Three of them are missing fields I could not infer from the PRD — target start date, end date and priority: Feature 1.3 (Responsive Device Preview), 5.3 (Bi-Directional Sync) and 7.2 (Contextual AI Tooltips).',
-      'You can fill those in and I will fold them into the list, or I can go ahead now and highlight the gaps in the doc for later.',
+      '23 features across the 7 epics, open in the canvas. Three of them are missing fields I could not infer from the PRD — target start date, end date and priority: Feature 1.3 (Responsive Device Preview), 5.3 (Bi-Directional Sync) and 7.2 (Contextual AI Tooltips). I have highlighted the gaps right in the doc.',
+      'You can fill those in and I will fold them into the list, or proceed and leave them flagged for later.',
     ],
     block: gate(4, 'Fill the missing fields', 'Add target start date, end date and priority for the 3 flagged features?', [
       ['Add the missing info', 'fillFeatureFields', true, true],
@@ -139,60 +199,112 @@ const BUILD_FEATURES: Effect[] = [
   },
 ]
 
-/* Phase 4 · Stories, with the Definition-of-Ready pass. */
+/* Phase 4 · Stories — decompose the confirmed features, then offer the final
+   Jira push. Sprint planning is handed to the scrum master, so the run ends
+   here rather than building a sprint grid. */
 const BUILD_STORIES: Effect[] = [
   status([
     ['Reading confirmed features', 'done'],
     ['Decomposing 23 features into stories', '58 stories', T.repo],
-    ['Running Definition-of-Ready check', 'scanning'],
+    ['Writing acceptance criteria for each story', 'done'],
+    ['Linking stories to their parent features', 'done'],
+    ['Applying the story template', '58 stories'],
   ], 'Stories · decomposing features'),
+  { type: 'watch', text: '58 stories drafted', tone: 'ok' },
   artifact('stories.md', 'stories'),
-  { type: 'say', lines: ['58 stories drafted from the confirmed features. Each is checked against Definition of Ready before I show it to you.'] },
-  { type: 'watch', text: 'DoR check · 7 stories flagged', tone: 'warn' },
-  status([
-    ['Checking each story for a Figma reference', 'done'],
-    ['Checking each story for an API contract', 'done'],
-    ['Checking acceptance-criteria completeness', 'done'],
-    ['Stories missing at least one DoR item', '7 flagged'],
-  ], 'Stories · Definition-of-Ready check'),
-  artifact('stories.md', 'stories-flags'),
   { type: 'say',
-    lines: [
-      '7 stories are not sprint-ready yet — mostly a missing Figma mockup or an undefined API contract. I have flagged exactly what is outstanding on each. None can enter a sprint until its DoR clears.',
-    ],
-    block: gate(5, 'Confirm the backlog', 'Epics, features and stories — the original ask. Move into sprint planning?', [
-      ['Yes, plan the sprints', 'reviewStories', true],
-      ['Stop here for now', 'stopHere'],
-    ], [{ label: '58 stories', detail: '51 ready · 7 flagged' }]),
-  },
-]
-
-/* Phase 6 · Sprint plan, ending in the final full-backlog push offer. */
-const BUILD_SPRINT: Effect[] = [
-  status([
-    ['Building 4-sprint grid · 2 weeks each', 'done'],
-    ['Filtering to MVP scope · Epics 01, 02, 04', 'done'],
-    ['Holding ST-047 · API spec pending', 'held'],
-    ['Stories eligible for MVP sprints', '32 stories'],
-  ], 'Sprint plan · building the grid'),
-  { type: 'watch', text: 'Sprint plan built · 4 sprints', tone: 'ok' },
-  artifact('sprint-plan.md', 'sprint'),
-  { type: 'say',
-    lines: [
-      'Sprint plan set — 4 sprints of 2 weeks across the MVP scope, with ST-047 held in Sprint 3 until the WebSocket spec lands.',
-      'That completes the whole backlog — 7 epics, 23 features and 58 stories, all decomposed, reviewed and now mapped into the sprint grid, saved as editable docs. Want me to push the complete backlog to Jira?',
-    ],
-  },
-  { type: 'say',
-    lines: [],
-    stream: false,
+    lines: ['58 stories confirmed. Want me to push them to Jira now?'],
     block: {
-      kind: 'sync', title: 'Push the complete backlog to Jira',
-      detail: '7 epics · 23 features · 58 stories · 4 sprints · WFS',
-      beat: 'pushJira', secondaryLabel: 'Not now', secondaryBeat: 'wrapUp',
+      kind: 'sync', title: 'Push the 58 stories to Jira', detail: '58 stories · under 23 features · WFS',
+      beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
     },
   },
 ]
+
+/* The links shown after a successful publish. */
+const JIRA_LINKS: BlockSpec = {
+  kind: 'links', links: [
+    { label: 'WFS board · WireFrame Studio', href: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1' },
+    { label: 'WFS backlog', href: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1/backlog' },
+  ],
+}
+
+/* The static half of the stories publish — the confirmation, the success message
+   and the links. The optional "push what you skipped" follow-up is spliced on by
+   `backlogStoriesPublish`, which can see what the user skipped earlier. */
+function storiesPublishBase(): Effect[] {
+  return [
+    { type: 'watch', text: 'Pushing 58 stories to Jira · WFS', tone: 'info' },
+    { type: 'wait', ms: T.prCreate },
+    { type: 'watch', text: '58 stories created · Jira', tone: 'ok' },
+    { type: 'say',
+      lines: ['Successfully created the stories on Jira. As part of this process, the next step involves sprint planning and is assigned to the scrum master. No more actions on you for now.'],
+      block: JIRA_LINKS,
+    },
+  ]
+}
+
+/** Whether each earlier level was published or skipped — read from the retired
+    push cards. A skip records `answer: 'proceeded'`; a publish leaves no answer. */
+function levelStatus(messages: Message[]): Record<'epics' | 'features', 'published' | 'skipped' | undefined> {
+  const out: Record<'epics' | 'features', 'published' | 'skipped' | undefined> = { epics: undefined, features: undefined }
+  for (const m of messages ?? []) {
+    const b = m.block
+    if (b?.kind === 'sync' && m.live === false) {
+      const t = b.title.toLowerCase()
+      const level = /epic/.test(t) ? 'epics' : /feature/.test(t) ? 'features' : null
+      if (level) out[level] = m.answer === 'proceeded' ? 'skipped' : 'published'
+    }
+  }
+  return out
+}
+
+/** Which earlier levels the user skipped publishing. Order follows the run. */
+function skippedLevels(messages: Message[]): ('epics' | 'features')[] {
+  const st = levelStatus(messages)
+  return (['epics', 'features'] as const).filter((l) => st[l] === 'skipped')
+}
+
+/** A natural-language list: "a", "a and b", "a, b and c". */
+function joinList(arr: string[]): string {
+  if (arr.length <= 1) return arr[0] ?? ''
+  return `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`
+}
+
+/** The user skipped the final stories push. The line names what is already on
+    Jira and what is still outstanding, so they know exactly where they stand. */
+export function backlogStoriesSkipped(messages: Message[]): Effect[] {
+  const st = levelStatus(messages)
+  const published = (['epics', 'features'] as const).filter((l) => st[l] === 'published')
+  // Everything not yet on Jira: the skipped epics/features, plus the stories just skipped.
+  const left = [...(['epics', 'features'] as const).filter((l) => st[l] !== 'published'), 'stories']
+  const line = published.length === 0
+    ? 'Understood — nothing published. Whenever you are ready, you can ask me to publish these to Jira.'
+    : `Understood — ${joinList([...published])} ${published.length > 1 ? 'have' : 'has'} been published; ${joinList(left)} ${left.length > 1 ? 'are' : 'is'} left to publish. Whenever you are ready, you can ask me to publish these to Jira.`
+  return [{ type: 'say', lines: [line] }]
+}
+
+/** The stories publish, aware of what was skipped: after the success message it
+    offers to push any epics/features the user skipped earlier. If nothing was
+    skipped it simply ends on the success message. Dispatched from useJourney so
+    it can see the run's messages. */
+export function backlogStoriesPublish(messages: Message[]): Effect[] {
+  const skipped = skippedLevels(messages)
+  const base = storiesPublishBase()
+  if (!skipped.length) return base
+  const parts = skipped.map((s) => (s === 'epics' ? '7 epics' : '23 features'))
+  const list = parts.join(' & ')
+  return [
+    ...base,
+    { type: 'say',
+      lines: [`One thing before you go — you skipped publishing the ${list} earlier. Want me to push ${skipped.length > 1 ? 'them' : 'it'} to Jira now?`],
+      block: {
+        kind: 'sync', title: `Push the ${list} to Jira`, detail: `${parts.join(' · ')} · project WFS`,
+        beat: 'pushSkipped', secondaryLabel: 'Skip', secondaryBeat: 'wrapUpSkipped',
+      },
+    },
+  ]
+}
 
 export const BACKLOG_BEATS: Record<string, Effect[]> = {
   /* Phase 1 · Intake. The canvas opens only when the artefact is opened. */
@@ -313,17 +425,12 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
     },
   ],
 
-  /* Proceed without the info — the doc is generated with the gaps highlighted. */
+  /* Proceed without the info — the gaps doc is already open, so just move on with
+     the 3 features left flagged. */
   featuresNoInfo: [
-    { type: 'watch', text: 'Generating features · gaps highlighted', tone: 'info' },
-    status([
-      ['Applying feature template', '23 features'],
-      ['Highlighting 3 features with missing fields', 'flagged'],
-    ], 'Features · decomposing epics'),
-    { type: 'watch', text: '23 features drafted · 3 flagged', tone: 'warn' },
-    artifact('features.md', 'features-gaps'),
+    { type: 'watch', text: 'Keeping the 3 fields flagged', tone: 'info' },
     { type: 'say',
-      lines: ['Understood — generated the full list and highlighted Feature 1.3, 5.3 and 7.2 so the missing target dates and priority are easy to spot. They will need those before they can enter a sprint.'],
+      lines: ['Understood — I will leave Feature 1.3, 5.3 and 7.2 with their gaps highlighted in the doc. They will need target dates and priority before they can enter a sprint.'],
       block: gate(4, 'Confirm the features', 'Ready for stories? (3 features stay flagged)', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Refine the features', 'refineFeatures', false, true],
@@ -355,49 +462,30 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
   pushFeatures: [...pushConfirm('23 features'), ...BUILD_STORIES],
   buildStories: BUILD_STORIES,
 
-  /* Stories confirmed — offer the Jira push, then plan the sprints either way. */
-  reviewStories: [
-    { type: 'watch', text: 'Backlog confirmed', tone: 'ok' },
-    pushOffer('58 stories', '58 stories · 51 ready · 7 flagged', 'pushStories', 'buildSprint', 'proceed for sprint plan creation'),
-  ],
-  pushStories: [...pushConfirm('58 stories'), ...BUILD_SPRINT],
-  buildSprint: BUILD_SPRINT,
+  /* Stories publish. `pushStoriesFinal` is dispatched dynamically from useJourney
+     (it needs the run's messages to know what was skipped); the static base here
+     is a safety fallback. */
+  pushStoriesFinal: storiesPublishBase(),
 
-  stopHere: [
-    { type: 'say', lines: ['Stopped here. Epics, features and stories are all confirmed and saved as editable docs — the comment thread stays open if anything shifts.'] },
-  ],
-
-  wrapUp: [
-    { type: 'say', lines: ['Understood — nothing else pushed. The full backlog (epics, features, stories and the sprint grid) stays saved as editable docs. Let me know if you need anything else.'] },
+  /* The user skipped the stories push. Dispatched dynamically from useJourney
+     (it names what is already on Jira); this static line is a safety fallback. */
+  storiesSkipped: [
+    { type: 'say', lines: ['Understood — nothing published. Whenever you are ready, you can ask me to publish these to Jira.'] },
   ],
 
-  /* The final full push (from the sprint-plan offer) — then the dependency ticket. */
-  pushJira: [
-    { type: 'watch', text: 'Pushing the complete backlog to Jira · WFS project', tone: 'info' },
+  /* Publishing the epics/features the user skipped earlier. */
+  pushSkipped: [
+    { type: 'watch', text: 'Pushing the remaining items to Jira · WFS', tone: 'info' },
     { type: 'wait', ms: T.prCreate },
-    { type: 'watch', text: 'Backlog published · hierarchy complete', tone: 'ok' },
-    { type: 'say', lines: ['Pushed the complete backlog to Jira — 7 epics, 23 features and 58 stories with parent–child links, plus the 4-sprint plan and its assignments, all in project WFS. ST-047 stays flagged until its spec lands.'] },
+    { type: 'watch', text: 'Remaining items created · Jira', tone: 'ok' },
     { type: 'say',
-      lines: [
-        'ST-047 (multi-user cursor display) is blocked on the WebSocket cursor-broadcast spec, which sits with the Backend / WebSockets team. Want me to raise a dependency ticket for it and assign it to them?',
-      ],
-      block: {
-        kind: 'decision', variant: 'action', icon: 'shield', title: 'Raise a dependency ticket',
-        question: 'I will create a Jira task for the WebSocket cursor-broadcast spec, assign it to the Backend / WebSockets team, and link it as a blocker of ST-047.',
-        options: [{ label: 'Create the dependency ticket', beat: 'createDepTicket', primary: true }],
-      },
+      lines: ['Done — everything is on Jira now. Sprint planning stays with the scrum master; no more actions on you for now.'],
+      block: JIRA_LINKS,
     },
   ],
 
-  createDepTicket: [
-    { type: 'watch', text: 'Connecting to Jira · creating dependency ticket', tone: 'info' },
-    { type: 'wait', ms: T.prCreate },
-    { type: 'watch', text: 'Dependency ticket created · WFS-142', tone: 'ok' },
-    { type: 'say',
-      lines: ['Done — raised WFS-142, a dependency task for the WebSocket cursor-broadcast spec, assigned to the Backend / WebSockets team and linked as a blocker of ST-047.'],
-      block: { kind: 'links', links: [{ label: 'WFS-142 · WebSocket cursor-broadcast spec', href: 'https://aava-demo.atlassian.net/browse/WFS-142' }] },
-    },
-    { type: 'say', lines: ['Let me know if anything needs to change, or if you would like a hand with the next step.'] },
+  wrapUpSkipped: [
+    { type: 'say', lines: ['Understood — I left those unpublished. The stories are on Jira and the rest stays saved as editable docs. Let me know if anything changes.'] },
   ],
 
   /* Scenario · the user provides their own epic/feature format. */
