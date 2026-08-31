@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { AppState, Chip, TabId } from '../../state/types'
 import { Thread } from './Thread'
+import { Block } from './Blocks'
+import { RunStrip } from './RunStrip'
 import { ContextPane } from '../playground/ContextPane'
 import { IconFolder, IconRightPanel } from '../chrome/icons'
 import { prefersReducedMotion } from '../../state/timing'
 import type { BacklogDoc } from '../../prd/backlog'
+import { backlogProgress, DOC_PHASE } from '../../prd/backlogFlow'
 
 interface Props {
   state: AppState
@@ -51,6 +54,24 @@ export function ConversationView({
   const contextOpen = state.playground.contextOpen
   const panelOpen = state.playground.panelOpen
   const reduced = prefersReducedMotion()
+
+  /* A live decision gate or the plan card takes over the prompt-bar's spot — the
+     text input is hidden while it waits, and it drops back into the conversation
+     as a record once answered. Push/connect cards stay inline in the thread. */
+  const pinnedGate = [...state.messages].reverse().find(
+    (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'plan'),
+  )
+
+  /* The run-progress bar for the backlog flow — pinned below the session header,
+     shown only once the run is underway (after Proceed). */
+  const bp = object?.kind === 'backlog' ? backlogProgress(state.messages) : null
+  /* Clicking a progress step reopens that phase's produced document. */
+  const openPhaseDoc = (key: string) => {
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const b = state.messages[i].block
+      if (b?.kind === 'document' && b.doc && DOC_PHASE[b.doc] === key) { onOpenArtifact?.(b.doc); return }
+    }
+  }
 
   /* The reading column widens when the workspace folds away. Not unbounded —
      prose past ~110 characters is hard to track back to the next line. */
@@ -115,7 +136,9 @@ export function ConversationView({
             its header is just the session name, the attached source and the one
             control that matters here — the way back into the workspace. */}
         {!task && object && (
-          <div className="flex shrink-0 items-center px-6 pt-4">
+          /* A subtle bottom hairline turns the session header into a bar the run
+             dock can hang from — the dock's flat top merges into this line. */
+          <div className="flex shrink-0 items-center border-b border-[var(--glass-line-soft)] px-6 pb-3 pt-4">
             <h2 className="min-w-0 truncate text-[13px] font-medium" style={{ color: 'var(--text-dim)' }}>
               {object.title}
             </h2>
@@ -146,11 +169,23 @@ export function ConversationView({
           </div>
         )}
 
+        {/* Run progress — a status dock that hangs from the session-header
+            hairline (its flat top merges into that line via -mt-px), drops in on
+            Proceed, and morphs downward into the full phase list. Content-width
+            and centered, it floats over the conversation on expand. Shown only
+            once the backlog run is underway. */}
+        {bp?.started && (
+          <div className="relative z-20 shrink-0 px-6 -mt-px">
+            <RunStrip steps={bp.steps} at={bp.at} waiting={bp.waiting} onOpenStep={openPhaseDoc} />
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-3">
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer} />
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer}
+              pinnedId={pinnedGate?.id} />
           </div>
         </div>
 
@@ -168,7 +203,15 @@ export function ConversationView({
               <ChangesTray changes={changes}
                 onApply={onApplyChanges} onDiscard={onDiscardChanges} onRemove={onRemoveChange} />
             )}
-            {progress ? (
+            {pinnedGate?.block ? (
+              /* The live gate replaces the prompt bar entirely. */
+              <div className="mb-6">
+                <Block block={pinnedGate.block} live preview={preview}
+                  onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
+                  onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}
+                  onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer} />
+              </div>
+            ) : progress ? (
               <div className="mb-7 overflow-hidden rounded-[var(--r-lg)]"
                 style={{ background: 'var(--glass-strong)', border: '1px solid var(--glass-line)' }}>
                 {progress}

@@ -15,9 +15,12 @@ interface Props {
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc) => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  /** The message whose block is pinned to the composer slot — its block is
+      skipped inline while it waits there. */
+  pinnedId?: string
 }
 
-export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer }: Props) {
+export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, pinnedId }: Props) {
   const end = useRef<HTMLDivElement>(null)
   useEffect(() => {
     end.current?.scrollIntoView({
@@ -30,7 +33,8 @@ export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, 
     <div role="log" aria-live="polite" aria-label="Conversation" className="flex flex-col">
       {messages.map((m) => (
         <Message key={m.id} msg={m} preview={preview} onAccept={onAccept} onDismiss={onDismiss}
-          onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer} />
+          onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer}
+          pinned={m.id === pinnedId} />
       ))}
       <Chips chips={chips} onPick={onChip} />
       <div ref={end} />

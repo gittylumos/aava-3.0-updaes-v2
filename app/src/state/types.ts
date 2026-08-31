@@ -129,7 +129,10 @@ export type BlockSpec =
       for the combined plan+approve card); `action` adds a footer CTA that both
       approves and starts the run, so the plan and its approval are one card. */
   | { kind: 'plan'; count: number; title?: string; steps: { title: string; detail: string }[]
-      action?: { label: string; beat: string } }
+      action?: { label: string; beat: string }
+      /** A secondary "Edit plan" action — reveals a textarea (like a gate's
+          refine), records the note, then fires the same `action` beat. */
+      editLabel?: string }
   /** A "push to Jira" card — one primary action carrying the Jira logo (`beat`).
       An optional secondary action ("Proceed for now") continues the run without
       pushing; both advance to the next phase. Shown after every phase gate. */

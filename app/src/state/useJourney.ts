@@ -3,8 +3,8 @@ import { TASKS, initialState, prepStart, reducer, threadIdForTask } from './redu
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
-import { backlogOpening, backlogReply, backlogRouter, BACKLOG_BEATS } from '../prd/backlogFlow'
-import type { BacklogDoc } from '../prd/backlog'
+import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, BACKLOG_BEATS } from '../prd/backlogFlow'
+import { BACKLOG_FILE, type BacklogDoc } from '../prd/backlog'
 import { searchHits, taskNotifications } from '../data/chrome'
 import type { Effect, Overlay, Scenario, TabId, Thread } from './types'
 import { T, prefersReducedMotion, streamMs } from './timing'
@@ -161,6 +161,12 @@ export function useJourney() {
     /* Object decision cards fire beats from their own flow, not a scenario —
        the object path has no scenario to look them up in. */
     if (state.activeObject?.kind === 'backlog') {
+      /* The stories publish is composed from the run itself — after the success
+         message it offers to push whatever epics/features were skipped earlier,
+         which only the message history knows. */
+      if (name === 'pushStoriesFinal') { play(backlogStoriesPublish(state.messages)); return }
+      /* Skipping the stories names what is on Jira and what is still left. */
+      if (name === 'storiesSkipped') { play(backlogStoriesSkipped(state.messages)); return }
       const beat = BACKLOG_BEATS[name]
       if (beat) play(beat)
       return
@@ -173,7 +179,7 @@ export function useJourney() {
     const sc = state.activeTaskId ? getScenario(state.activeTaskId) : null
     const beat = sc?.beats[name]
     if (beat) play(withGate(sc, beat))
-  }, [state.activeTaskId, state.activeObject, play, withGate])
+  }, [state.activeTaskId, state.activeObject, state.messages, play, withGate])
 
   const send = useCallback((text: string) => {
     const pending = state.pendingTopic
@@ -338,6 +344,25 @@ export function useJourney() {
     openObjectDoc: (doc: BacklogDoc) => dispatch({ type: 'SET_OBJECT_DOC', doc }),
     /* A gate's inline note — record it on the gate before its beat fires. */
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
+    /* Apply the pending inline comments — they land in the conversation as a turn
+       (coming from the doc), with a progress checklist and an acknowledgement, so
+       an inline comment reads like any other request in the thread. */
+    applyComments: (changes: { quote: string; note: string }[]) => {
+      if (!changes.length) return
+      const n = changes.length
+      const doc = state.activeObject?.activeDoc
+      const file = doc ? BACKLOG_FILE[doc] : 'the doc'
+      dispatch({ type: 'USER_SAY', text: `${n} inline comment${n === 1 ? '' : 's'} on ${file}` })
+      const steps = changes.map((c) => ({
+        label: `Applying comment · “${c.quote}”`, result: 'done', source: 'RUN' as const, ms: T.contract * 3,
+      }))
+      play([
+        { type: 'watch', text: `Applying ${n} inline comment${n === 1 ? '' : 's'} to ${file}`, tone: 'info' },
+        { type: 'tools', steps, title: 'Applying your comments' },
+        { type: 'watch', text: 'Comments folded in', tone: 'ok' },
+        { type: 'say', lines: [`Done — folded your ${n} comment${n === 1 ? '' : 's'} into ${file} and updated the draft in the canvas.`] },
+      ])
+    },
     setFile: (file: string) => dispatch({ type: 'SET_FILE', file }),
     /* A file link in the conversation opens that file in the workspace. Both
        halves are needed: the tab id resolves from the active file, and the
