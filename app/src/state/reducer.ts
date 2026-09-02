@@ -241,6 +241,39 @@ export const TASKS: Task[] = [
   },
 ]
 
+/* Raman's home is a task board too, not just an intent surface: he opens the
+   PRD-to-Stories run from a card the way Deepak opens a scripted ticket. The card
+   is seeded already worked — the intake ran on the PRD upload, so it sits "ready
+   for review" the way Deepak's finished feedback form does. Clicking it launches
+   the prepared backlog opening (backlogTaskOpening), parked on the intake gate.
+   The id is stable so openTask can recognise it and the object can bind back to
+   this same card rather than minting a duplicate. */
+export const PRD_SEED_ID = 'PRD-WFS'
+
+export const RAMAN_TASKS: Task[] = [
+  {
+    id: PRD_SEED_ID, title: 'PRD to Stories',
+    status: 'clarify', tag: 'input', est: '—', dep: 'PRD', recommended: true,
+    note: 'Confirm the intake summary', updated: '6 min ago',
+    opening: [],
+    context: {
+      ticket: 'WFS', ticketSource: 'AAVA · PRD',
+      ticketUrl: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1',
+      description:
+        'Parse the WireFrame Studio PRD, decompose it into epics, features and user stories, ' +
+        'and publish the confirmed backlog to Jira. Human review after every level, starting with the intake summary.',
+      criteria: [],
+      capabilities: [
+        'PRD parsing & requirement extraction',
+        'Backlog decomposition (epics → features → stories)',
+        'Definition-of-Ready checks',
+        'Sprint planning & story mapping',
+      ],
+      run: { agent: 'Epics & Features Generator', golden: true, certified: '2026-07-20', accepts: 12 },
+    },
+  },
+]
+
 /* The five card states. `status` decides which board column a task lands in
    (whose turn is it); TAG says precisely why. Three tasks can all be waiting on
    you for three entirely different reasons, and the tag is what distinguishes
@@ -579,8 +612,9 @@ export function reducer(state: AppState, action: Action): AppState {
         ...initialState,
         profileId: to,
         // Deepak always opens on the seeded board; Raman opens on whatever he
-        // parked (empty on first switch, his PRD cards after that).
-        tasks: to === 'deepak' ? TASKS : state.parkedTasks,
+        // parked (his seeded "PRD to Stories" card on the first switch, then
+        // whatever that run has become after that).
+        tasks: to === 'deepak' ? TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS,
         parkedTasks: state.tasks,
         sidebarOpen: state.sidebarOpen,
       }
@@ -675,9 +709,12 @@ export function reducer(state: AppState, action: Action): AppState {
          scripted beats) is engaged. */
       /* The object gets a board task so a parked PRD shows on the home screen
          like any other task; the thread is keyed off that task id so the card
-         can reopen the parked thread through the same openTask path. */
-      const prdTaskId = `prd-${nextId()}`
+         can reopen the parked thread through the same openTask path. When a
+         `taskId` is supplied the object binds to that EXISTING card (Raman's
+         seeded "PRD to Stories") instead of minting a new one. */
+      const prdTaskId = action.taskId ?? `prd-${nextId()}`
       const threadId = threadIdForTask(prdTaskId)
+      const hasCard = state.tasks.some((t) => t.id === prdTaskId)
       return {
         ...state,
         arrangement: 'split',
@@ -690,7 +727,9 @@ export function reducer(state: AppState, action: Action): AppState {
         chipStage: null,
         pendingTopic: null,
         watchLog: [],
-        tasks: [prdBoardTask(prdTaskId, action.title, action.subject), ...state.tasks],
+        tasks: hasCard
+          ? state.tasks
+          : [prdBoardTask(prdTaskId, action.title, action.subject), ...state.tasks],
         stashed: state.activeThreadId && state.activeThreadId !== threadId
           ? { ...state.stashed, [state.activeThreadId]: snapshot(state) }
           : state.stashed,

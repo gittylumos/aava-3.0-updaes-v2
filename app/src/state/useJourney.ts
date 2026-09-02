@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
-import { TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
+import { PRD_SEED_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
-import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, BACKLOG_BEATS } from '../prd/backlogFlow'
+import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { BACKLOG_FILE, type BacklogDoc } from '../prd/backlog'
 import { searchHits, taskNotifications } from '../data/chrome'
 import type { Effect, Overlay, Scenario, TabId, Thread } from './types'
@@ -294,6 +294,17 @@ export function useJourney() {
     cancel()
     if (state.stashed[threadId]) {
       dispatch({ type: 'RESUME_THREAD', threadId })
+      return
+    }
+    /* Raman's seeded "PRD to Stories" card launches the PRD-to-Stories run as a
+       task: it opens the backlog object bound to this same card, then plays the
+       prepared opening that lands already parked on the intake gate. Everything
+       downstream is the existing backlog flow. */
+    if (taskId === PRD_SEED_ID) {
+      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'PRD to Stories',
+        subject: 'WireFrame Studio', said: 'Task assigned from AAVA — “PRD to Stories”', taskId })
+      dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
+      play(backlogTaskOpening())
       return
     }
     const sc = getScenario(taskId)
