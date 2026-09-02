@@ -8,10 +8,11 @@ import { WorkspaceShell } from './components/layout/WorkspaceShell'
 import { Composer, MODELS, type Connector, type Effort } from './components/chrome/Composer'
 import { StartView } from './components/start/StartView'
 import { ConversationView } from './components/chat/ConversationView'
-import { TaskProgress } from './components/chat/TaskProgress'
 import { TabWorkspace } from './components/playground/TabWorkspace'
 import { DocumentCanvas } from './prd/DocumentCanvas'
 import { AgentGraph } from './prd/AgentGraph'
+import { ScenarioGraph } from './components/playground/ScenarioGraph'
+import { ScenarioFiles } from './components/playground/ScenarioFiles'
 import { FilesPanel, type SessionFile } from './prd/FilesPanel'
 import type { BacklogDoc } from './prd/backlog'
 import { FeedbackApp, previewTemplate, readTemplate } from './components/playground/FeedbackApp'
@@ -77,6 +78,10 @@ export default function App() {
   const showGraph = () => { setCanvasMode('graph'); j.setPanelOpen(true) }
   const showFiles = () => { setCanvasMode('files'); j.setPanelOpen(true) }
 
+  /* A fresh session starts on its default canvas — the workspace/document — not
+     whatever graph/files view the last session was left on. */
+  useEffect(() => { setCanvasMode('doc') }, [j.state.activeTaskId, j.state.activeObject?.taskId])
+
   /* Prompt-bar settings live here, above the composer, so they survive the
      composer's remount when the arrangement changes — the same reason the draft
      does. Cosmetic for now; the selectors do not yet drive behaviour. */
@@ -123,8 +128,11 @@ export default function App() {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [j.state.overlay, j.state.arrangement, j.state.activeTaskId, j.state.activeObject, j.state.playground.panelOpen])
 
-  const progress = j.scenario
-    ? <TaskProgress steps={j.scenario.prep} at={j.state.playground.prepAt} onOpenEvidence={j.focusEvidence} />
+  /* Scenario run progress — the same hanging status dock as the backlog flow
+     (RunStrip), driven by the scenario's prep steps. `waiting` (amber, pulsing)
+     when the current step is a gate the run is parked on; otherwise blue. */
+  const taskProgress = j.scenario
+    ? { steps: j.scenario.prep, at: j.state.playground.prepAt, waiting: !!j.scenario.prep[j.state.playground.prepAt]?.gate }
     : null
 
   /* The generated-app card shows the running app rather than a picture of it.
@@ -253,7 +261,8 @@ export default function App() {
                     key="conversation"
                     state={j.state}
                     chips={chips}
-                    progress={progress}
+                    taskProgress={taskProgress}
+                    onOpenStep={j.focusEvidence}
                     preview={preview}
                     onChip={j.send}
                     onAccept={j.runBeat}
@@ -270,9 +279,9 @@ export default function App() {
                     onApplyChanges={() => { j.applyComments(docChanges); setDocChanges([]) }}
                     onDiscardChanges={() => setDocChanges([])}
                     onRemoveChange={(i) => setDocChanges((cs) => cs.filter((_, idx) => idx !== i))}
-                    /* Only joined when there is a panel to join to — a chat
-                       thread with no task keeps the free-standing composer. */
-                    composer={composerFor(!!progress)}
+                    /* The progress dock now hangs from the header, so the
+                       composer is always free-standing here. */
+                    composer={composerFor()}
                   />
                 )}
               </AnimatePresence>
@@ -281,18 +290,47 @@ export default function App() {
           /* Mounted for the whole life of the task, not just while visible —
              collapsing the panel must not take the tab layout with it. */
           right={inTask ? (
-            <TabWorkspace
-              pg={j.state.playground}
-              scenario={j.scenario}
-              taskId={j.state.activeTaskId}
-              watch={j.state.watchLog}
-              theme={theme}
-              active={j.state.playground.panelOpen}
-              onCollapse={() => j.setPanelOpen(false)}
-              onToast={j.toast}
-              onFile={j.setFile}
-              onEdit={j.editFile}
-            />
+            /* TabWorkspace stays mounted for the whole task; the Execution-activity
+               graph and the session files list overlay it (an opaque layer) so
+               the tab layout survives switching to them and back. */
+            <div className="relative h-full min-h-0">
+              <TabWorkspace
+                pg={j.state.playground}
+                scenario={j.scenario}
+                taskId={j.state.activeTaskId}
+                watch={j.state.watchLog}
+                theme={theme}
+                active={j.state.playground.panelOpen}
+                onCollapse={() => j.setPanelOpen(false)}
+                onToast={j.toast}
+                onFile={j.setFile}
+                onEdit={j.editFile}
+              />
+              {canvasMode === 'graph' && j.scenario && (
+                <div className="absolute inset-0 z-10" style={{ background: 'var(--ground)' }}>
+                  <ScenarioGraph
+                    steps={j.scenario.prep}
+                    at={j.state.playground.prepAt}
+                    waiting={!!taskProgress?.waiting}
+                    heading={j.scenario.capability}
+                    watch={j.state.watchLog}
+                    onCollapse={() => setCanvasMode('doc')}
+                  />
+                </div>
+              )}
+              {canvasMode === 'files' && j.scenario && (
+                <div className="absolute inset-0 z-10" style={{ background: 'var(--ground)' }}>
+                  <ScenarioFiles
+                    root={j.scenario.fileRoot}
+                    files={j.scenario.fileOrder}
+                    activeFile={j.state.playground.activeFile}
+                    watch={j.state.watchLog}
+                    onOpen={(name) => { setCanvasMode('doc'); j.setFile(name); j.setTab('code') }}
+                    onCollapse={() => setCanvasMode('doc')}
+                  />
+                </div>
+              )}
+            </div>
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
                the workflow icon is pressed. Closing it returns to the document

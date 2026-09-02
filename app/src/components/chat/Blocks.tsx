@@ -289,15 +289,17 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
         </div>
       ))}
       {live && (
-        <div className="mt-3 flex gap-2">
+        /* Right-aligned, secondary on the left and the primary on the right —
+           the same footer treatment as the PRD flow's decision gate. */
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button onClick={onDismiss}
-            className="press rounded-full px-3.5 py-2 text-[12px] hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]"
-            style={{ background: 'var(--glass)', color: 'var(--muted)', minHeight: 'var(--hit)', border: '1px solid var(--glass-line-soft)' }}>
+            className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
+            style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
             {block.cancelLabel}
           </button>
           <button onClick={() => { onDismiss(); onAccept(block.acceptBeat) }}
-            className="press rounded-full px-3.5 py-2 text-[12px] font-medium"
-            style={{ background: 'var(--primary-grad)', color: '#fff', minHeight: 'var(--hit)' }}>
+            className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
+            style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
             {block.acceptLabel}
           </button>
         </div>
@@ -583,13 +585,8 @@ function Capability({ block }: { block: Extract<BlockSpec, { kind: 'capability' 
       </div>
     )
   }
-  return (
-    <div className="mt-3 rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
-      <div className="flex items-center gap-2">
-        <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: 'var(--brand)' }}><GateGlyphSparkle /></span>
-        <h4 className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">Capabilities matched</h4>
-        {block.badge && <span className="mono shrink-0 text-[11px]" style={{ color: 'var(--muted-deep)' }}>{block.badge}</span>}
-      </div>
+  const body = (
+    <>
       {block.maps && <p className="mt-2 text-[12.5px] leading-[1.5]" style={{ color: 'var(--muted)' }}>{block.maps}</p>}
       {block.chips && block.chips.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -601,6 +598,45 @@ function Capability({ block }: { block: Extract<BlockSpec, { kind: 'capability' 
           ))}
         </div>
       )}
+    </>
+  )
+  // Pre-filled runs already matched their capability — show it as a subtle,
+  // collapsed one-liner the user can open, rather than a full card up front.
+  if (block.collapsed) {
+    return <SubtleRecord icon={<GateGlyphSparkle />} title="Capabilities matched" badge={block.badge}>{body}</SubtleRecord>
+  }
+  return (
+    <div className="mt-3 rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+      <div className="flex items-center gap-2">
+        <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: 'var(--brand)' }}><GateGlyphSparkle /></span>
+        <h4 className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">Capabilities matched</h4>
+        {block.badge && <span className="mono shrink-0 text-[11px]" style={{ color: 'var(--muted-deep)' }}>{block.badge}</span>}
+      </div>
+      {body}
+    </div>
+  )
+}
+
+/* A subtle, collapsed record — a one-line header (icon · title · badge · chevron)
+   that opens to its detail. Used for a pre-filled run's already-done Capabilities
+   and Plan, which should read as quiet context, not front-and-centre cards. */
+function SubtleRecord({ icon, title, badge, children }: {
+  icon: React.ReactNode; title: string; badge?: string; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-2.5 overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        className="press flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--wash-3)]">
+        <span className="grid h-4 w-4 shrink-0 place-items-center" style={{ color: 'var(--muted)' }}>{icon}</span>
+        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: 'var(--text-dim)' }}>{title}</span>
+        {badge && <span className="mono shrink-0 text-[10.5px]" style={{ color: 'var(--muted-deep)' }}>{badge}</span>}
+        <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden className="shrink-0 transition-transform duration-200"
+          style={{ color: 'var(--muted-deep)', transform: open ? 'rotate(180deg)' : undefined }}>
+          <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && <div className="px-3.5 pb-3 pt-0.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>{children}</div>}
     </div>
   )
 }
@@ -614,6 +650,28 @@ function Plan({ block, live, onAccept, onDismiss }: {
   onRecordAnswer?: (text: string) => void; answer?: string
 }) {
   const proceed = () => { if (block.action) { onDismiss(); onAccept(block.action.beat) } }
+
+  // A pre-filled run's plan is a record of what AAVA already ran — collapse it to
+  // a subtle one-liner (no Proceed; the work is done) that opens to the steps.
+  if (block.collapsed) {
+    return (
+      <SubtleRecord icon={<PlanGlyph />} title={`${block.title ?? 'Plan'} · ${block.count} steps`}>
+        <div className="grid gap-2.5 pt-1.5">
+          {block.steps.map((s, i) => (
+            <div key={s.title} className="flex gap-2.5">
+              <span className="mono mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]"
+                style={{ background: 'var(--wash-3)', color: 'var(--muted)' }}>{i + 1}</span>
+              <div className="min-w-0">
+                <div className="text-[12.5px] font-medium" style={{ color: 'var(--text-dim)' }}>{s.title}</div>
+                <div className="mt-0.5 text-[11.5px] leading-[1.5]" style={{ color: 'var(--muted)' }}>{s.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SubtleRecord>
+    )
+  }
+
   return (
     <div className="mt-3 overflow-hidden rounded-[var(--r-md)]"
       style={{ background: 'var(--glass)', border: `1px solid ${live && block.action ? 'var(--warn)' : 'var(--glass-line)'}` }}>
@@ -714,6 +772,11 @@ function GateGlyphPerson() {
 }
 function GateGlyphSparkle() {
   return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" /></svg>
+}
+
+/* A checklist mark for the collapsed plan record. */
+function PlanGlyph() {
+  return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" /></svg>
 }
 
 /* The Jira mark — three stacked chevrons in Jira blue. A clean recreation,

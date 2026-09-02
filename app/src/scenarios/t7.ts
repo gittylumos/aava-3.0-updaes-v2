@@ -162,6 +162,7 @@ describe('toV2', () => {
 });`
 
 export const t7: Scenario = {
+  capability: { name: 'Schema Migration Agent', badge: 'SMA-2.0' },
   prep: [
     { key: 'jira',     label: 'Read Jira',                        result: 'PAY-3120',              detail: 'Ticket, the linked v2 RFC and the three target services pulled from the connected Jira project.' },
     { key: 'map',      label: 'Mapped v1 → v2 refund schema',     result: '14 fields · 3 renamed', detail: 'Every v1 field is mapped to a v2 field or explicitly dropped. Two fields have no clean source — that is what the gate below is for.' },
@@ -279,6 +280,45 @@ export const t7: Scenario = {
        All prepared work — the Validator ran before anyone sat down — so it is
        instant, same as T1. */
     prep: [
+      // Capability + plan first, as subtle collapsed records: this migration was
+      // validated end-to-end by the Schema Migration Agent process — already
+      // matched, already run, and now paused at the one call it should not make
+      // alone. Quiet context the user can open, not front-and-centre cards.
+      { type: 'say', stream: false, lines: [], block: {
+        kind: 'capability', searching: false, collapsed: true, badge: 'SMA-2.0',
+        maps: "This maps to the 'Schema Migration Agent' agentic process — it validated the migration end-to-end:",
+        chips: [
+          'Schema diff (v1 → v2)',
+          'Mapper replay on recorded traffic',
+          'Consumer contract conformance',
+          'Canary rollout & rollback',
+        ],
+      } },
+      { type: 'say', stream: false, lines: [], block: {
+        kind: 'plan', collapsed: true, count: 5, title: 'Schema Migration Agent Process',
+        steps: [
+          { title: 'Read the ticket & RFC', detail: 'Pull PAY-3120 and the v2 schema RFC from the connected sources' },
+          { title: 'Diff v1 → v2 schema', detail: 'Map every refund field across versions; flag renames and gaps' },
+          { title: 'Replay recorded refunds', detail: 'Run 1,200 recorded v1 refunds through the new mapper' },
+          { title: 'Validate against contracts', detail: 'Check each result against the v2 schema and the four consumer contracts' },
+          { title: 'Canary & roll out', detail: 'Stage 5% of traffic behind a flag, watch for drift, then roll out' },
+        ],
+      } },
+      // Steps 1–3 all ran before anyone sat down — the Validator finished on the
+      // webhook — so the opening does not sit through a loading sequence. The run
+      // lands straight on the first gate (step 4) and the three accordions below
+      // are already complete: records of the background work, not steps ticking
+      // through in front of you.
+      { type: 'prepAt', index: 3 },
+      { type: 'tools', title: 'Read Jira · PAY-3120', steps: [
+        { label: 'Pulling the ticket & the v2 schema RFC', source: 'Jira', result: 'PAY-3120', ms: 0 },
+      ] },
+      { type: 'tools', title: 'Schema diff · v1 → v2', steps: [
+        { label: 'Mapping every refund field across versions', source: 'Repo', result: '14 fields · 3 renamed', ms: 0 },
+      ] },
+      { type: 'tools', title: 'Validator · contract replay', steps: [
+        { label: 'Replaying 1,200 recorded refunds through the mapper', source: 'Runner', result: '18 passed · 2 failed', ms: 0 },
+      ] },
       { type: 'say', stream: false, lines: [
         'Before touching any service, the Validator agent replayed 1,200 recorded v1 refunds through the new mapper and checked every result against the v2 schema and the four consumer contracts.',
       ], block: { kind: 'validation', agent: 'Validator', file: 'refund-mapper.spec.ts',
@@ -320,35 +360,70 @@ export const t7: Scenario = {
     ],
 
     /* Gate 4 cleared. Steps 5 and 6 are real work, so they cost real time — and
-       the list moves under the user rather than being described as moved. */
+       the run advances through them ONE step at a time, each going blue in the
+       progress dock as its own work runs, rather than jumping straight to the
+       next gate. */
     approved1: [
-      { type: 'runState', kind: 'live', label: 'Applying · steps 5–6' },
-      { type: 'tools', steps: [
-        { label: 'Applying the mapping to payments-api',   source: 'Repo',    result: '6 files',    ms: T.repo },
-        { label: 'Applying the mapping to ledger-service', source: 'Repo',    result: '2 files',    ms: T.repo },
-        { label: 'Applying the mapping to refund-worker',  source: 'Repo',    result: '1 file',     ms: T.repo },
-        { label: 'Running the payments regression suite',  source: 'CI',      result: '340 passed', ms: T.karma },
-        { label: 'Replaying consumer contracts',           source: 'Pact',    result: '4 of 4',     ms: T.contract },
+      // Step 5 — apply the migration. prepAt 4 lands the run on it (blue) while
+      // its own tool work runs underneath.
+      { type: 'runState', kind: 'live', label: 'Applying · step 5 of 10' },
+      { type: 'prepAt', index: 4 },
+      { type: 'tools', title: 'Apply migration across 3 services', steps: [
+        { label: 'Applying the mapping to payments-api',   source: 'Repo', result: '6 files', ms: T.repo },
+        { label: 'Applying the mapping to ledger-service', source: 'Repo', result: '2 files', ms: T.repo },
+        { label: 'Applying the mapping to refund-worker',  source: 'Repo', result: '1 file',  ms: T.repo },
       ] },
-      { type: 'prepAt', index: 6 },
       { type: 'say', lines: [
-        'Applied behind the refunds_v2 flag. Both failing checks pass now, 340 regression specs are green and all four consumer contracts hold.',
+        'Applied across payments-api, ledger-service and refund-worker, all behind the refunds_v2 flag — both failing checks pass now, and rolling back is a flag flip.',
+      ] },
+      // Step 6 — regression + contracts. prepAt 5 moves the run on (step 5 done,
+      // step 6 blue) before this second block of work runs.
+      { type: 'runState', kind: 'live', label: 'Testing · step 6 of 10' },
+      { type: 'prepAt', index: 5 },
+      { type: 'tools', title: 'Regression + consumer contract tests', steps: [
+        { label: 'Running the payments regression suite', source: 'CI',   result: '340 passed', ms: T.karma },
+        { label: 'Replaying consumer contracts',          source: 'Pact', result: '4 of 4',     ms: T.contract },
+      ] },
+      { type: 'say', lines: [
+        '340 regression specs are green and all four consumer contracts hold.',
+      ] },
+      // Now the run stops again at step 7. Moving prepAt here is what presents
+      // gate 7; this beat never names it, which is why clearing one gate can
+      // never strand the next.
+      { type: 'prepAt', index: 6 },
+      { type: 'runState', kind: 'prep', label: 'Paused · step 7 of 10' },
+      { type: 'say', lines: [
         'Steps 5 and 6 are done and the run has stopped again at step 7 — staging carries real settlement traffic, so it does not go there on my say-so.',
       ] },
-      // Moving the run to step 7 is what presents gate 7. This beat never
-      // names it, which is why clearing one gate can never strand the next.
     ],
 
+    /* Gate 7 cleared. Same treatment: the run walks through step 8 then step 9,
+       each going blue in the dock as its own work runs, before it stops at the
+       final gate. */
     approved2: [
-      { type: 'runState', kind: 'live', label: 'Canary · steps 8–9' },
-      { type: 'tools', steps: [
-        { label: 'Enabling refunds_v2 at 5%',   source: 'Flags',  result: 'staging',  ms: T.contract },
-        { label: 'Holding for one hour',        source: 'Canary', result: '1h',       ms: T.ngBuild },
-        { label: 'Comparing settlement totals', source: 'Ledger', result: 'no drift', ms: T.diffScan },
+      // Step 8 — the canary.
+      { type: 'runState', kind: 'live', label: 'Canary · step 8 of 10' },
+      { type: 'prepAt', index: 7 },
+      { type: 'tools', title: 'Canary release to staging', steps: [
+        { label: 'Enabling refunds_v2 at 5%', source: 'Flags',  result: 'staging', ms: T.contract },
+        { label: 'Holding for one hour',      source: 'Canary', result: '1h',      ms: T.ngBuild },
       ] },
-      { type: 'prepAt', index: 9 },
       { type: 'say', lines: [
-        'Canary ran an hour at 5% and the settlement totals match v1 to the penny.',
+        'refunds_v2 is live on 5% of staging traffic and has held for the hour, the rest untouched on v1.',
+      ] },
+      // Step 9 — verify against live traffic.
+      { type: 'runState', kind: 'live', label: 'Verifying · step 9 of 10' },
+      { type: 'prepAt', index: 8 },
+      { type: 'tools', title: 'Verify live consumer traffic', steps: [
+        { label: 'Comparing settlement totals across both paths', source: 'Ledger', result: 'no drift', ms: T.diffScan },
+      ] },
+      { type: 'say', lines: [
+        'Settlement totals match v1 to the penny — no drift on the canary.',
+      ] },
+      // Stop at the last gate.
+      { type: 'prepAt', index: 9 },
+      { type: 'runState', kind: 'prep', label: 'Paused · step 10 of 10' },
+      { type: 'say', lines: [
         'One step left, and it is the one that involves other people — so it is yours too.',
       ] },
     ],

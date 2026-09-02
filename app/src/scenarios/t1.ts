@@ -38,6 +38,7 @@ export class FeedbackService {
 }`
 
 export const t1: Scenario = {
+  capability: { name: 'UI Screen Generator', badge: 'USG-1.0' },
   prep: [
     { key: 'jira',   label: 'Read Jira',                   result: 'MOB-2841',              detail: 'Ticket, acceptance criteria and sprint pulled from the connected Jira project.' },
     { key: 'figma',  label: 'Identified image from Figma', result: 'Feedback Form v3',       detail: 'Matched the ticket to a frame in the product file. Open the evidence to see the design.' },
@@ -140,8 +141,59 @@ export const t1: Scenario = {
       // Deliberately fast: this work was already done on the Jira webhook before
       // Deepak sat down. Prepared work is instant, new work costs real time — that
       // contrast is the whole "Work Finds You" argument, made physical.
+      //
+      // Capability + plan first, as subtle collapsed records: this screen was
+      // taken end-to-end by the UI Screen Generator process — already matched,
+      // already run. Quiet context the user can open, not front-and-centre cards.
+      { type: 'say', stream: false, lines: [], block: {
+        kind: 'capability', searching: false, collapsed: true, badge: 'USG-1.0',
+        maps: "This maps to the 'UI Screen Generator' agentic process — it took the screen end-to-end:",
+        chips: [
+          'Ticket & Figma parsing',
+          'PLAY component matching & build',
+          'API contract verification',
+          'Unit tests & coverage gate',
+        ],
+      } },
+      { type: 'say', stream: false, lines: [], block: {
+        kind: 'plan', collapsed: true, count: 5, title: 'UI Screen Generator Process',
+        steps: [
+          { title: 'Read the ticket & design', detail: 'Pull MOB-2841 and match it to the Feedback Form v3 frame in Figma' },
+          { title: 'Match PLAY components', detail: 'Break the design into components; reuse what exists, build what does not' },
+          { title: 'Verify the API contract', detail: 'Check POST /api/v1/feedback matches what the form needs' },
+          { title: 'Build & wire the screen', detail: 'Generate the Angular page, wire the endpoint, register the route' },
+          { title: 'Test & hand off', detail: 'Run unit tests and coverage, then park for your review' },
+        ],
+      } },
+      // This work was finished on the Jira webhook before Deepak sat down, so the
+      // opening does not sit through a loading sequence: the run lands straight on
+      // the review gate (step 9) and the accordions below are already complete —
+      // records of what ran, not steps ticking through in front of you.
+      { type: 'prepAt', index: 9 },
+      { type: 'tools', title: 'Reading the ticket & the design', steps: [
+        { label: 'Reading the Jira ticket & acceptance criteria', source: 'Jira', result: 'MOB-2841', ms: 0 },
+        { label: 'Matching the ticket to the Figma frame', source: 'Figma', result: 'Feedback Form v3', ms: 0 },
+        { label: 'Checking components against the PLAY library', source: 'PLAY', result: '6 needed', ms: 0 },
+        { label: 'Deciding build vs reuse', source: 'PLAY', result: '4 reused · 2 built', ms: 0 },
+      ] },
+      { type: 'say', stream: false, lines: [
+        'MOB-2841 matched the Feedback Form v3 frame cleanly. Six PLAY components in the design — four already in the library, two I built and staged for their own PR.',
+      ] },
+      { type: 'tools', title: 'Building & wiring the screen', steps: [
+        { label: 'Verifying the API contract', source: 'OpenAPI', result: 'POST /api/v1/feedback', ms: 0 },
+        { label: 'Locating the feature module & route', source: 'Repo', result: 'src/app/feedback/', ms: 0 },
+        { label: 'Generating the page & wiring the endpoint', source: 'Repo', result: '7 files changed', ms: 0 },
+      ] },
+      { type: 'say', stream: false, lines: [
+        'The endpoint was already live, so no contract change. I generated the Angular page, wired it to POST /api/v1/feedback and registered the route — seven files in all.',
+      ] },
+      { type: 'tools', title: 'Tests & checks', steps: [
+        { label: 'Running unit tests', source: 'Runner', result: '11 passed · 87%', ms: 0 },
+        { label: 'Build · lint · contract checks', source: 'CI', result: 'all clean', ms: 0 },
+      ] },
+      // The completion line + the running app, front and centre.
       { type: 'say', stream: false,
-        lines: ['I have developed the screen as per the requirement! Here is the generated preview on the right.'],
+        lines: ['All the requirements were clear — I read the ticket, matched the design against the PLAY library, and implemented the feedback screen end-to-end. It is running in the preview on the right, ready for your review.'],
         block: { kind: 'app', name: 'feedback-form', status: 'localhost:4200 · Running' } },
       // The running app is not something to ask for — it is the first thing you
       // should see. No build to sit through: the work was done on the Jira

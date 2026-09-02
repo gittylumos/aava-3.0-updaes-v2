@@ -1,0 +1,13 @@
+*.pdf
+*.docx
+*.png
+*.jpg
+docs
+sample_reference
+.playwright-mcp
+.aava
+
+# Source assets are imported by the build (e.g. aava-logo.png in icons.tsx),
+# so re-include them despite the broad image excludes above.
+!app/src/assets/**
+!app/public/**
