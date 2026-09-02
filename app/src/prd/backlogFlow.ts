@@ -407,17 +407,18 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
   /* Loop 1A · the user supplied the missing fields. */
   fillFeatureFields: [
     { type: 'watch', text: 'Applying your dates & priority', tone: 'info' },
-    { type: 'say', lines: ['Thanks for the clarification — I will go ahead and create the features list with those folded in.'] },
+    { type: 'say', lines: ['Thanks for the clarification — I will fold those dates and priorities into Feature 1.3, 5.3 and 7.2 and rebuild the list.'] },
     status([
-      ['Applying target dates to Feature 1.3, 5.3, 7.2', 'done'],
-      ['Setting priority on the 3 features', 'done'],
+      ['Feature 1.3 · Responsive Device Preview', 'M2–M3 · P1'],
+      ['Feature 5.3 · Bi-Directional Sync', 'M5–M6 · P2'],
+      ['Feature 7.2 · Contextual AI Tooltips', 'M4–M6 · P2'],
       ['Re-validating all 23 features against required fields', 'complete'],
       ['Applying feature template', '23 features'],
     ], 'Features · applying your edits'),
     { type: 'watch', text: '23 features complete', tone: 'ok' },
     artifact('features.md', 'features'),
     { type: 'say',
-      lines: ['Done — all 23 features now carry target dates and priority, grouped under their parent epic with Requirement and Acceptance criteria.'],
+      lines: ['Done — the three flagged features now carry target dates and priority: Feature 1.3 runs Month 2–3 at P1, Feature 5.3 runs Month 5–6 at P2, and Feature 7.2 runs Month 4–6 at P2. All 23 features are grouped under their parent epic with Requirement and Acceptance criteria.'],
       block: gate(4, 'Confirm the features', 'Do these 23 features cover it?', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Refine the features', 'refineFeatures', false, true],

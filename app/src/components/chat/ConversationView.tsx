@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import type { AppState, Chip, TabId } from '../../state/types'
+import type { AppState, Chip, PrepStep, TabId } from '../../state/types'
 import { Thread } from './Thread'
 import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
@@ -13,8 +13,11 @@ import { backlogProgress, DOC_PHASE } from '../../prd/backlogFlow'
 interface Props {
   state: AppState
   chips: Chip[]
-  /** Where the run stands. Pinned above the composer, not a message. */
-  progress: React.ReactNode
+  /** Scenario run progress — rendered as the hanging dock (RunStrip), the same
+      as the backlog flow. Null when there is no scenario. */
+  taskProgress: { steps: PrepStep[]; at: number; waiting: boolean } | null
+  /** Open a scenario step's evidence from the dock. */
+  onOpenStep?: (key: string) => void
   preview: React.ReactNode
   onChip: (sends: string) => void
   onAccept: (beat: string) => void
@@ -46,7 +49,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, progress, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
@@ -58,8 +61,12 @@ export function ConversationView({
   /* A live decision gate or the plan card takes over the prompt-bar's spot — the
      text input is hidden while it waits, and it drops back into the conversation
      as a record once answered. Push/connect cards stay inline in the thread. */
+  /* Only a live HITL gate takes the prompt bar's place — a "waiting on you"
+     decision or confirm block. The plan is a conversation record (with its own
+     Proceed when it has one), so it stays in the thread and the prompt bar
+     stays put beneath it, exactly as the PRD flow behaves. */
   const pinnedGate = [...state.messages].reverse().find(
-    (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'plan'),
+    (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
   )
 
   /* The run-progress bar for the backlog flow — pinned below the session header,
@@ -87,7 +94,9 @@ export function ConversationView({
 
       <div className="flex min-w-0 flex-1 flex-col">
         {task && (
-          <div className="flex shrink-0 items-center px-6 pt-4">
+          /* A subtle bottom hairline turns the header into a bar the run dock can
+             hang from — the dock's flat top merges into this line. */
+          <div className="flex shrink-0 items-center border-b border-[var(--glass-line-soft)] px-6 pb-3 pt-4">
             <EdgeToggle
               on={contextOpen}
               onClick={onToggleContext}
@@ -119,16 +128,28 @@ export function ConversationView({
               </svg>
             </a>
 
-            {/* Right edge, for the region it controls. Collapsing the workspace
-                from inside it leaves no way back in — this is that way back. */}
-            <EdgeToggle
-              on={panelOpen}
-              onClick={onTogglePanel}
-              label={panelOpen ? 'Hide workspace' : 'Show workspace'}
-              className="ml-auto"
-            >
-              <IconRightPanel size={15} />
-            </EdgeToggle>
+            {/* Right edge, for the region it controls. Execution activity and the
+                session files sit beside the way back into the workspace — the
+                same set the backlog flow's header carries. */}
+            <div className="ml-auto flex items-center gap-1">
+              {taskProgress && (
+                <>
+                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
+                    <IconWorkflow size={15} />
+                  </EdgeToggle>
+                  <EdgeToggle on={false} onClick={onShowFiles} label="Files in this session">
+                    <IconFileSearch size={15} />
+                  </EdgeToggle>
+                </>
+              )}
+              <EdgeToggle
+                on={panelOpen}
+                onClick={onTogglePanel}
+                label={panelOpen ? 'Hide workspace' : 'Show workspace'}
+              >
+                <IconRightPanel size={15} />
+              </EdgeToggle>
+            </div>
           </div>
         )}
 
@@ -180,6 +201,15 @@ export function ConversationView({
           </div>
         )}
 
+        {/* Scenario run progress — the same hanging dock, driven by the
+            scenario's prep steps. (Backlog and scenario are mutually exclusive.) */}
+        {taskProgress && (
+          <div className="relative z-20 shrink-0 px-6 -mt-px">
+            <RunStrip steps={taskProgress.steps} at={taskProgress.at} waiting={taskProgress.waiting}
+              onOpenStep={(key) => onOpenStep?.(key)} />
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-3">
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
@@ -210,12 +240,6 @@ export function ConversationView({
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
                   onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}
                   onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer} />
-              </div>
-            ) : progress ? (
-              <div className="mb-7 overflow-hidden rounded-[var(--r-lg)]"
-                style={{ background: 'var(--glass-strong)', border: '1px solid var(--glass-line)' }}>
-                {progress}
-                {composer}
               </div>
             ) : composer}
           </div>

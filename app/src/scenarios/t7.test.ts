@@ -25,19 +25,24 @@ describe('t7 scenario', () => {
     expect(t7.prep[2].label).toMatch(/validator agent/i)
   })
 
-  /* Clearing a gate has to MOVE the run, not just talk about it. */
-  it('each approval beat advances the run past its gate', () => {
+  /* Clearing a gate has to MOVE the run, not just talk about it — and it moves
+     the run one step at a time (each intermediate step goes blue in the dock)
+     rather than jumping straight to the next gate. So the sequence is the whole
+     span from just-past-this-gate up to and including the next gate. */
+  it('each approval beat advances the run step by step up to its next gate', () => {
     const jumps = (name: string) =>
       t7.beats[name].flatMap((e: Effect) => (e.type === 'prepAt' ? [e.index] : []))
-    expect(jumps('approved1')).toEqual([6])
-    expect(jumps('approved2')).toEqual([9])
+    expect(jumps('approved1')).toEqual([4, 5, 6])
+    expect(jumps('approved2')).toEqual([7, 8, 9])
     expect(jumps('raised')).toEqual([t7.prep.length])
   })
 
-  it('the opening leads with the validation results', () => {
+  it('the opening leads with the capability and plan records, then the validation', () => {
     const blocks = t7.beats.prep.flatMap((e: Effect) =>
       e.type === 'say' && e.block ? [e.block.kind] : [])
-    expect(blocks[0]).toBe('validation')
+    // Pre-filled run: a subtle Capabilities record, then the Plan, then the
+    // validation results the decision is actually about.
+    expect(blocks.slice(0, 3)).toEqual(['capability', 'plan', 'validation'])
     // The gate is appended by the engine from prep[3].gate, never inlined here —
     // inlining it is what stranded it the moment a chip was clicked.
     expect(blocks).not.toContain('confirm')

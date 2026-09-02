@@ -123,7 +123,10 @@ export type BlockSpec =
   /** Capability matching — the first thing that happens on any run. `searching`
       shows a shimmering "looking for a capability" line; once matched it becomes
       a card naming the capability, what it maps to, and what it can do. */
-  | { kind: 'capability'; searching: boolean; badge?: string; maps?: string; chips?: string[] }
+  | { kind: 'capability'; searching: boolean; badge?: string; maps?: string; chips?: string[]
+      /** Render as a subtle, collapsed one-liner (expandable) rather than the
+          full card — used when a run is pre-filled and already matched. */
+      collapsed?: boolean }
   /** The proposed plan — a numbered list of steps AAVA will run, shown before
       execution starts. `title` overrides the default header ("Initiate Process"
       for the combined plan+approve card); `action` adds a footer CTA that both
@@ -132,7 +135,10 @@ export type BlockSpec =
       action?: { label: string; beat: string }
       /** A secondary "Edit plan" action — reveals a textarea (like a gate's
           refine), records the note, then fires the same `action` beat. */
-      editLabel?: string }
+      editLabel?: string
+      /** Render as a subtle, collapsed one-liner (expandable) rather than the
+          full card — used when the plan is a record of what AAVA already ran. */
+      collapsed?: boolean }
   /** A "push to Jira" card — one primary action carrying the Jira logo (`beat`).
       An optional secondary action ("Proceed for now") continues the run without
       pushing; both advance to the next phase. Shown after every phase gate. */
@@ -281,6 +287,10 @@ export interface TaskContext {
 }
 
 export interface Scenario {
+  /** The agentic process this run maps to — its name and version badge, shown as
+      the session heading in the Execution-activity panel (e.g. the backlog flow's
+      "Epics & Features Generator · EFG-1.0"). */
+  capability?: { name: string; badge: string }
   prep: PrepStep[]
   evidence: Record<string, EvidenceBlock>
   files: Record<string, { versions: string[] }>

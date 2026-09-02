@@ -145,7 +145,7 @@ Fluid drag-and-drop for adding, positioning and resizing components on an infini
 Automatic alignment guides, grid overlay, smart spacing. *Acceptance:* guides appear within 50ms of dragging near another element; spacing matches design-system rules.
 
 **Feature 1.3 — Responsive Device Preview · ${gaps ? '⚠ priority TBD' : 'P1'}**
-Real-time preview across mobile, tablet and desktop. *Acceptance:* toggle 3 device previews; layout adapts in real time; renders within 1s.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
+Real-time preview across mobile, tablet and desktop. *Acceptance:* toggle 3 device previews; layout adapts in real time; renders within 1s.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : '\n*Target:* start Month 2 · end Month 3 (Epic 01 · Phase 1 MVP).'}
 
 **Feature 1.4 — Edit History & Undo/Redo · P0**
 Full undo/redo with a visible 50-action history panel. *Acceptance:* responds within 100ms; panel shows description + timestamp; jump to any point.
@@ -198,7 +198,7 @@ Import tokens from Figma, Sketch or JSON. *Acceptance:* paste a Figma URL or upl
 Scan against imported design-system rules. *Acceptance:* runs on save; flags non-compliant elements with fixes; auto-fix.
 
 **Feature 5.3 — Bi-Directional Sync · ${gaps ? '⚠ priority TBD' : 'P2'}**
-Push updates to source and pull upstream changes. *Acceptance:* Figma changes reflect within 60s; user notified of upstream changes.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
+Push updates to source and pull upstream changes. *Acceptance:* Figma changes reflect within 60s; user notified of upstream changes.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : '\n*Target:* start Month 5 · end Month 6 (Epic 05 · Phase 2 Alpha).'}
 
 ## Under Epic 06 — Prototyping & Export
 
@@ -217,7 +217,7 @@ Annotated specs with measurements, spacing, colours and names. *Acceptance:* spe
 5-minute guided tutorial with template wizard. *Acceptance:* completes in under 5 minutes; first wireframe made during it; skippable.
 
 **Feature 7.2 — Contextual AI Tooltips · ${gaps ? '⚠ priority TBD' : 'P2'}**
-In-context AI tooltips explaining features. *Acceptance:* appear on hover for unfamiliar UI; globally dismissible; frequency reduces over time.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : ''}
+In-context AI tooltips explaining features. *Acceptance:* appear on hover for unfamiliar UI; globally dismissible; frequency reduces over time.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : '\n*Target:* start Month 4 · end Month 6 (Epic 07 · onboarding from Month 4).'}
 `
 
 const storiesMd = (flags: boolean) => `# User stories — WireFrame Studio

@@ -659,7 +659,11 @@ export function reducer(state: AppState, action: Action): AppState {
              saying "nothing to show here" before anything has run. */
           activeTab: hasPreview(action.scenario) ? 'preview' : 'tests',
           activeFile: action.scenario?.fileOrder[0] ?? null,
-          prepAt: action.scenario ? prepStart(action.scenario.prep) : 0,
+          /* Start before the first step so the opening beat can play the run
+             through its steps (blue, with delays) and land on the gate — the
+             dock then syncs with execution instead of opening parked on amber.
+             The gate itself is still appended from the run's own last prepAt. */
+          prepAt: 0,
         },
       }
     }
