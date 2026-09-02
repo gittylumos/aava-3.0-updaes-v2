@@ -399,8 +399,10 @@ export type Action =
   | { type: 'USER_SAY'; text: string }
   | { type: 'TYPING' }
   | { type: 'OPEN_TASK'; taskId: string; scenario: Scenario | null }
-  /** Open a Canvas object by intent (no task card). `said` is the user's message. */
-  | { type: 'OPEN_OBJECT'; kind: CanvasObjectKind; title: string; subject: string; said: string }
+  /** Open a Canvas object by intent (no task card). `said` is the user's message.
+      `taskId` binds the object to an EXISTING board card instead of minting a new
+      one — the path a seeded task card (Raman's "PRD to Stories") takes in. */
+  | { type: 'OPEN_OBJECT'; kind: CanvasObjectKind; title: string; subject: string; said: string; taskId?: string }
   | { type: 'CLOSE_PLAYGROUND' }
   | { type: 'APPLY'; effect: Effect }
   | { type: 'SET_TAB'; tab: TabId }

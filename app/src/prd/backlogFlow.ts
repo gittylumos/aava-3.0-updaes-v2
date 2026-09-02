@@ -167,6 +167,75 @@ export function backlogOpening(): Effect[] {
   ]
 }
 
+/* The PRD-to-Stories run as a TASK, not an intent.
+ *
+ * Raman opens it from a board card the way Deepak opens a scripted task — but the
+ * intake already ran ahead of him (on the PRD upload, before he sat down), so the
+ * opening lands already parked on the first human gate: the intake-summary review.
+ * It follows the task-card pattern (see scenarios/t1.ts): the capability and plan
+ * are quiet COLLAPSED records of what already ran, the intake accordion is emitted
+ * already-complete (ms 0 — prepared work, no fake loading), the summary is stated
+ * whole, and the run stops at the intake gate. Everything after the gate is the
+ * existing backlog flow unchanged — the intake gate's accept beat is `startEpics`,
+ * so clearing it hands straight off to BACKLOG_BEATS. The content is pulled
+ * strictly from the intent flow above (same capability, same plan, same intake
+ * accordion, same summary, same gate). */
+export function backlogTaskOpening(): Effect[] {
+  return [
+    /* Capability + plan first, as subtle collapsed records — this run was matched
+       and its intake already executed, so they read as quiet context the user can
+       open, not front-and-centre cards with a Proceed button. */
+    { type: 'say', stream: false, lines: [], block: {
+      kind: 'capability', searching: false, collapsed: true, badge: 'EFG-1.0',
+      maps: "This maps to the 'Epics and Features Generator' agentic process — it took the intake end-to-end:",
+      chips: [
+        'PRD parsing & requirement extraction',
+        'Backlog decomposition (epics → features → stories)',
+        'Definition-of-Ready checks',
+        'Sprint planning & story mapping',
+      ],
+    } },
+    { type: 'say', stream: false, lines: [], block: {
+      kind: 'plan', collapsed: true, count: 5, title: 'Epics & Feature Generator Process',
+      steps: [
+        { title: 'Intake & understanding', detail: 'Parse the PRD, summarise objectives, roles and requirements' },
+        { title: 'Draft epics', detail: 'Cluster 28 requirements into themed epics — pause for review' },
+        { title: 'Break into features', detail: 'Decompose each confirmed epic — pause for review' },
+        { title: 'Write user stories', detail: 'Draft stories from the confirmed features' },
+        { title: 'Publish to Jira', detail: 'Push the backlog; sprint planning goes to the scrum master' },
+      ],
+    } },
+    /* The intake ran before Raman arrived, so the accordion lands already complete
+       (ms 0) and the summary is stated whole, with no typing indicator — a record
+       of what ran, not steps ticking through in front of him. */
+    { type: 'watch', text: 'Reading PRD · WireFrame Studio v1.0', tone: 'info' },
+    status([
+      ['Reading PRD', 'WireFrame Studio v1.0', 0],
+      ['Parsing document structure and headers', 'done', 0],
+      ['Extracting objectives', '5 found', 0],
+      ['Extracting user roles', '6 found', 0],
+      ['Parsing functional requirements', '28 · 6 cats', 0],
+      ['Extracting non-functional requirements', '5 areas', 0],
+      ['Building intake summary', 'ready', 0],
+    ], 'Intake · reading the PRD'),
+    { type: 'watch', text: 'Intake summary ready', tone: 'ok' },
+    { type: 'say', stream: false, lines: [
+      'PRD received — WireFrame Studio, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas. Before I build anything, here is what I understood.',
+    ] },
+    artifact('intake.md', 'intake'),
+    /* Open the intake summary in the canvas straight away — like a task opening onto
+       its running preview, the evidence is already on the right when Raman arrives. */
+    { type: 'setDoc', doc: 'intake' },
+    { type: 'say', stream: false,
+      lines: ['Take a look in the canvas and flag anything I have misread — I will not move on until you confirm.'],
+      block: gate(1, 'Confirm the intake summary', 'Does this match your PRD?', [
+        ['Yes, this is accurate', 'startEpics', true],
+        ['No, something is off', 'refineIntake', false, true],
+      ]),
+    },
+  ]
+}
+
 /* ── Phase bodies, as standalone arrays so a "push then continue" beat can splice
    the push confirmation in front of the same phase the "proceed" branch runs. ── */
 
