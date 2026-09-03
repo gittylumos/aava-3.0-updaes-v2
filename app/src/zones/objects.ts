@@ -17,7 +17,7 @@ import type { ChannelCapability } from './types'
 import type { ViewIconId } from './toolbarIcons'
 
 /** The kinds of thing the Canvas can hold. Extend as modules land. */
-export type CanvasObjectKind = 'prd' | 'app' | 'agent' | 'backlog'
+export type CanvasObjectKind = 'prd' | 'app' | 'agent' | 'backlog' | 'insight'
 
 /* A view needs a surface to be fully usable. `render` = something must display
  * (a preview); `runtime` = something must execute. On a channel that cannot
@@ -73,6 +73,12 @@ const VIEWS: Record<CanvasObjectKind, ObjectView[]> = {
      view switcher, so the list is nominal (kept for the type's completeness). */
   backlog: [
     { id: 'document', label: 'Document', icon: 'document' },
+  ],
+
+  /* A Product-Analytics & Feedback-Triage run (Example 3). Rendered through its
+     own insight canvas rather than this view switcher; the list is nominal. */
+  insight: [
+    { id: 'insight', label: 'Analytics', icon: 'table' },
   ],
 }
 

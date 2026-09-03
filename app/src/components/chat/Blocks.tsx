@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { BlockSpec, TabId } from '../../state/types'
 import type { BacklogDoc } from '../../prd/backlog'
+import type { InsightView } from '../../prd/insight'
 import { ToolSteps } from './ToolSteps'
 
 type DecisionSpec = Extract<BlockSpec, { kind: 'decision' }>
@@ -17,7 +18,7 @@ interface Props {
   onOpenTab?: (tab: TabId) => void
   /** Reveal the artefact panel — the document card's Open button. A doc opens
       that specific backlog document; no doc just reveals the panel. */
-  onOpenArtifact?: (doc?: BacklogDoc) => void
+  onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView) => void
   /** Record what the user typed into a gate's inline textarea (the gate's own
       message id is already bound in). */
   onRecordAnswer?: (text: string) => void
@@ -64,7 +65,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
             <button onClick={() => { onDismiss(); onAccept(block.beat) }}
               className="press shrink-0 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
               style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
-              Publish
+              {block.primaryLabel ?? 'Publish'}
             </button>
           </div>
         )}
@@ -88,7 +89,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           <span className="truncate text-[13px] font-semibold">{block.name}</span>
           <span className="text-[11.5px]" style={{ color: 'var(--muted)' }}>Document · {block.format}</span>
         </div>
-        <button onClick={() => onOpenArtifact?.(block.doc)}
+        <button onClick={() => onOpenArtifact?.(block.doc, block.insight)}
           className="press rounded-full px-3.5 py-1.5 text-[12px] font-medium hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]"
           style={{ background: 'var(--glass)', color: 'var(--muted)', minHeight: 'var(--hit)', border: '1px solid var(--glass-line-soft)' }}>
           Open

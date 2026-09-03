@@ -6,6 +6,7 @@ import { StreamedText } from './StreamedText'
 import { Block } from './Blocks'
 import { fadeUp } from '../../design/motion'
 import type { BacklogDoc } from '../../prd/backlog'
+import type { InsightView } from '../../prd/insight'
 
 interface Props {
   msg: Msg
@@ -14,7 +15,7 @@ interface Props {
   onDismiss: (id: string) => void
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
-  onOpenArtifact?: (doc?: BacklogDoc) => void
+  onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView) => void
   onRecordAnswer?: (messageId: string, text: string) => void
   /** This message's block is pinned to the composer slot — skip it inline. */
   pinned?: boolean

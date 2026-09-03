@@ -3,6 +3,7 @@ import type { Chip, Message as Msg, TabId } from '../../state/types'
 import { Message } from './Message'
 import { Chips } from './Chips'
 import type { BacklogDoc } from '../../prd/backlog'
+import type { InsightView } from '../../prd/insight'
 
 interface Props {
   messages: Msg[]
@@ -13,7 +14,7 @@ interface Props {
   onDismiss: (id: string) => void
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
-  onOpenArtifact?: (doc?: BacklogDoc) => void
+  onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView) => void
   onRecordAnswer?: (messageId: string, text: string) => void
   /** The message whose block is pinned to the composer slot — its block is
       skipped inline while it waits there. */

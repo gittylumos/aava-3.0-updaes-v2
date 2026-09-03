@@ -1,6 +1,7 @@
 import type { CanvasObjectKind } from '../zones/objects'
 import type { ProfileId } from '../data/user'
 import type { BacklogDoc } from '../prd/backlog'
+import type { InsightView } from '../prd/insight'
 
 /** `tasks` is the board on the main screen — it used to be a drawer overlay. */
 export type Arrangement = 'start' | 'conversation' | 'split' | 'tasks'
@@ -26,6 +27,8 @@ export interface ActiveObject {
   docReady?: boolean
   /** For a backlog object: which phase document the canvas is showing. */
   activeDoc?: BacklogDoc
+  /** For an insight object: which analytics view the canvas is showing. */
+  activeInsight?: InsightView
 }
 
 /** One append-only line in the Watch zone — the run log. Never interactive. */
@@ -119,7 +122,7 @@ export type BlockSpec =
   /** A generated document artefact, shown in chat as a card with an Open button
       (Claude-artifact style). Open reveals the document canvas on the right;
       `doc` names which backlog document to open (else just reveal the panel). */
-  | { kind: 'document'; name: string; format: string; doc?: BacklogDoc }
+  | { kind: 'document'; name: string; format: string; doc?: BacklogDoc; insight?: InsightView }
   /** Capability matching — the first thing that happens on any run. `searching`
       shows a shimmering "looking for a capability" line; once matched it becomes
       a card naming the capability, what it maps to, and what it can do. */
@@ -143,6 +146,8 @@ export type BlockSpec =
       An optional secondary action ("Proceed for now") continues the run without
       pushing; both advance to the next phase. Shown after every phase gate. */
   | { kind: 'sync'; title: string; detail: string; beat: string
+      /** Overrides the default "Publish" primary-button verb (e.g. "Raise ticket"). */
+      primaryLabel?: string
       secondaryLabel?: string; secondaryBeat?: string }
   /** A connector card — searching for a service integration, offering to connect
       it, and the connecting/connected states. Drives the Azure DevOps push:
@@ -208,6 +213,8 @@ export type Effect =
   | { type: 'openPanel' }
   /** Switch which backlog document the canvas shows, and open the panel. */
   | { type: 'setDoc'; doc: BacklogDoc }
+  /** Switch which analytics view the canvas shows, and open the panel. */
+  | { type: 'setInsight'; view: InsightView }
   /** Resolve the newest capability block from searching to matched. */
   | { type: 'capabilityMatched' }
   /** Advance the newest connector card to a new state (searching → offer →
@@ -429,6 +436,8 @@ export type Action =
   | { type: 'SWITCH_PROFILE' }
   /** Open a specific backlog document in the canvas — an artefact card's Open. */
   | { type: 'SET_OBJECT_DOC'; doc: BacklogDoc }
+  /** Open a specific analytics view in the canvas — an artefact card's Open. */
+  | { type: 'SET_OBJECT_INSIGHT'; view: InsightView }
   /** Record what the user typed into a gate's inline textarea, and retire the
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }

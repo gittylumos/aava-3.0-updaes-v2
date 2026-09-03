@@ -46,6 +46,18 @@ export function isBacklogIntent(text: string): boolean {
   return signals >= 2
 }
 
+/** An analytics-investigation intent (Example 3): a PM asking to look at the
+   product analytics / telemetry, usually tied to a release. Fires on an
+   analytics signal (analytics / telemetry / metrics / funnel / conversion /
+   dashboard) together with a look/release signal, so "show me the analytics
+   after last night's release" lands while a stray "metrics" mention does not. */
+export function isInsightIntent(text: string): boolean {
+  const t = text.toLowerCase()
+  const analytics = /\b(analytics|telemetry|metrics?|funnel|conversion|dashboard|drop.?off|bounce|rage.?click)\b/.test(t)
+  const context = /\b(show|latest|after|release|deploy|deployment|launch|shipped|last night|yesterday|data|numbers|report|look)\b/.test(t)
+  return analytics && context
+}
+
 /** Whether a message is a PRD-work intent: it names a PRD and asks for PRD work
    (create/draft, or extract/decompose into epics/features/stories). Order-free,
    so both "create a PRD for X" and "here is our PRD, extract the stories" land. */

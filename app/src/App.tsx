@@ -10,6 +10,9 @@ import { StartView } from './components/start/StartView'
 import { ConversationView } from './components/chat/ConversationView'
 import { TabWorkspace } from './components/playground/TabWorkspace'
 import { DocumentCanvas } from './prd/DocumentCanvas'
+import { InsightCanvas } from './prd/InsightCanvas'
+import { insightChips } from './prd/insightFlow'
+import type { InsightView } from './prd/insight'
 import { AgentGraph } from './prd/AgentGraph'
 import { ScenarioGraph } from './components/playground/ScenarioGraph'
 import { ScenarioFiles } from './components/playground/ScenarioFiles'
@@ -148,6 +151,12 @@ export default function App() {
     ? j.scenario.chips[j.state.chipStage] ?? []
     : []
 
+  /* The insight run surfaces its next step as a suggestion chip — the next
+     question pre-filled — derived from how far the investigation has got. */
+  const objectChips = j.state.activeObject?.kind === 'insight'
+    ? insightChips(j.state.messages)
+    : []
+
   /* A chip you have already taken does not come back. Read off the thread's own
      user messages rather than a separate "used" list, so it costs no state and
      parking a thread carries the answered chips with it. */
@@ -157,7 +166,7 @@ export default function App() {
 
   const chips = j.state.pendingTopic
     ? [{ label: 'Start a new thread', sends: 'alright' }]
-    : stageChips.filter((c) => !asked.has(c.sends))
+    : [...stageChips, ...objectChips].filter((c) => !asked.has(c.sends))
 
   const inTask = !!j.state.activeTaskId
     && (j.state.arrangement === 'conversation' || j.state.arrangement === 'split')
@@ -269,7 +278,7 @@ export default function App() {
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
-                    onOpenArtifact={(doc) => (doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onOpenArtifact={(doc, insight) => (insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -331,6 +340,19 @@ export default function App() {
                 </div>
               )}
             </div>
+          ) : inObject && j.state.activeObject?.kind === 'insight' ? (
+            /* A Product-Analytics run renders its own evidence dashboards rather
+               than the document canvas or the topology — five views the run
+               advances through and the toolbar switches between. */
+            j.state.activeObject?.docReady ? (
+              <InsightCanvas
+                object={j.state.activeObject}
+                watch={j.state.watchLog}
+                onCollapse={() => j.setPanelOpen(false)}
+                onSelectView={(v: InsightView) => { setCanvasMode('doc'); j.openObjectInsight(v) }}
+                onToast={j.toast}
+              />
+            ) : undefined
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
                the workflow icon is pressed. Closing it returns to the document
