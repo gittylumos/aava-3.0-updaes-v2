@@ -40,8 +40,7 @@ export function FilesPanel({ files, watch, activeDoc, onOpen, onCollapse }: Prop
             <div className="text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>Files in this session</div>
             <div className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>{files.length} document{files.length === 1 ? '' : 's'}</div>
           </div>
-          <button onClick={onCollapse} aria-label="Close" title="Close"
-            className="press grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+          <button onClick={onCollapse} aria-label="Close" title="Close" className="icon-btn">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
         </div>

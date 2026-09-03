@@ -6,8 +6,7 @@ export function OverlayClose({ label = 'Close' }: { label?: string }) {
   return (
     <Dialog.Close
       aria-label={label}
-      className="press hit grid place-items-center rounded-[10px] transition-colors hover:bg-[var(--wash-4)]"
-      style={{ color: 'var(--muted)' }}
+      className="icon-btn hit rounded-[10px]"
     >
       <IconClose size={16} />
     </Dialog.Close>

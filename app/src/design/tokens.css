@@ -43,7 +43,9 @@
   --text: #F1F5F9;           /* dark.text.primary   — 17.22:1, AAA             */
   --text-dim: #CBD5E1;       /* derived, sits between primary and secondary    */
   --muted: #94A3B8;          /* dark.text.secondary — descriptions, metadata   */
-  --muted-deep: #64748B;     /* dark.text.tertiary  — disabled, placeholder    */
+  --muted-deep: #79889F;     /* dark.text.tertiary  — placeholders, labels; lifted
+                                from #64748B so it clears 4.5:1 on slab cards, not
+                                just on the ground (was ~3.8:1, failed AA there). */
 
   /* -- 2.3 Borders & separators ----------------------------------------- */
   --border: #2D3348;         /* dark.border.default                            */

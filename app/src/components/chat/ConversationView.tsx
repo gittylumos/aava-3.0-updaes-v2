@@ -357,11 +357,7 @@ function EdgeToggle({ on, onClick, label, className = '', children }: {
       aria-pressed={on}
       aria-label={label}
       title={label}
-      className={`press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)] ${className}`}
-      style={{
-        color: on ? 'var(--text-dim)' : 'var(--muted)',
-        background: on ? 'var(--wash-3)' : 'transparent',
-      }}
+      className={`icon-btn ${className}`}
     >
       {children}
     </button>

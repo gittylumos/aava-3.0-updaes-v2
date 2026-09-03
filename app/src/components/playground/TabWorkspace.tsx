@@ -247,10 +247,10 @@ function QuickOpen({ pg, taskId, scenario, prdObject, onOpen }: {
         }}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-pressed={open}
         aria-label="Open an artifact"
         title="Open an artifact"
-        className="press grid h-7 w-7 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
-        style={{ color: open ? 'var(--text-dim)' : 'var(--muted)', background: open ? 'var(--wash-3)' : 'transparent' }}
+        className="icon-btn"
       >
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" aria-hidden="true">

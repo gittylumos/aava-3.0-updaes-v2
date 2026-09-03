@@ -76,13 +76,11 @@ export function InsightCanvas({ object, watch, onCollapse, onSelectView, onToast
           </div>
           <span className="mono ml-1 hidden truncate text-[11.5px] sm:block" style={{ color: 'var(--muted-deep)' }}>{file}</span>
           <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            <button onClick={() => onToast('Share link copied')} aria-label="Share"
-              className="press grid h-7 w-7 place-items-center rounded-[7px] hover:bg-[var(--wash-4)]" style={{ color: 'var(--muted)' }}>
+            <button onClick={() => onToast('Share link copied')} aria-label="Share" title="Share" className="icon-btn">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" /></svg>
             </button>
             <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
-            <button onClick={onCollapse} aria-label="Close"
-              className="press grid h-7 w-7 place-items-center rounded-[7px] hover:bg-[var(--wash-4)]" style={{ color: 'var(--muted)' }}>
+            <button onClick={onCollapse} aria-label="Close" title="Close" className="icon-btn">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
           </div>

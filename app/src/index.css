@@ -47,6 +47,45 @@
     min-width: var(--hit);
   }
 
+  /* Icon button — one interaction system for every square icon control (toolbar
+     toggles, canvas tools, rail items). Three distinct, legible states so the
+     control always answers back:
+       idle     → muted glyph, no fill
+       hover    → glyph brightens, a real wash appears, the glyph lifts slightly
+       pressed  → the button dips (scale down)
+       selected → aria-pressed carries a persistent fill + inset ring, so a
+                  selected control never looks the same as a merely-hovered one.
+     34px keeps toolbars compact while clearing the WCAG 2.5.8 target minimum. */
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    width: 34px;
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    transition: transform var(--dur) var(--ease-out),
+      background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+      box-shadow var(--dur) var(--ease-out);
+  }
+  .icon-btn > svg { transition: transform var(--dur) var(--ease-out); }
+  .icon-btn:hover:not(:disabled) { color: var(--text-dim); background: var(--wash-4); }
+  .icon-btn:hover:not(:disabled) > svg { transform: scale(1.09); }
+  .icon-btn:active:not(:disabled) { transform: scale(0.93); background: var(--wash-5); }
+  .icon-btn[aria-pressed='true'] {
+    color: var(--text);
+    background: var(--wash-4);
+    box-shadow: inset 0 0 0 1px var(--glass-line);
+  }
+  .icon-btn[aria-pressed='true']:hover:not(:disabled) { background: var(--wash-5); }
+  .icon-btn:disabled { color: var(--muted-deep); cursor: default; }
+
+  /* Reduced motion: keep the state changes (color/wash/ring) but drop the
+     glyph lift and the press dip, which are the only decorative parts. */
+  @media (prefers-reduced-motion: reduce) {
+    .icon-btn:hover:not(:disabled) > svg,
+    .icon-btn:active:not(:disabled) { transform: none; }
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;

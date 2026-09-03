@@ -394,8 +394,7 @@ function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void 
 function ToolBtn({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: React.ReactNode }) {
   return (
     <button onClick={onClick} aria-label={label} title={label} aria-pressed={active}
-      className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
-      style={{ color: active ? 'var(--text-dim)' : 'var(--muted)', background: active ? 'var(--wash-3)' : 'transparent' }}>
+      className="icon-btn">
       {children}
     </button>
   )
