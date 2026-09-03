@@ -57,14 +57,11 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             {block.secondaryLabel && block.secondaryBeat && (
               <button onClick={() => { onRecordAnswer?.('proceeded'); onAccept(block.secondaryBeat!) }}
-                className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
-                style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+                className="btn-secondary">
                 {block.secondaryLabel}
               </button>
             )}
-            <button onClick={() => { onDismiss(); onAccept(block.beat) }}
-              className="press shrink-0 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
-              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+            <button onClick={() => { onDismiss(); onAccept(block.beat) }} className="btn-primary shrink-0">
               {block.primaryLabel ?? 'Publish'}
             </button>
           </div>
@@ -293,14 +290,10 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
         /* Right-aligned, secondary on the left and the primary on the right —
            the same footer treatment as the PRD flow's decision gate. */
         <div className="mt-3 flex flex-wrap justify-end gap-2">
-          <button onClick={onDismiss}
-            className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
-            style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+          <button onClick={onDismiss} className="btn-secondary">
             {block.cancelLabel}
           </button>
-          <button onClick={() => { onDismiss(); onAccept(block.acceptBeat) }}
-            className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
-            style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+          <button onClick={() => { onDismiss(); onAccept(block.acceptBeat) }} className="btn-primary">
             {block.acceptLabel}
           </button>
         </div>
@@ -351,8 +344,7 @@ function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: 
         <div className="flex items-center justify-end px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
           {live ? (
             <button onClick={() => fire(opt.beat)}
-              className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
-              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+              className="btn-primary">
               {opt.label}
             </button>
           ) : (
@@ -386,10 +378,7 @@ function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: 
           <div className="flex flex-wrap gap-2 px-3.5 pb-3">
             {block.options.map((opt) => (
               <button key={opt.label} onClick={() => fire(opt.beat)}
-                className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium"
-                style={opt.primary
-                  ? { background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }
-                  : { background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+                className={opt.primary ? 'btn-primary' : 'btn-secondary'}>
                 {opt.label}
               </button>
             ))}
@@ -468,14 +457,10 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
             className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
             style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
           <div className="mt-2 flex flex-wrap justify-end gap-2">
-            <button onClick={() => { setCollecting(null); setNote('') }}
-              className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
-              style={{ background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+            <button onClick={() => { setCollecting(null); setNote('') }} className="btn-secondary">
               Cancel
             </button>
-            <button onClick={() => send(opts[collecting].beat)} disabled={!note.trim()}
-              className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium disabled:opacity-40"
-              style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+            <button onClick={() => send(opts[collecting].beat)} disabled={!note.trim()} className="btn-primary">
               Send
             </button>
           </div>
@@ -488,10 +473,7 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           {opts.map((opt, i) => (
             <button key={opt.label} onClick={() => pick(opt, i)}
-              className="press rounded-[9px] px-3.5 py-2 text-[12px] font-medium"
-              style={opt.primary
-                ? { background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }
-                : { background: 'transparent', color: 'var(--text-dim)', minHeight: '36px', border: '1px solid var(--glass-line-soft)' }}>
+              className={opt.primary ? 'btn-primary' : 'btn-secondary'}>
               {opt.label}
             </button>
           ))}
@@ -551,9 +533,7 @@ function ClarifyGate({ block, live, onFire }: {
       <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
         <span className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>AAVA will continue after your input</span>
         {live ? (
-          <button onClick={submit} disabled={pick === null}
-            className="press rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium disabled:opacity-40"
-            style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+          <button onClick={submit} disabled={pick === null} className="btn-primary">
             Continue
           </button>
         ) : (
@@ -703,9 +683,7 @@ function Plan({ block, live, onAccept, onDismiss }: {
               </span>
             )}
             {live ? (
-              <button onClick={proceed}
-                className="press flex items-center gap-1.5 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
-                style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+              <button onClick={proceed} className="btn-primary">
                 {block.action.label}
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </button>
@@ -756,9 +734,7 @@ function Connect({ block, live, onAccept }: {
           Connecting…
         </span>
       ) : live ? (
-        <button onClick={() => onAccept(block.beat)}
-          className="press shrink-0 rounded-[9px] px-4 py-2 text-[12.5px] font-medium"
-          style={{ background: 'var(--text)', color: 'var(--on-text)', minHeight: '36px' }}>
+        <button onClick={() => onAccept(block.beat)} className="btn-primary shrink-0">
           Connect
         </button>
       ) : (
