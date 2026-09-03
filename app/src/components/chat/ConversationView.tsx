@@ -258,8 +258,11 @@ export function ConversationView({
                 onApply={onApplyChanges} onDiscard={onDiscardChanges} onRemove={onRemoveChange} />
             )}
             {pinnedGate?.block ? (
-              /* The live gate replaces the prompt bar entirely. */
-              <div className="mb-6">
+              /* The live gate replaces the prompt bar entirely. It sits in stable
+                 chrome (outside the scroll), so bound its height and let a tall
+                 gate scroll internally — otherwise on a short viewport the gate's
+                 action buttons could clip below the fold with no way to reach them. */
+              <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
                 <Block block={pinnedGate.block} live preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
                   onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}
