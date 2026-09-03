@@ -203,8 +203,8 @@ function PillButton({ children, label, onClick, active, round }: {
   return (
     <button
       type="button" onClick={onClick} aria-label={label} title={label} aria-pressed={active}
-      className={`press flex items-center gap-1 ${round ? 'h-8 w-8 justify-center rounded-full' : 'h-8 rounded-full px-2.5'} transition-colors hover:bg-[var(--wash-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]`}
-      style={{ color: active ? 'var(--text-dim)' : 'var(--muted)', background: active ? 'var(--wash-3)' : 'transparent' }}
+      className={`press flex items-center gap-1 ${round ? 'h-8 w-8 justify-center rounded-full' : 'h-8 rounded-full px-2.5'} transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]`}
+      style={{ color: active ? 'var(--text)' : 'var(--muted)', background: active ? 'var(--wash-4)' : 'transparent' }}
     >
       {children}
     </button>
