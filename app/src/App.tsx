@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconBell, IconMoon, IconSun } from './components/chrome/icons'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
 import { Sidebar } from './components/chrome/Sidebar'
 import { WorkspaceShell } from './components/layout/WorkspaceShell'
@@ -29,7 +29,7 @@ import { PROFILES } from './data/user'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
-const CORNER_BTN = 'press relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
+const CORNER_BTN = 'press relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
 const CORNER_STYLE = { color: 'var(--muted)', background: 'var(--glass)', border: '1px solid var(--glass-line)' }
 
 export default function App() {
@@ -230,7 +230,22 @@ export default function App() {
                     className={CORNER_BTN}
                     style={CORNER_STYLE}
                   >
-                    {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+                    {/* Contextual icon transition — sun/moon cross-fade with
+                        scale + blur rather than a hard swap. */}
+                    <span className="relative grid h-[15px] w-[15px] place-items-center">
+                      <AnimatePresence initial={false} mode="popLayout">
+                        <motion.span
+                          key={theme}
+                          className="absolute inset-0 grid place-items-center"
+                          initial={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                          exit={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                          transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                        >
+                          {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -255,7 +270,10 @@ export default function App() {
                   under mode="wait" that could stall the exit so the conversation
                   never mounted. popLayout pops the outgoing view from flow and
                   lets the incoming one mount immediately. */}
-              <AnimatePresence mode="popLayout">
+              {/* initial={false} keeps the enter animation off the very first
+                  render — the app shouldn't animate itself in on load; only
+                  subsequent arrangement switches should transition. */}
+              <AnimatePresence mode="popLayout" initial={false}>
                 {j.state.arrangement === 'start' && (
                   <StartView key="start" name={profile.name} tasks={homeTasks} subtitle={homeSubtitle}
                     onOpenTask={j.openTask}
