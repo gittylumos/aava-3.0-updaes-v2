@@ -47,8 +47,19 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<MenuId>('none')
+  /* The Connectors flyout, nested under the + menu. Opened on hover/click of the
+     "Connectors" row and kept open while the pointer is over the row or the
+     flyout — a short close timer bridges the gap between the two so moving
+     across it doesn't dismiss it. */
+  const [sub, setSub] = useState(false)
+  const subTimer = useRef<number | undefined>(undefined)
+  const openSub = useCallback(() => { window.clearTimeout(subTimer.current); setSub(true) }, [])
+  const closeSub = useCallback(() => {
+    window.clearTimeout(subTimer.current)
+    subTimer.current = window.setTimeout(() => setSub(false), 130)
+  }, [])
   const bar = useRef<HTMLDivElement>(null)
-  useDismiss(menu !== 'none', bar, useCallback(() => setMenu('none'), []))
+  useDismiss(menu !== 'none', bar, useCallback(() => { setMenu('none'); setSub(false) }, []))
 
   const submit = () => {
     const text = value.trim()
@@ -113,8 +124,9 @@ export function Composer({
         />
 
         <div ref={bar} className="relative mt-2 flex items-center gap-1.5">
-          {/* + menu: attachments and connectors. */}
-          <PillButton label="Add files or connectors" onClick={() => setMenu(menu === 'plus' ? 'none' : 'plus')} active={menu === 'plus'} round>
+          {/* + menu: attachments and a Connectors submenu (a side flyout rather
+              than a wall of toggles dumped inline). */}
+          <PillButton label="Add files or connectors" onClick={() => { setMenu(menu === 'plus' ? 'none' : 'plus'); setSub(false) }} active={menu === 'plus'} round>
             <Icon.Plus />
           </PillButton>
 
@@ -125,19 +137,49 @@ export function Composer({
                 <span className="mono ml-auto text-[11px]" style={{ color: 'var(--muted-deep)' }}>⌘U</span>
               </MenuItem>
               <div className="my-1 h-px" style={{ background: 'var(--glass-line-soft)' }} />
-              <div className="px-2 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-deep)' }}>
-                Connectors
-              </div>
+              {/* Connectors — opens a flyout to the right. */}
+              <button
+                type="button" role="menuitem" aria-haspopup="menu" aria-expanded={sub}
+                onClick={() => (sub ? setSub(false) : openSub())}
+                onMouseEnter={openSub}
+                onMouseLeave={closeSub}
+                className="menu-item"
+                style={sub ? { color: 'var(--text)', background: 'var(--wash-3)' } : undefined}
+              >
+                <Icon.Connector />
+                <span>Connectors</span>
+                {enabledConnectors > 0 && (
+                  <span className="mono ml-auto mr-1 text-[11px]" style={{ color: 'var(--muted)' }}>{enabledConnectors} on</span>
+                )}
+                <span className={enabledConnectors > 0 ? '' : 'ml-auto'} style={{ color: 'var(--muted-deep)' }}><Icon.ChevronRight /></span>
+              </button>
+            </Menu>
+          )}
+
+          {/* Connectors flyout — sibling of the menu (not a child, so the menu's
+              overflow-hidden can't clip it), opening to the right of it. */}
+          {menu === 'plus' && sub && (
+            <div
+              role="menu" aria-label="Connectors"
+              onMouseEnter={openSub}
+              onMouseLeave={closeSub}
+              className="absolute bottom-full left-[254px] z-50 mb-2 w-[236px] overflow-hidden rounded-[12px] p-1 shadow-lg"
+              style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}
+            >
+              <MenuItem onClick={() => { setMenu('none'); setSub(false) }}>
+                <Icon.Gear /> <span>Manage connectors</span>
+              </MenuItem>
+              <div className="my-1 h-px" style={{ background: 'var(--glass-line-soft)' }} />
               {connectors.map((c) => (
                 <button key={c.id} type="button" role="menuitemcheckbox" aria-checked={c.on}
                   onClick={() => onToggleConnector(c.id)}
-                  className="press flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-left text-[12.5px] hover:bg-[var(--glass)]">
+                  className="menu-item" style={{ color: 'var(--text-dim)' }}>
                   <span className="h-4 w-4 shrink-0 rounded-[5px]" style={{ background: c.hue }} aria-hidden />
-                  <span style={{ color: 'var(--text-dim)' }}>{c.name}</span>
+                  <span>{c.name}</span>
                   <Toggle on={c.on} />
                 </button>
               ))}
-            </Menu>
+            </div>
           )}
 
           <div className="ml-auto flex items-center gap-1.5">
@@ -232,7 +274,7 @@ function MenuItem({ children, onClick, selected }: {
 }) {
   return (
     <button type="button" role="menuitem" onClick={onClick}
-      className="press flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-left text-[12.5px] hover:bg-[var(--glass)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+      className="menu-item"
       style={{ color: selected ? 'var(--text)' : 'var(--text-dim)' }}>
       {children}
     </button>
@@ -260,4 +302,7 @@ const Icon = {
   Check: () => <svg {...svg} width="14" height="14" strokeWidth={2}><path d="M5 12.5 10 17l9-10" /></svg>,
   File: () => <svg {...svg} width="13" height="13"><path d="M6 3h7l4 4v14H6z" /><path d="M13 3v4h4" /></svg>,
   X: () => <svg {...svg} width="11" height="11" strokeWidth={2}><path d="M5 5l10 10M15 5 5 15" /></svg>,
+  Connector: () => <svg {...svg} width="16" height="16"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.6" /></svg>,
+  ChevronRight: () => <svg {...svg} width="14" height="14"><path d="m9 6 6 6-6 6" /></svg>,
+  Gear: () => <svg {...svg} width="16" height="16"><path d="M4 8h9M17 8h3M4 16h3M11 16h9" /><circle cx="15" cy="8" r="2.1" /><circle cx="9" cy="16" r="2.1" /></svg>,
 }

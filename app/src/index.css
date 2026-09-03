@@ -86,6 +86,25 @@
     .icon-btn:active:not(:disabled) { transform: none; }
   }
 
+  /* Menu row — one consistent treatment for every dropdown/flyout item so a row
+     always answers to hover and focus (the app had several ad-hoc menu styles). */
+  .menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+    border-radius: 7px;
+    padding: 7px 8px;
+    text-align: left;
+    font-size: 12.5px;
+    line-height: 1.2;
+    color: var(--text-dim);
+    transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+  }
+  .menu-item:hover:not(:disabled) { background: var(--wash-3); color: var(--text); }
+  .menu-item:active:not(:disabled) { background: var(--wash-4); }
+  .menu-item:disabled { color: var(--muted-deep); cursor: default; }
+
   .sr-only {
     position: absolute;
     width: 1px;
