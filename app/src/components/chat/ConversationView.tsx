@@ -9,8 +9,10 @@ import { IconFolder, IconRightPanel } from '../chrome/icons'
 import { prefersReducedMotion } from '../../state/timing'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
+import type { ReportView } from '../../prd/report'
 import { backlogProgress, DOC_PHASE } from '../../prd/backlogFlow'
 import { insightProgress } from '../../prd/insightFlow'
+import { reportProgress } from '../../prd/pmReportFlow'
 
 interface Props {
   state: AppState
@@ -26,7 +28,7 @@ interface Props {
   onDismiss: (id: string) => void
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
-  onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView) => void
+  onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
   onRecordAnswer?: (messageId: string, text: string) => void
   onToggleContext?: () => void
   onTogglePanel?: () => void
@@ -76,6 +78,15 @@ export function ConversationView({
   const bp = object?.kind === 'backlog' ? backlogProgress(state.messages) : null
   /* The insight run's progress dock — same hanging RunStrip, one step per view. */
   const ip = object?.kind === 'insight' ? insightProgress(state.messages) : null
+  /* The report run's progress dock. */
+  const rp = object?.kind === 'report' ? reportProgress(state.messages) : null
+  /* Clicking a report progress step reopens the latest asset in the canvas. */
+  const openPhaseReport = () => {
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const b = state.messages[i].block
+      if (b?.kind === 'document' && b.report) { onOpenArtifact?.(undefined, undefined, b.report); return }
+    }
+  }
   /* Clicking a progress step reopens that phase's produced document. */
   const openPhaseDoc = (key: string) => {
     for (let i = state.messages.length - 1; i >= 0; i--) {
@@ -177,16 +188,16 @@ export function ConversationView({
             <span className="mono ml-2 flex shrink-0 items-center gap-1.5 rounded-[7px] border border-[var(--glass-line-soft)] bg-[var(--wash-2)] px-2 py-[3px] text-[11px] text-[var(--muted)]">
               <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor"
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                {object.kind === 'insight'
+                {object.kind === 'insight' || object.kind === 'report'
                   ? <><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></>
                   : <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>}
               </svg>
-              {object.kind === 'insight' ? 'Google Analytics · Production v3.4' : 'PRD_v2.4.docx'}
+              {object.kind === 'insight' || object.kind === 'report' ? 'Google Analytics · Production v3.4' : 'PRD_v2.4.docx'}
             </span>
             <div className="ml-auto flex items-center gap-1">
               {/* The agentic process topology and session files — backlog/PRD runs
-                  only; an insight run has neither a topology nor session files. */}
-              {object.kind !== 'insight' && (
+                  only; the analytics runs have neither a topology nor session files. */}
+              {object.kind !== 'insight' && object.kind !== 'report' && (
                 <>
                   <EdgeToggle on={false} onClick={onShowGraph} label="Show agent workflow">
                     <IconWorkflow size={15} />
@@ -222,6 +233,13 @@ export function ConversationView({
         {ip?.started && (
           <div className="relative z-20 shrink-0 px-6 -mt-px">
             <RunStrip steps={ip.steps} at={ip.at} waiting={ip.waiting} onOpenStep={openPhaseView} />
+          </div>
+        )}
+
+        {/* The report run's progress dock. */}
+        {rp?.started && (
+          <div className="relative z-20 shrink-0 px-6 -mt-px">
+            <RunStrip steps={rp.steps} at={rp.at} waiting={rp.waiting} onOpenStep={openPhaseReport} />
           </div>
         )}
 

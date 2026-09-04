@@ -13,6 +13,8 @@ import { DocumentCanvas } from './prd/DocumentCanvas'
 import { InsightCanvas } from './prd/InsightCanvas'
 import { insightChips } from './prd/insightFlow'
 import type { InsightView } from './prd/insight'
+import { ReportCanvas } from './prd/ReportCanvas'
+import type { ReportView } from './prd/report'
 import { AgentGraph } from './prd/AgentGraph'
 import { ScenarioGraph } from './components/playground/ScenarioGraph'
 import { ScenarioFiles } from './components/playground/ScenarioFiles'
@@ -157,6 +159,18 @@ export default function App() {
     ? insightChips(j.state.messages)
     : []
 
+  /* Which report assets have been generated — their tabs are open in the canvas.
+     Derived from the asset cards in the thread, in the order they appeared. */
+  const reportTabs = useMemo<ReportView[]>(() => {
+    if (j.state.activeObject?.kind !== 'report') return []
+    const seen: ReportView[] = []
+    for (const m of j.state.messages) {
+      const r = m.block?.kind === 'document' ? m.block.report : undefined
+      if (r && !seen.includes(r)) seen.push(r)
+    }
+    return seen
+  }, [j.state.activeObject?.kind, j.state.messages])
+
   /* A chip you have already taken does not come back. Read off the thread's own
      user messages rather than a separate "used" list, so it costs no state and
      parking a thread carries the answered chips with it. */
@@ -296,7 +310,7 @@ export default function App() {
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
-                    onOpenArtifact={(doc, insight) => (insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onOpenArtifact={(doc, insight, report) => (report ? j.openObjectReport(report) : insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -368,6 +382,20 @@ export default function App() {
                 watch={j.state.watchLog}
                 onCollapse={() => j.setPanelOpen(false)}
                 onSelectView={(v: InsightView) => { setCanvasMode('doc'); j.openObjectInsight(v) }}
+                onToast={j.toast}
+              />
+            ) : undefined
+          ) : inObject && j.state.activeObject?.kind === 'report' ? (
+            /* The structured triage run renders named-file asset tabs (Deepak
+               canvas style), reusing the analytics dashboards for the .html
+               report and a document layout for the .pdf reports. */
+            j.state.activeObject?.docReady ? (
+              <ReportCanvas
+                object={j.state.activeObject}
+                tabs={reportTabs}
+                watch={j.state.watchLog}
+                onCollapse={() => j.setPanelOpen(false)}
+                onSelectReport={(v: ReportView) => { setCanvasMode('doc'); j.openObjectReport(v) }}
                 onToast={j.toast}
               />
             ) : undefined

@@ -549,6 +549,16 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
         playground: { ...pg, panelOpen: true },
       }
 
+    /* The report run produced (or switched to) a named asset tab. */
+    case 'setReport':
+      return {
+        ...state,
+        activeObject: state.activeObject
+          ? { ...state.activeObject, activeReport: effect.view, docReady: true }
+          : state.activeObject,
+        playground: { ...pg, panelOpen: true },
+      }
+
     /* The Watch zone is append-only and never interactive — a line lands and
        stays. */
     case 'watch':
@@ -787,6 +797,16 @@ export function reducer(state: AppState, action: Action): AppState {
         ? {
             ...state,
             activeObject: { ...state.activeObject, activeInsight: action.view, docReady: true },
+            playground: { ...state.playground, panelOpen: true },
+          }
+        : state
+
+    /* An asset card's Open — reveal / focus that report tab in the canvas. */
+    case 'SET_OBJECT_REPORT':
+      return state.activeObject
+        ? {
+            ...state,
+            activeObject: { ...state.activeObject, activeReport: action.view, docReady: true },
             playground: { ...state.playground, panelOpen: true },
           }
         : state

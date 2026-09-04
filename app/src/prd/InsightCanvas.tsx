@@ -159,7 +159,7 @@ function SectionTitle({ children, note }: { children: React.ReactNode; note?: st
 
 /* ── View 1 · Funnel ─────────────────────────────────────────────────────── */
 
-function FunnelView() {
+export function FunnelView() {
   return (
     <div className="flex flex-col gap-3">
       <KpiGrid items={FUNNEL_KPIS} />
@@ -188,7 +188,7 @@ function FunnelView() {
 
 /* ── View 2 · Feedback ───────────────────────────────────────────────────── */
 
-function FeedbackView() {
+export function FeedbackView() {
   return (
     <div className="flex flex-col gap-3">
       <KpiGrid items={FRICTION_KPIS} />
@@ -230,7 +230,7 @@ function FeedbackView() {
 
 /* ── View 3 · Log audit ──────────────────────────────────────────────────── */
 
-function AuditView() {
+export function AuditView() {
   const maxH = 84
   return (
     <div className="flex flex-col gap-3">
@@ -296,7 +296,7 @@ function AuditView() {
 
 /* ── View 4 · Impact ─────────────────────────────────────────────────────── */
 
-function ImpactView() {
+export function ImpactView() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">

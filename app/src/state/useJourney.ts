@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import { PRD_SEED_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
 import { getScenario, routeBeat } from '../scenarios'
-import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent } from '../prd/data'
+import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, isReportIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
 import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
+import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
 import { BACKLOG_FILE, type BacklogDoc } from '../prd/backlog'
 import type { InsightView } from '../prd/insight'
+import type { ReportView } from '../prd/report'
 import { searchHits, taskNotifications } from '../data/chrome'
 import type { Effect, Overlay, Scenario, TabId, Thread } from './types'
 import { T, prefersReducedMotion, streamMs } from './timing'
@@ -178,6 +180,11 @@ export function useJourney() {
       if (beat) play(beat)
       return
     }
+    if (state.activeObject?.kind === 'report') {
+      const beat = PM_REPORT_BEATS[name]
+      if (beat) play(beat)
+      return
+    }
     if (state.activeObject?.kind === 'prd') {
       const beat = PRD_BEATS[name]
       if (beat) play(beat)
@@ -198,6 +205,18 @@ export function useJourney() {
        the message belongs to the work in front of the user. */
     /* Example 2 — attach a PRD and ask for epics + user stories. Checked before
        the PRD-draft intent because the phrasing mentions a PRD too. */
+    /* Example 4 — a PM asks for a structured analytics triage *report*. Checked
+       before the plainer insight intent, since a report ask also names analytics
+       keywords; the extra deliverable cue (triage/report/recommendations) is what
+       routes it here instead. */
+    if (!state.activeTaskId && !state.activeObject && !pending && isReportIntent(text)) {
+      cancel()
+      dispatch({ type: 'OPEN_OBJECT', kind: 'report', title: 'Analytics Triage · Checkout post-v3.4', subject: 'Checkout Funnel', said: text })
+      dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
+      play(pmReportOpening())
+      return
+    }
+
     /* Example 3 — a PM asks for the analytics after a release. Checked before
        the backlog/PRD intents: it names none of their keywords, but pinning it
        first keeps the analytics investigation off those paths for good. */
@@ -245,6 +264,14 @@ export function useJourney() {
     if (state.activeObject?.kind === 'insight') {
       dispatch({ type: 'USER_SAY', text })
       play(insightRouter(text) ?? insightReply())
+      return
+    }
+
+    /* Inside a report run: the flow advances through the decision-gate buttons,
+       so a typed message is just a light acknowledgement — the gate stays put. */
+    if (state.activeObject?.kind === 'report') {
+      dispatch({ type: 'USER_SAY', text })
+      play([{ type: 'say', lines: ['Use the buttons above to steer the triage — pick an option and I will continue.'] }])
       return
     }
 
@@ -382,6 +409,8 @@ export function useJourney() {
     openObjectDoc: (doc: BacklogDoc) => dispatch({ type: 'SET_OBJECT_DOC', doc }),
     /* An analytics-view card's Open — reveal that view in the insight canvas. */
     openObjectInsight: (view: InsightView) => dispatch({ type: 'SET_OBJECT_INSIGHT', view }),
+    /* An asset card's Open — focus that report tab in the canvas. */
+    openObjectReport: (view: ReportView) => dispatch({ type: 'SET_OBJECT_REPORT', view }),
     /* A gate's inline note — record it on the gate before its beat fires. */
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
     /* Apply the pending inline comments — they land in the conversation as a turn
