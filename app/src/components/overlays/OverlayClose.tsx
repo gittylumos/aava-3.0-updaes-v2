@@ -6,7 +6,7 @@ export function OverlayClose({ label = 'Close' }: { label?: string }) {
   return (
     <Dialog.Close
       aria-label={label}
-      className="icon-btn hit rounded-[10px]"
+      className="icon-btn hit hit-pad-md rounded-[10px]"
     >
       <IconClose size={16} />
     </Dialog.Close>

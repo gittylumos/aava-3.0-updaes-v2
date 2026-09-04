@@ -1,0 +1,13 @@
+{
+  "name": "AAVA — AI Workspace for Product & Engineering Teams",
+  "short_name": "AAVA",
+  "description": "AAVA is an AI-native workspace that turns product requirements into epics, stories, code and analytics, with a human approval gate at every step.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#0F1117",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

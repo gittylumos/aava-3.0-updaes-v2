@@ -95,7 +95,7 @@ function NavRow({
         onClick={onClick}
         aria-label={label}
         aria-current={active ? 'true' : undefined}
-        className="press relative flex w-full items-center gap-2 rounded-[11px] pr-2.5 text-left hover:bg-[var(--wash-3)] hover:text-[var(--text-dim)]"
+        className="press hit-pad-sm relative flex w-full items-center gap-2 rounded-[11px] pr-2.5 text-left hover:bg-[var(--wash-3)] hover:text-[var(--text-dim)]"
         style={{
           color: active ? 'var(--text)' : 'var(--muted)',
           background: active ? 'var(--wash-4)' : 'transparent',
@@ -258,7 +258,7 @@ function RecentsHeader({ value, onChange }: { value: Filter; onChange: (f: Filte
         aria-expanded={menu}
         aria-haspopup="menu"
         onClick={() => setMenu((v) => !v)}
-        className="press ml-auto grid h-7 w-7 place-items-center rounded-[8px] hover:bg-[var(--glass)]"
+        className="press hit-pad-sm ml-auto grid h-7 w-7 place-items-center rounded-[8px] hover:bg-[var(--glass)]"
         style={{
           color: on || menu ? 'var(--brand)' : 'var(--muted)',
           boxShadow: on || menu ? '0 0 0 1px var(--brand)' : undefined,
@@ -537,7 +537,7 @@ export function Sidebar({
               <button
                 onClick={onHome}
                 aria-label="AAVA home"
-                className="press hit grid shrink-0 place-items-center rounded-full transition-shadow hover:shadow-[0_0_0_3px_var(--wash-5)]"
+                className="press hit hit-pad-sm grid shrink-0 place-items-center rounded-full transition-shadow hover:shadow-[0_0_0_3px_var(--wash-5)]"
               >
                 <BrandMark size={30} />
               </button>
@@ -568,7 +568,7 @@ export function Sidebar({
               aria-label="Collapse sidebar"
               aria-expanded={open}
               tabIndex={open ? 0 : -1}
-              className="press ml-auto grid h-7 w-7 place-items-center rounded-[7px] transition-opacity duration-200 hover:bg-[var(--glass)]"
+              className="press hit-pad-md ml-auto grid h-7 w-7 place-items-center rounded-[7px] transition-opacity duration-200 hover:bg-[var(--glass)]"
               style={{ color: 'var(--muted)', opacity: open ? 1 : 0 }}
             >
               <IconPanel size={16} />

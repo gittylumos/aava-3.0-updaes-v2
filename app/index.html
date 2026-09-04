@@ -3,10 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/aava-favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Before any stylesheet loads, so a light-mode OS never flashes white. -->
     <meta name="color-scheme" content="dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AAVA 3.0</title>
+    <meta name="robots" content="index, follow" />
+
+    <title>AAVA — AI Workspace for Product &amp; Engineering Teams</title>
+    <meta name="description"
+      content="AAVA is an AI-native workspace that turns product requirements into epics, stories, code and analytics, with a human approval gate at every step." />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aava-hoffman.vercel.app/" />
+    <meta property="og:site_name" content="AAVA" />
+    <meta property="og:title" content="AAVA — AI Workspace for Product & Engineering Teams" />
+    <meta property="og:description"
+      content="AAVA is an AI-native workspace that turns product requirements into epics, stories, code and analytics, with a human approval gate at every step." />
+    <meta property="og:image" content="https://aava-hoffman.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AAVA — AI Workspace for Product & Engineering Teams" />
+    <meta name="twitter:description"
+      content="AAVA is an AI-native workspace that turns product requirements into epics, stories, code and analytics, with a human approval gate at every step." />
+    <meta name="twitter:image" content="https://aava-hoffman.vercel.app/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "AAVA",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "AAVA is an AI-native workspace that turns product requirements into epics, stories, code and analytics, with a human approval gate at every step.",
+        "url": "https://aava-hoffman.vercel.app/"
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

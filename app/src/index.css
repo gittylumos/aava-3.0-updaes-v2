@@ -155,4 +155,19 @@
     white-space: nowrap;
     border: 0;
   }
+
+  /* Invisible tap-target expansion — grows a control's actual clickable region
+     past its visible edges via a transparent pseudo-element, so a compact
+     control (this app's toolbars and nav rows are deliberately dense) gets a
+     bigger hit area without a single pixel of visible size, padding or reflow
+     changing. Two sizes, so each caller picks the largest one that still clears
+     its nearest neighbour — an expansion bigger than half the gap to the next
+     control would let the two hit zones overlap and start stealing each
+     other's clicks, which is worse than the small target it was meant to fix.
+     Skip both on anything packed tighter than ~6px from its neighbour (this
+     app's densest lists sit at 2px) — there is no safe amount to add there. */
+  .hit-pad-sm, .hit-pad-md { position: relative; }
+  .hit-pad-sm::before, .hit-pad-md::before { content: ''; position: absolute; }
+  .hit-pad-sm::before { inset: -3px; }
+  .hit-pad-md::before { inset: -5px; }
 }

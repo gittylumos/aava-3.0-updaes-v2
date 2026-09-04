@@ -32,7 +32,7 @@ import { PROFILES } from './data/user'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
-const CORNER_BTN = 'press relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
+const CORNER_BTN = 'press hit-pad-sm relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
 const CORNER_STYLE = { color: 'var(--muted)', background: 'var(--glass)', border: '1px solid var(--glass-line)' }
 
 export default function App() {
@@ -203,6 +203,13 @@ export default function App() {
   return (
     <>
       <AmbientField />
+      {/* Landmarks for assistive tech and crawlers. The workspace itself is a
+          full-bleed app shell with no visual header/footer bar — the nav's own
+          brand mark and account row already carry that role on screen — so
+          these are screen-reader-only, siblings of the shell (not nested inside
+          its <nav>/<main>) so they register as real banner/contentinfo
+          landmarks rather than being de-scoped to generic regions. */}
+      <header className="sr-only">AAVA — AI workspace for product and engineering teams</header>
       <div className="relative z-10 h-full">
         <WorkspaceShell
           sidebarOpen={j.state.sidebarOpen}
@@ -461,6 +468,7 @@ export default function App() {
           ) : undefined}
         />
       </div>
+      <footer className="sr-only">AAVA</footer>
 
       <Notifications
         open={j.state.overlay === 'notifications'}

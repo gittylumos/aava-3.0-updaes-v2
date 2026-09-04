@@ -115,7 +115,7 @@ export function Composer({
         />
 
         <input
-          ref={fileInput} type="file" multiple className="hidden"
+          ref={fileInput} type="file" multiple className="hidden" aria-label="Attach files"
           onChange={(e) => {
             const names = Array.from(e.target.files ?? []).map((f) => f.name)
             if (names.length) onAddFiles(names)
@@ -222,7 +222,7 @@ export function Composer({
 
             <button
               type="submit" disabled={!value.trim()} aria-label="Send message"
-              className="press hit grid place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
+              className="press hit hit-pad-sm grid place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
               style={{ background: 'var(--primary-grad)', color: '#fff' }}
             >
               <Icon.Send />
