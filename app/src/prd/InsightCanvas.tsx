@@ -6,6 +6,7 @@
  * document it renders one of five evidence dashboards (funnel, feedback, log
  * audit, impact, PRD), switched from the toolbar or advanced by the run itself.
  * The content is data in ./insight; this file only lays it out. */
+import { useState } from 'react'
 import { WatchBar } from '../zones/WatchBar'
 import type { ActiveObject, WatchEntry } from '../state/types'
 import {
@@ -188,7 +189,33 @@ export function FunnelView() {
 
 /* ── View 2 · Feedback ───────────────────────────────────────────────────── */
 
-export function FeedbackView() {
+/* Which device family a submission came from — drives the report's filter. */
+type Platform = 'ios' | 'mac' | 'other'
+function platformOf(device: string): Platform {
+  const d = device.toLowerCase()
+  if (/iphone|ipad|ios|mobile safari|ipados/.test(d)) return 'ios'
+  if (/macos|mac /.test(d)) return 'mac'
+  return 'other'
+}
+const FEEDBACK_FILTERS: { id: Platform | 'all' | 'urgent'; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'ios', label: 'iPhone & iPad' },
+  { id: 'mac', label: 'Mac' },
+  { id: 'other', label: 'Other' },
+  { id: 'urgent', label: 'Urgent only' },
+]
+
+/* `interactive` turns the submissions list into a filterable one — the report's
+   .html asset is meant to be explored, so a device / urgency filter sits over
+   the 42 submissions there. The insight run leaves it a static list. */
+export function FeedbackView({ interactive = false }: { interactive?: boolean }) {
+  const [filter, setFilter] = useState<Platform | 'all' | 'urgent'>('all')
+  const shown = !interactive || filter === 'all'
+    ? FEEDBACK_ITEMS
+    : filter === 'urgent'
+      ? FEEDBACK_ITEMS.filter((f) => f.urgent)
+      : FEEDBACK_ITEMS.filter((f) => platformOf(f.device) === filter)
+
   return (
     <div className="flex flex-col gap-3">
       <KpiGrid items={FRICTION_KPIS} />
@@ -211,9 +238,29 @@ export function FeedbackView() {
         </div>
       </Card>
       <Card>
-        <SectionTitle note={`Showing ${FEEDBACK_ITEMS.length} of ${FEEDBACK_ITEMS.length}`}>All {FEEDBACK_ITEMS.length} individual submissions</SectionTitle>
+        <SectionTitle note={`Showing ${shown.length} of ${FEEDBACK_ITEMS.length}`}>All {FEEDBACK_ITEMS.length} individual submissions</SectionTitle>
+        {interactive && (
+          <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+            <span className="mr-0.5 flex items-center gap-1 text-[11px]" style={{ color: 'var(--muted)' }}>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 5h18l-7 8v6l-4-2v-4z" /></svg>
+              Filter
+            </span>
+            {FEEDBACK_FILTERS.map((f) => {
+              const on = filter === f.id
+              return (
+                <button key={f.id} onClick={() => setFilter(f.id)} aria-pressed={on}
+                  className="press rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  style={on
+                    ? { background: 'var(--text)', color: 'var(--on-text)' }
+                    : { background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>
+                  {f.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
         <div className="flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-1.5">
-          {FEEDBACK_ITEMS.map((f, i) => (
+          {shown.map((f, i) => (
             <div key={i} className="rounded-[8px] px-3 py-2" style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderLeftWidth: 3, borderLeftColor: f.urgent ? 'var(--warn)' : 'var(--glass-line)' }}>
               <div className="text-[12px]" style={{ color: 'var(--text-dim)' }}>"{f.quote}"</div>
               <div className="mt-1 flex items-center justify-between text-[10.5px]" style={{ color: 'var(--muted)' }}>
@@ -222,6 +269,9 @@ export function FeedbackView() {
               </div>
             </div>
           ))}
+          {shown.length === 0 && (
+            <div className="px-1 py-6 text-center text-[11.5px]" style={{ color: 'var(--muted)' }}>No submissions match this filter.</div>
+          )}
         </div>
       </Card>
     </div>

@@ -66,8 +66,8 @@ export function isInsightIntent(text: string): boolean {
    Checked before isInsightIntent. */
 export function isReportIntent(text: string): boolean {
   const t = text.toLowerCase()
-  const analytics = /\b(analytics|telemetry|metrics?|funnel|conversion|checkout|release|v3\.?4)\b/.test(t)
-  const deliverable = /\b(triage|report|recommendations?|prepare|analysis report|feedback)\b/.test(t)
+  const analytics = /\b(analytics|telemetry|metrics?|funnel|conversion|checkout|release|numbers|v3\.?4)\b/.test(t)
+  const deliverable = /\b(triage|report|recommendations?|prepare|analysis report|feedback|summary|summaris|summariz)\b/.test(t)
   return analytics && deliverable
 }
 

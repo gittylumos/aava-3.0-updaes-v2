@@ -407,6 +407,9 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
 
   const pick = (opt: DecisionSpec['options'][number], i: number) => {
     if (opt.collect) { setCollecting(collecting === i ? null : i); return }
+    /* Register the action the user took, so scrolling back shows what they
+       chose at this gate — the same way a typed note is shown back. */
+    onRecordAnswer?.(opt.label)
     fire(opt.beat)
   }
   const send = (beat: string) => {
@@ -440,11 +443,14 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
       )}
       <p className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{block.question}</p>
 
-      {/* The recorded note, shown back once the gate is answered. */}
+      {/* The recorded response, shown back once the gate is answered — the action
+          the user picked ("Your input") or the note they typed ("Your note"). */}
       {!live && answer && (
         <div className="mt-2.5 rounded-[8px] px-3 py-2 text-[12.5px]"
           style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }}>
-          <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Your note</span>
+          <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>
+            {block.options.some((o) => o.label === answer) ? 'Your input' : 'Your note'}
+          </span>
           {answer}
         </div>
       )}

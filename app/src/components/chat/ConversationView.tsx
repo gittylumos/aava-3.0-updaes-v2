@@ -195,11 +195,12 @@ export function ConversationView({
               {object.kind === 'insight' || object.kind === 'report' ? 'Google Analytics · Production v3.4' : 'PRD_v2.4.docx'}
             </span>
             <div className="ml-auto flex items-center gap-1">
-              {/* The agentic process topology and session files — backlog/PRD runs
-                  only; the analytics runs have neither a topology nor session files. */}
-              {object.kind !== 'insight' && object.kind !== 'report' && (
+              {/* The agentic process topology and session files. The lighter
+                  insight run has neither; the structured triage report run does —
+                  it runs a real agent pipeline and produces named-file assets. */}
+              {object.kind !== 'insight' && (
                 <>
-                  <EdgeToggle on={false} onClick={onShowGraph} label="Show agent workflow">
+                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
                     <IconWorkflow size={15} />
                   </EdgeToggle>
                   <EdgeToggle on={false} onClick={onShowFiles} label="All files in this session">

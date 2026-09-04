@@ -7,7 +7,7 @@
  * the .pdf tabs render a report-styled document. */
 import { WatchBar } from '../zones/WatchBar'
 import type { ActiveObject, WatchEntry } from '../state/types'
-import { FunnelView, FeedbackView, AuditView, ImpactView } from './InsightCanvas'
+import { FunnelView, FeedbackView, ImpactView } from './InsightCanvas'
 import {
   type ReportView, REPORT_ASSETS, REPORT_ORDER,
   REPORT_META, REPORT_SECTIONS, REPORT_IMPACT_SECTION, type ReportSection,
@@ -59,12 +59,16 @@ export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, 
             </button>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+            {/* Same toolset and glyphs as the document canvas — Share, Download, Close. */}
             <button onClick={() => onToast('Share link copied')} aria-label="Share" title="Share" className="icon-btn">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" /></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+            </button>
+            <button onClick={() => onToast(`Downloaded ${asset.file}`)} aria-label="Download" title="Download" className="icon-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
             </button>
             <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
             <button onClick={onCollapse} aria-label="Close" title="Close" className="icon-btn">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
         </div>
@@ -116,8 +120,7 @@ function HtmlAsset({ file }: { file: string }) {
         <p className="mb-3.5 mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>Web analytics correlated with customer feedback</p>
         <div className="flex flex-col gap-5">
           <FunnelView />
-          <FeedbackView />
-          <AuditView />
+          <FeedbackView interactive />
         </div>
       </div>
     </div>
