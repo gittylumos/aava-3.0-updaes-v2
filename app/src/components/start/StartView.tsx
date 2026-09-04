@@ -52,8 +52,11 @@ export function StartView({ name, tasks, subtitle, onOpenTask, onViewAllTasks, c
 
           {/* Content-driven reflow rather than a device breakpoint: the cards
               collapse 3 → 2 → 1 as their own minimum width stops fitting, so
-              there's a graceful two-up stage instead of jumping straight to one. */}
-          <div className="grid items-stretch gap-5 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+              there's a graceful two-up stage instead of jumping straight to one.
+              auto-FILL (not auto-fit) keeps the empty column tracks, so a board
+              with a single card (Raman's PRD-to-Stories) sits at one card's width
+              like Deepak's rather than stretching to fill the whole row. */}
+          <div className="grid items-stretch gap-5 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
             {tasks.slice(0, 3).map((t) => <TaskCard key={t.id} task={t} onOpen={onOpenTask} />)}
           </div>
         </>
