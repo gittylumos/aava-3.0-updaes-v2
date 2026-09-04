@@ -159,9 +159,11 @@ export const INSIGHT_BEATS: Record<string, Effect[]> = {
       ['Scanning for conversion & rage-click anomalies', '1 anomaly'],
     ], 'Analytics · scanning for anomalies'),
     { type: 'watch', text: 'Anomaly detected · Step 3', tone: 'warn' },
-    ...reveal('funnel', 'LIVE'),
     { type: 'say', lines: [
       'Post-release v3.4 telemetry shows an anomaly: checkout conversion dropped 22% over the last 48 hours, and I detected a 310% spike in rage clicks clustered on Step 3 (payment authentication). The funnel is open in the canvas — Step 3 is where the drop-off concentrates.',
+    ] },
+    ...reveal('funnel', 'LIVE'),
+    { type: 'say', lines: [
       'Want me to isolate the friction points on Step 3 and correlate them with the incoming user feedback?',
     ] },
   ],
@@ -176,9 +178,11 @@ export const INSIGHT_BEATS: Record<string, Effect[]> = {
       ['Clustering feedback semantically', '93% coherence'],
     ], 'Friction · telemetry & feedback'),
     { type: 'watch', text: '42 tickets synthesised', tone: 'ok' },
-    ...reveal('feedback', 'LIVE'),
     { type: 'say', lines: [
       'Step-3 time-on-task surged to 4m 45s (+295%) and the step bounce rate jumped to 38.2%. I read all 42 incoming tickets and surveys — 90% call out an unresponsive submit button, 81% are on Apple WebKit, and 100% report a silent failure with no error shown. The synthesis and every ticket are in the canvas.',
+    ] },
+    ...reveal('feedback', 'LIVE'),
+    { type: 'say', lines: [
       'The pattern points squarely at the checkout submit CTA. Shall I fetch the application logs for the Step-3 submit button and check it for anomalies?',
     ] },
   ],
@@ -193,10 +197,12 @@ export const INSIGHT_BEATS: Record<string, Effect[]> = {
       ['Isolating the root exception', 'FormValidationBypass'],
     ], 'Log audit · Step-3 submit CTA'),
     { type: 'watch', text: 'Root cause isolated', tone: 'ok' },
-    ...reveal('audit', 'LOG'),
     { type: 'say', lines: [
       'The logs are conclusive. Zero errors on the CTA in the 24 hours before the release; 1,840 errors in the 12 hours since, first seen at 22:04 UTC — four minutes after the v3.4 deploy — and 100% on Safari/WebKit.',
       'Root cause: when Safari autofills the address, WebKit suppresses the synthetic input event on the postal-code field, so the client validator stays locked in isFormValid=false and the submit button is left permanently disabled with no visual feedback. The timeline and log audit are in the canvas.',
+    ] },
+    ...reveal('audit', 'LOG'),
+    { type: 'say', lines: [
       'Want me to estimate the business impact if this holds over the weekend?',
     ] },
   ],
@@ -211,9 +217,11 @@ export const INSIGHT_BEATS: Record<string, Effect[]> = {
       ['Modelling post-fix recovery', 'done'],
     ], 'Impact · modelling the leakage'),
     { type: 'watch', text: 'Impact model ready', tone: 'ok' },
-    ...reveal('impact', 'MODEL'),
     { type: 'say', lines: [
       'The impact is material: 18,200 monthly active Safari visitors are affected — 28.4% of checkout traffic — for an estimated $42,000/week in abandoned new subscriptions. Support tickets stand at 85 and are projected to reach 140 by Sunday if unresolved. The model, including the recovery case, is in the canvas.',
+    ] },
+    ...reveal('impact', 'MODEL'),
+    { type: 'say', lines: [
       'I can draft a high-priority PRD and fix spec — repro steps, browser telemetry, the validation fix, acceptance criteria and success metrics. Shall I generate it?',
     ] },
   ],
@@ -229,10 +237,12 @@ export const INSIGHT_BEATS: Record<string, Effect[]> = {
       ['Applying the PRD template', 'PRD-2026-084'],
     ], 'PRD · drafting the fix spec'),
     { type: 'watch', text: 'PRD-2026-084 drafted · P1', tone: 'ok' },
+    { type: 'say', lines: [
+      'PRD-2026-084 is drafted and open in the canvas — a P1 hotfix spec: recover funnel conversion to ≥ 4.0% and restore the $42,000/week run-rate, with WebKit DOMAutoComplete listeners and visible inline validation as the key requirements. Review or edit it on the right.',
+    ] },
     ...reveal('prd', 'MD'),
     { type: 'say',
       lines: [
-        'PRD-2026-084 is drafted and open in the canvas — a P1 hotfix spec: recover funnel conversion to ≥ 4.0% and restore the $42,000/week run-rate, with WebKit DOMAutoComplete listeners and visible inline validation as the key requirements. Review or edit it on the right.',
         'Want me to raise this as a P1 Jira ticket for the Billing engineering team?',
       ],
       block: {

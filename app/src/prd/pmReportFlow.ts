@@ -112,13 +112,13 @@ export const PM_REPORT_BEATS: Record<string, Effect[]> = {
       ['Correlating analytics with feedback', '1 anomaly'],
     ], 'Analysis · web analytics & feedback'),
     { type: 'watch', text: 'Anomaly detected · Step 3', tone: 'warn' },
-    ...reveal('analysis'),
     { type: 'say', lines: [
       "Post-release v3.4 telemetry from Web Analytics shows an anomaly: checkout conversion dropped 22% over the last 48 hours, driven by a steep drop-off at Step 3 of the conversion funnel. This correlates to a 310% spike in rage clicks on the 'Make Payment' CTA in Step 3.",
       'There was also a higher number of user-feedback survey submissions — 81% from the iOS ecosystem, of which 90% call out an unresponsive submit button and 50% report a silent failure with no error shown.',
       "Hypothesis: Safari users can't complete a purchase because the 'Make Payment' button appears broken — the backend call is not invoked on click. This needs to be fixed asap.",
-      'You can analyse this report on the canvas.',
+      "Here's the analysis report — you can explore it on the canvas.",
     ] },
+    ...reveal('analysis'),
     { type: 'say',
       lines: ['Would you like to understand what this means in terms of revenue impact?'],
       block: gate('Estimate the revenue impact?', 'This step is optional — I can model it, or go straight to a summary report.', [

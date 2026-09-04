@@ -253,12 +253,15 @@ const BUILD_FEATURES: Effect[] = [
     ['Checking each feature against required fields', '3 gaps'],
   ], 'Features · decomposing epics'),
   { type: 'watch', text: '23 features drafted · 3 missing fields', tone: 'warn' },
-  /* Show the features doc first — the gaps are highlighted right in it — then ask
-     to fill them. The doc is already open, so the gate reads against what they see. */
+  /* Convention: the finding first, then the artefact card (the gaps are
+     highlighted right in it), then the gate — so the card sits between the
+     explanation and the question the user is being asked. */
+  { type: 'say', lines: [
+    '23 features across the 7 epics, open in the canvas. Three of them are missing fields I could not infer from the PRD — target start date, end date and priority: Feature 1.3 (Responsive Device Preview), 5.3 (Bi-Directional Sync) and 7.2 (Contextual AI Tooltips). I have highlighted the gaps right in the doc.',
+  ] },
   artifact('features.md', 'features-gaps'),
   { type: 'say',
     lines: [
-      '23 features across the 7 epics, open in the canvas. Three of them are missing fields I could not infer from the PRD — target start date, end date and priority: Feature 1.3 (Responsive Device Preview), 5.3 (Bi-Directional Sync) and 7.2 (Contextual AI Tooltips). I have highlighted the gaps right in the doc.',
       'You can fill those in and I will fold them into the list, or proceed and leave them flagged for later.',
     ],
     block: gate(4, 'Fill the missing fields', 'Add target start date, end date and priority for the 3 flagged features?', [
@@ -280,9 +283,12 @@ const BUILD_STORIES: Effect[] = [
     ['Applying the story template', '58 stories'],
   ], 'Stories · decomposing features'),
   { type: 'watch', text: '58 stories drafted', tone: 'ok' },
+  { type: 'say', lines: [
+    '58 stories decomposed from the 23 confirmed features, each with acceptance criteria and linked to its parent — all open in the canvas.',
+  ] },
   artifact('stories.md', 'stories'),
   { type: 'say',
-    lines: ['58 stories confirmed. Want me to push them to Jira now?'],
+    lines: ['Want me to push them to Jira now?'],
     block: {
       kind: 'sync', title: 'Push the 58 stories to Jira', detail: '58 stories · under 23 features · WFS',
       beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
@@ -409,9 +415,9 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       ['Re-reading the PRD against your note', 'done'],
       ['Updating the intake summary', 'done'],
     ], 'Intake · applying your edits'),
+    { type: 'say', lines: ['Folded that in and updated the summary. Have another look — I will move on once it matches your PRD.'] },
     artifact('intake.md', 'intake'),
-    { type: 'say',
-      lines: ['Folded that in and updated the summary. Have another look — I will move on once it matches your PRD.'],
+    { type: 'say', lines: [],
       block: gate(1, 'Confirm the intake summary', 'Does this match your PRD now?', [
         ['Yes, this is accurate', 'startEpics', true],
         ['Still something off', 'refineIntake', false, true],
@@ -433,11 +439,11 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       ['Applying epic template', '7 epics'],
     ], 'Epics · clustering & drafting'),
     { type: 'watch', text: '7 epics drafted', tone: 'ok' },
+    { type: 'say', lines: [
+      '7 epics drafted, open in the canvas — each on the same template: Background, Details, Benefits, Assumptions, Priority. Comment on any line, the way you would on code; I will fold every note back in before locking these.',
+    ] },
     artifact('epics.md', 'epics'),
-    { type: 'say',
-      lines: [
-        '7 epics drafted, open in the canvas — each on the same template: Background, Details, Benefits, Assumptions, Priority. Comment on any line, the way you would on code; I will fold every note back in before locking these.',
-      ],
+    { type: 'say', lines: [],
       block: gate(3, 'Confirm the epics', 'Are these 7 epics right?', [
         ['Yes, break them into features', 'reviewEpics', true],
         ['Refine the epics', 'refineEpics', false, true],
@@ -453,11 +459,11 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       ['Epic 6 · target dates', 'filled'],
       ['Epic 7 · phase month', 'set'],
     ], 'Epics · applying your edits'),
+    { type: 'say', lines: [
+      'Updated Epic 3 — text-to-wireframe is now the lead item in Details. I also filled the two fields I could not infer earlier: Epic 6 runs Month 7–9, and Epic 7 is marked runs continuously from Month 4. All 7 epics are locked.',
+    ] },
     artifact('epics.md', 'epics-fields'),
-    { type: 'say',
-      lines: [
-        'Updated Epic 3 — text-to-wireframe is now the lead item in Details. I also filled the two fields I could not infer earlier: Epic 6 runs Month 7–9, and Epic 7 is marked runs continuously from Month 4. All 7 epics are locked.',
-      ],
+    { type: 'say', lines: [],
       block: gate(3, 'Confirm the epics', 'Ready to break these into features?', [
         ['Yes, break them into features', 'reviewEpics', true],
         ['Keep refining', 'refineEpics', false, true],
@@ -485,9 +491,9 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       ['Applying feature template', '23 features'],
     ], 'Features · applying your edits'),
     { type: 'watch', text: '23 features complete', tone: 'ok' },
+    { type: 'say', lines: ['Done — the three flagged features now carry target dates and priority: Feature 1.3 runs Month 2–3 at P1, Feature 5.3 runs Month 5–6 at P2, and Feature 7.2 runs Month 4–6 at P2. All 23 features are grouped under their parent epic with Requirement and Acceptance criteria.'] },
     artifact('features.md', 'features'),
-    { type: 'say',
-      lines: ['Done — the three flagged features now carry target dates and priority: Feature 1.3 runs Month 2–3 at P1, Feature 5.3 runs Month 5–6 at P2, and Feature 7.2 runs Month 4–6 at P2. All 23 features are grouped under their parent epic with Requirement and Acceptance criteria.'],
+    { type: 'say', lines: [],
       block: gate(4, 'Confirm the features', 'Do these 23 features cover it?', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Refine the features', 'refineFeatures', false, true],
@@ -514,9 +520,9 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       ['Feature 4.1 · added 10,000-concurrent-user criterion', 'done'],
       ['Feature 6.2 · added Sketch export', 'done'],
     ], 'Features · applying your edits'),
+    { type: 'say', lines: ['Folded those in — Feature 4.1 now names the 10,000+ concurrent-user target, and Feature 6.2 adds Sketch to the export formats. Features are confirmed.'] },
     artifact('features.md', 'features'),
-    { type: 'say',
-      lines: ['Folded those in — Feature 4.1 now names the 10,000+ concurrent-user target, and Feature 6.2 adds Sketch to the export formats. Features are confirmed.'],
+    { type: 'say', lines: [],
       block: gate(4, 'Confirm the features', 'Ready for stories?', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Keep refining', 'refineFeatures', false, true],
