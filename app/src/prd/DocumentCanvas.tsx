@@ -328,10 +328,10 @@ function FileSwitcher({ files, activeName, onPick }: {
       {files.length === 0 && (
         <div className="px-2 py-2 text-[12px]" style={{ color: 'var(--muted)' }}>No other files yet.</div>
       )}
-      {files.map((f) => {
+      {files.filter((f) => f.doc).map((f) => {
         const active = f.name === activeName
         return (
-          <button key={f.name + f.when} role="menuitem" onClick={() => onPick(f.doc)}
+          <button key={f.name + f.when} role="menuitem" onClick={() => f.doc && onPick(f.doc)}
             className="press flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-left hover:bg-[var(--glass)]"
             style={active ? { background: 'var(--wash-3)' } : undefined}>
             <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px]"

@@ -123,6 +123,19 @@ or an artifact):
    Conversation and opens in the Canvas.
 4. **Gate** — if the step needs the human, it ends in a HITL block (see §3.5).
 
+> **Ordering rule — always keep this order in every scenario.** The parts appear
+> in the sequence above: the **explanation of the finding comes first**, then the
+> **artifact card (with its Open button)**, then the **next probing question or
+> gate**. The artifact sits *between* the explanation and the question — never
+> before the explanation. In code this means: emit the explanation `say`, then the
+> artifact reveal, then the `say` that carries the gate/next question (its lead-in
+> line, if any, streams above the card once answered). Do **not** fold the
+> explanation into the same `say` as the gate with the artifact revealed ahead of
+> both — that puts the card above the text the user needs to read first.
+>
+> *Correct:* `say(finding…)` → `artifact(report.pdf)` → `say(question, gate)`.
+> *Wrong:* `artifact(report.pdf)` → `say(finding… + question, gate)`.
+
 ### 3.5 HITL gates — the "Waiting on you" blocks
 
 The heart of the flow. A gate **parks the run** until the human answers. Pick the

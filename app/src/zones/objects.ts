@@ -17,7 +17,7 @@ import type { ChannelCapability } from './types'
 import type { ViewIconId } from './toolbarIcons'
 
 /** The kinds of thing the Canvas can hold. Extend as modules land. */
-export type CanvasObjectKind = 'prd' | 'app' | 'agent' | 'backlog' | 'insight'
+export type CanvasObjectKind = 'prd' | 'app' | 'agent' | 'backlog' | 'insight' | 'report'
 
 /* A view needs a surface to be fully usable. `render` = something must display
  * (a preview); `runtime` = something must execute. On a channel that cannot
@@ -79,6 +79,12 @@ const VIEWS: Record<CanvasObjectKind, ObjectView[]> = {
      own insight canvas rather than this view switcher; the list is nominal. */
   insight: [
     { id: 'insight', label: 'Analytics', icon: 'table' },
+  ],
+
+  /* The structured PM Analytics → Report run (Example 4). Rendered through its
+     own tabbed report canvas; the list is nominal. */
+  report: [
+    { id: 'report', label: 'Report', icon: 'document' },
   ],
 }
 

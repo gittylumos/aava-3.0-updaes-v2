@@ -6,6 +6,7 @@
  * document it renders one of five evidence dashboards (funnel, feedback, log
  * audit, impact, PRD), switched from the toolbar or advanced by the run itself.
  * The content is data in ./insight; this file only lays it out. */
+import { useState } from 'react'
 import { WatchBar } from '../zones/WatchBar'
 import type { ActiveObject, WatchEntry } from '../state/types'
 import {
@@ -159,7 +160,7 @@ function SectionTitle({ children, note }: { children: React.ReactNode; note?: st
 
 /* ── View 1 · Funnel ─────────────────────────────────────────────────────── */
 
-function FunnelView() {
+export function FunnelView() {
   return (
     <div className="flex flex-col gap-3">
       <KpiGrid items={FUNNEL_KPIS} />
@@ -188,7 +189,37 @@ function FunnelView() {
 
 /* ── View 2 · Feedback ───────────────────────────────────────────────────── */
 
-function FeedbackView() {
+/* Which device family a submission came from — drives the report's filter. */
+type Device = 'ios' | 'mac' | 'other'
+type Filter = Device | 'all'
+function deviceOf(device: string): Device {
+  const d = device.toLowerCase()
+  if (/iphone|ipad|ios|mobile safari|ipados/.test(d)) return 'ios'
+  if (/macos|mac /.test(d)) return 'mac'
+  return 'other'
+}
+/* One count per bucket, computed once — shown in each segment so the control
+   reads as "here is how the 42 split by device", not a bare set of toggles. */
+const DEVICE_COUNTS: Record<Filter, number> = FEEDBACK_ITEMS.reduce(
+  (acc, f) => { acc.all++; acc[deviceOf(f.device)]++; return acc },
+  { all: 0, ios: 0, mac: 0, other: 0 } as Record<Filter, number>,
+)
+const DEVICE_FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'ios', label: 'iPhone & iPad' },
+  { id: 'mac', label: 'Mac' },
+  { id: 'other', label: 'Other' },
+]
+
+/* `interactive` turns the submissions list into a filterable one — the report's
+   .html asset is meant to be explored, so a device filter sits over the 42
+   submissions there. The insight run leaves it a static list. */
+export function FeedbackView({ interactive = false }: { interactive?: boolean }) {
+  const [filter, setFilter] = useState<Filter>('all')
+  const shown = !interactive || filter === 'all'
+    ? FEEDBACK_ITEMS
+    : FEEDBACK_ITEMS.filter((f) => deviceOf(f.device) === filter)
+
   return (
     <div className="flex flex-col gap-3">
       <KpiGrid items={FRICTION_KPIS} />
@@ -211,17 +242,41 @@ function FeedbackView() {
         </div>
       </Card>
       <Card>
-        <SectionTitle note={`Showing ${FEEDBACK_ITEMS.length} of ${FEEDBACK_ITEMS.length}`}>All {FEEDBACK_ITEMS.length} individual submissions</SectionTitle>
+        <SectionTitle note={`Showing ${shown.length} of ${FEEDBACK_ITEMS.length}`}>All {FEEDBACK_ITEMS.length} individual submissions</SectionTitle>
+        {interactive && (
+          /* A clean segmented control — one connected group, each segment naming
+             a device and how many of the 42 it holds, so the split is legible at
+             a glance and the active filter is obvious. */
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-medium" style={{ color: 'var(--muted-deep)' }}>Filter by device</span>
+            <div className="inline-flex items-center gap-0.5 rounded-[10px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+              {DEVICE_FILTERS.map((f) => {
+                const on = filter === f.id
+                return (
+                  <button key={f.id} onClick={() => setFilter(f.id)} aria-pressed={on}
+                    className="press flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[11.5px] font-medium"
+                    style={on ? { background: 'var(--text)', color: 'var(--on-text)' } : { color: 'var(--muted)' }}>
+                    {f.label}
+                    <span className="mono text-[10.5px] tabular-nums" style={{ color: on ? 'var(--on-text)' : 'var(--muted-deep)', opacity: on ? 0.7 : 1 }}>{DEVICE_COUNTS[f.id]}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
         <div className="flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-1.5">
-          {FEEDBACK_ITEMS.map((f, i) => (
+          {shown.map((f, i) => (
             <div key={i} className="rounded-[8px] px-3 py-2" style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderLeftWidth: 3, borderLeftColor: f.urgent ? 'var(--warn)' : 'var(--glass-line)' }}>
               <div className="text-[12px]" style={{ color: 'var(--text-dim)' }}>"{f.quote}"</div>
               <div className="mt-1 flex items-center justify-between text-[10.5px]" style={{ color: 'var(--muted)' }}>
-                <span><b style={{ color: 'var(--muted)' }}>{f.user}</b> · {f.device}</span>
-                <span>{f.time} · {f.tag}</span>
+                <span>{f.device}</span>
+                <span>{f.time}</span>
               </div>
             </div>
           ))}
+          {shown.length === 0 && (
+            <div className="px-1 py-6 text-center text-[11.5px]" style={{ color: 'var(--muted)' }}>No submissions match this filter.</div>
+          )}
         </div>
       </Card>
     </div>
@@ -230,7 +285,7 @@ function FeedbackView() {
 
 /* ── View 3 · Log audit ──────────────────────────────────────────────────── */
 
-function AuditView() {
+export function AuditView() {
   const maxH = 84
   return (
     <div className="flex flex-col gap-3">
@@ -296,7 +351,7 @@ function AuditView() {
 
 /* ── View 4 · Impact ─────────────────────────────────────────────────────── */
 
-function ImpactView() {
+export function ImpactView() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">

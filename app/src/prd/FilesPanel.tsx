@@ -8,23 +8,29 @@
  */
 import { WatchBar } from '../zones/WatchBar'
 import type { BacklogDoc } from './backlog'
+import type { ReportView } from './report'
 import type { WatchEntry } from '../state/types'
 
+/* A file produced during the session. A backlog/PRD run yields `doc` documents;
+   the triage-report run yields `report` assets (named .html / .pdf files). One of
+   the two identifies where Open should take the viewer. */
 export interface SessionFile {
   name: string
-  doc: BacklogDoc
   when: string
+  doc?: BacklogDoc
+  report?: ReportView
 }
 
 interface Props {
   files: SessionFile[]
   watch: WatchEntry[]
   activeDoc?: BacklogDoc
-  onOpen: (doc: BacklogDoc) => void
+  activeReport?: ReportView
+  onOpen: (file: SessionFile) => void
   onCollapse: () => void
 }
 
-export function FilesPanel({ files, watch, activeDoc, onOpen, onCollapse }: Props) {
+export function FilesPanel({ files, watch, activeDoc, activeReport, onOpen, onCollapse }: Props) {
   return (
     <section aria-label="Canvas — session files" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       <div className="m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
@@ -54,9 +60,9 @@ export function FilesPanel({ files, watch, activeDoc, onOpen, onCollapse }: Prop
             <>
               <div className="px-3 pb-1 pt-1.5 text-[11px] font-medium" style={{ color: 'var(--muted-deep)' }}>Today</div>
               {files.map((f) => {
-                const active = f.doc === activeDoc
+                const active = f.report ? f.report === activeReport : f.doc === activeDoc
                 return (
-                  <button key={f.name + f.when} onClick={() => onOpen(f.doc)} aria-current={active}
+                  <button key={f.name + f.when} onClick={() => onOpen(f)} aria-current={active}
                     className="press flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-[var(--wash-3)]"
                     style={active ? { background: 'var(--wash-3)' } : undefined}>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px]"

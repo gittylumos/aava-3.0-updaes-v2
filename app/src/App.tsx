@@ -13,7 +13,10 @@ import { DocumentCanvas } from './prd/DocumentCanvas'
 import { InsightCanvas } from './prd/InsightCanvas'
 import { insightChips } from './prd/insightFlow'
 import type { InsightView } from './prd/insight'
+import { ReportCanvas } from './prd/ReportCanvas'
+import { type ReportView, REPORT_ASSETS, REPORT_ORDER } from './prd/report'
 import { AgentGraph } from './prd/AgentGraph'
+import { ReportGraph } from './prd/ReportGraph'
 import { ScenarioGraph } from './components/playground/ScenarioGraph'
 import { ScenarioFiles } from './components/playground/ScenarioFiles'
 import { FilesPanel, type SessionFile } from './prd/FilesPanel'
@@ -64,6 +67,17 @@ export default function App() {
      files modal and (via Open) the canvas. Read off the document cards in the
      thread, deduped by document, so it always matches what was generated. */
   const sessionFiles = useMemo<SessionFile[]>(() => {
+    /* The triage-report run produces named .html / .pdf assets rather than
+       backlog documents — list those, newest first, opening each report tab. */
+    if (j.state.activeObject?.kind === 'report') {
+      const seen: ReportView[] = []
+      for (const m of j.state.messages) {
+        const r = m.block?.kind === 'document' ? m.block.report : undefined
+        if (r && !seen.includes(r)) seen.push(r)
+      }
+      return REPORT_ORDER.filter((v) => seen.includes(v)).reverse()
+        .map((report, i) => ({ report, name: REPORT_ASSETS[report].file, when: clockAgo(i) }))
+    }
     /* Keyed by file name so a doc shown twice (e.g. stories then its flagged
        revision, same stories.md) appears once — the latest wins, and Open reveals
        that version. */
@@ -73,7 +87,7 @@ export default function App() {
     }
     const entries = [...seen.entries()].reverse()
     return entries.map(([name, doc], i) => ({ doc, name, when: clockAgo(i) }))
-  }, [j.state.messages])
+  }, [j.state.messages, j.state.activeObject?.kind])
 
   /* Switching docs drops any pending inline comments — they were about the doc
      you were on, and their highlight ranges belong to that document's DOM. */
@@ -156,6 +170,18 @@ export default function App() {
   const objectChips = j.state.activeObject?.kind === 'insight'
     ? insightChips(j.state.messages)
     : []
+
+  /* Which report assets have been generated — their tabs are open in the canvas.
+     Derived from the asset cards in the thread, in the order they appeared. */
+  const reportTabs = useMemo<ReportView[]>(() => {
+    if (j.state.activeObject?.kind !== 'report') return []
+    const seen: ReportView[] = []
+    for (const m of j.state.messages) {
+      const r = m.block?.kind === 'document' ? m.block.report : undefined
+      if (r && !seen.includes(r)) seen.push(r)
+    }
+    return seen
+  }, [j.state.activeObject?.kind, j.state.messages])
 
   /* A chip you have already taken does not come back. Read off the thread's own
      user messages rather than a separate "used" list, so it costs no state and
@@ -296,7 +322,7 @@ export default function App() {
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
-                    onOpenArtifact={(doc, insight) => (insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onOpenArtifact={(doc, insight, report) => (report ? j.openObjectReport(report) : insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -371,23 +397,50 @@ export default function App() {
                 onToast={j.toast}
               />
             ) : undefined
+          ) : inObject && j.state.activeObject?.kind === 'report' && canvasMode === 'doc' ? (
+            /* The structured triage run renders named-file asset tabs (Deepak
+               canvas style), reusing the analytics dashboards for the .html
+               report and a document layout for the .pdf reports. The execution
+               activity and session-files views take over when their toggles are
+               pressed (canvasMode !== 'doc'), handled by the branches below. */
+            j.state.activeObject?.docReady ? (
+              <ReportCanvas
+                object={j.state.activeObject}
+                tabs={reportTabs}
+                watch={j.state.watchLog}
+                onCollapse={() => j.setPanelOpen(false)}
+                onSelectReport={(v: ReportView) => { setCanvasMode('doc'); j.openObjectReport(v) }}
+                onToast={j.toast}
+              />
+            ) : undefined
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
-               the workflow icon is pressed. Closing it returns to the document
-               if one is ready, otherwise folds the panel away. */
-            <AgentGraph
-              messages={j.state.messages}
-              watch={j.state.watchLog}
-              onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
-            />
+               the workflow icon is pressed. Each run has its own blueprint.
+               Closing it returns to the document if one is ready, otherwise
+               folds the panel away. */
+            j.state.activeObject?.kind === 'report' ? (
+              <ReportGraph
+                messages={j.state.messages}
+                watch={j.state.watchLog}
+                onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
+              />
+            ) : (
+              <AgentGraph
+                messages={j.state.messages}
+                watch={j.state.watchLog}
+                onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
+              />
+            )
           ) : inObject && canvasMode === 'files' ? (
             /* The session files list, in the panel (not a modal). Picking a file
-               opens it in the document canvas. */
+               opens it — a report asset focuses its canvas tab, a document opens
+               in the document canvas. */
             <FilesPanel
               files={sessionFiles}
               watch={j.state.watchLog}
               activeDoc={j.state.activeObject?.activeDoc}
-              onOpen={openDoc}
+              activeReport={j.state.activeObject?.activeReport}
+              onOpen={(f) => { setCanvasMode('doc'); if (f.report) j.openObjectReport(f.report); else if (f.doc) openDoc(f.doc) }}
               onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
             />
           ) : inObject && j.state.activeObject?.docReady ? (

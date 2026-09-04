@@ -58,6 +58,19 @@ export function isInsightIntent(text: string): boolean {
   return analytics && context
 }
 
+/** The structured analytics-triage-report intent (Example 4). Distinct from the
+   plainer analytics intent: it fires only when the ask names a triage / report /
+   recommendations deliverable alongside the analytics context, so
+   "prepare an analytics triage report for release v3.4" lands here while
+   "show me the analytics after the release" stays on the lighter insight run.
+   Checked before isInsightIntent. */
+export function isReportIntent(text: string): boolean {
+  const t = text.toLowerCase()
+  const analytics = /\b(analytics|telemetry|metrics?|funnel|conversion|checkout|release|numbers|v3\.?4)\b/.test(t)
+  const deliverable = /\b(triage|report|recommendations?|prepare|analysis report|feedback|summary|summaris|summariz)\b/.test(t)
+  return analytics && deliverable
+}
+
 /** Whether a message is a PRD-work intent: it names a PRD and asks for PRD work
    (create/draft, or extract/decompose into epics/features/stories). Order-free,
    so both "create a PRD for X" and "here is our PRD, extract the stories" land. */

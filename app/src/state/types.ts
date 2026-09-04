@@ -2,6 +2,7 @@ import type { CanvasObjectKind } from '../zones/objects'
 import type { ProfileId } from '../data/user'
 import type { BacklogDoc } from '../prd/backlog'
 import type { InsightView } from '../prd/insight'
+import type { ReportView } from '../prd/report'
 
 /** `tasks` is the board on the main screen — it used to be a drawer overlay. */
 export type Arrangement = 'start' | 'conversation' | 'split' | 'tasks'
@@ -29,6 +30,8 @@ export interface ActiveObject {
   activeDoc?: BacklogDoc
   /** For an insight object: which analytics view the canvas is showing. */
   activeInsight?: InsightView
+  /** For a report object: which named-file asset tab the canvas is showing. */
+  activeReport?: ReportView
 }
 
 /** One append-only line in the Watch zone — the run log. Never interactive. */
@@ -122,7 +125,7 @@ export type BlockSpec =
   /** A generated document artefact, shown in chat as a card with an Open button
       (Claude-artifact style). Open reveals the document canvas on the right;
       `doc` names which backlog document to open (else just reveal the panel). */
-  | { kind: 'document'; name: string; format: string; doc?: BacklogDoc; insight?: InsightView }
+  | { kind: 'document'; name: string; format: string; doc?: BacklogDoc; insight?: InsightView; report?: ReportView }
   /** Capability matching — the first thing that happens on any run. `searching`
       shows a shimmering "looking for a capability" line; once matched it becomes
       a card naming the capability, what it maps to, and what it can do. */
@@ -215,6 +218,8 @@ export type Effect =
   | { type: 'setDoc'; doc: BacklogDoc }
   /** Switch which analytics view the canvas shows, and open the panel. */
   | { type: 'setInsight'; view: InsightView }
+  /** Open a report asset tab in the canvas, and open the panel. */
+  | { type: 'setReport'; view: ReportView }
   /** Resolve the newest capability block from searching to matched. */
   | { type: 'capabilityMatched' }
   /** Advance the newest connector card to a new state (searching → offer →
@@ -438,6 +443,8 @@ export type Action =
   | { type: 'SET_OBJECT_DOC'; doc: BacklogDoc }
   /** Open a specific analytics view in the canvas — an artefact card's Open. */
   | { type: 'SET_OBJECT_INSIGHT'; view: InsightView }
+  /** Open a specific report asset tab in the canvas — an asset card's Open. */
+  | { type: 'SET_OBJECT_REPORT'; view: ReportView }
   /** Record what the user typed into a gate's inline textarea, and retire the
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }
