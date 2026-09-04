@@ -32,8 +32,7 @@ function IconButton({
         <button
           onClick={onClick}
           aria-label={label}
-          className="press hit relative grid place-items-center rounded-[10px] hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]"
-          style={{ color: 'var(--muted)' }}
+          className="icon-btn hit relative rounded-[10px]"
         >
           {children}
           {dot && (

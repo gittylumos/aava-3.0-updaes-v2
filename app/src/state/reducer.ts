@@ -538,6 +538,17 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
         playground: { ...pg, panelOpen: true },
       }
 
+    /* The insight run moved to a new analytics view — swap what the canvas shows
+       and bring the panel into view. */
+    case 'setInsight':
+      return {
+        ...state,
+        activeObject: state.activeObject
+          ? { ...state.activeObject, activeInsight: effect.view, docReady: true }
+          : state.activeObject,
+        playground: { ...pg, panelOpen: true },
+      }
+
     /* The Watch zone is append-only and never interactive — a line lands and
        stays. */
     case 'watch':
@@ -766,6 +777,16 @@ export function reducer(state: AppState, action: Action): AppState {
         ? {
             ...state,
             activeObject: { ...state.activeObject, activeDoc: action.doc, docReady: true },
+            playground: { ...state.playground, panelOpen: true },
+          }
+        : state
+
+    /* An analytics view card's Open — reveal that view in the insight canvas. */
+    case 'SET_OBJECT_INSIGHT':
+      return state.activeObject
+        ? {
+            ...state,
+            activeObject: { ...state.activeObject, activeInsight: action.view, docReady: true },
             playground: { ...state.playground, panelOpen: true },
           }
         : state

@@ -43,7 +43,9 @@
   --text: #F1F5F9;           /* dark.text.primary   — 17.22:1, AAA             */
   --text-dim: #CBD5E1;       /* derived, sits between primary and secondary    */
   --muted: #94A3B8;          /* dark.text.secondary — descriptions, metadata   */
-  --muted-deep: #64748B;     /* dark.text.tertiary  — disabled, placeholder    */
+  --muted-deep: #79889F;     /* dark.text.tertiary  — placeholders, labels; lifted
+                                from #64748B so it clears 4.5:1 on slab cards, not
+                                just on the ground (was ~3.8:1, failed AA there). */
 
   /* -- 2.3 Borders & separators ----------------------------------------- */
   --border: #2D3348;         /* dark.border.default                            */
@@ -165,31 +167,38 @@
   --brand-hover: #6366F1;
   --brand-pressed: #3730A3;
 
-  --ground: #FFFFFF;         /* light.bg.primary   */
-  --slab: #F8F9FA;           /* light.bg.secondary */
-  --slab-raised: #F1F3F5;    /* light.bg.tertiary  */
+  /* Surface ramp — a designed light mode, not an inverted dark one. The canvas
+     is a soft off-white "desk"; every panel and card is pure white and lifts off
+     it, exactly mirroring how dark surfaces lift by getting lighter. Monotonic:
+     ground (canvas) → slab (secondary) → white (cards, raised popovers). Without
+     this, white cards on a white ground had no edge and the whole UI read flat. */
+  --ground: #F3F4F6;         /* light.bg.primary — canvas (off-white)  */
+  --slab: #FAFBFC;           /* light.bg.secondary                     */
+  --slab-raised: #FFFFFF;    /* light.bg.tertiary — popovers, modals   */
   --card: #FFFFFF;
-  --card-hover: #F8F9FA;
+  --card-hover: #EEF0F3;      /* a visible-but-subtle hover on white     */
 
   --text: #111827;           /* light.text.primary   — 17.74:1, AAA */
   --text-dim: #374151;
-  --muted: #4B5563;          /* light.text.secondary */
-  --muted-deep: #9CA3AF;     /* light.text.tertiary  */
+  --muted: #4B5563;          /* light.text.secondary — 7.5:1        */
+  --muted-deep: #6B7280;     /* light.text.tertiary  — 4.83:1, AA (was #9CA3AF, 2.6:1, failed) */
 
-  --border: #E5E7EB;         /* light.border.default */
-  --glass-line: #E5E7EB;
-  --glass-line-soft: #EEF0F3;
+  --border: #E2E5EA;         /* light.border.default — a touch stronger so edges read */
+  --glass-line: #E2E5EA;
+  --glass-line-soft: #E9ECF0;
 
   --glass: rgba(17, 24, 39, .035);
   --glass-strong: rgba(17, 24, 39, .07);
 
-  /* The ladder inverts: ink instead of white. */
-  --wash-1: rgba(17, 24, 39, .015);
-  --wash-2: rgba(17, 24, 39, .028);
-  --wash-3: rgba(17, 24, 39, .045);
-  --wash-4: rgba(17, 24, 39, .062);
-  --wash-5: rgba(17, 24, 39, .09);
-  --wash-6: rgba(17, 24, 39, .18);
+  /* The ladder inverts: ink instead of white. Nudged up from the original near-
+     invisible values so hover and pressed feedback is actually perceptible on a
+     light ground (2.8% ink on white read as nothing). */
+  --wash-1: rgba(17, 24, 39, .022);
+  --wash-2: rgba(17, 24, 39, .042);
+  --wash-3: rgba(17, 24, 39, .062);
+  --wash-4: rgba(17, 24, 39, .085);
+  --wash-5: rgba(17, 24, 39, .11);
+  --wash-6: rgba(17, 24, 39, .2);
 
   --scrim: rgba(17, 24, 39, .32);
 

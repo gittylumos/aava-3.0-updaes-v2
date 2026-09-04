@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconBell, IconMoon, IconSun } from './components/chrome/icons'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
 import { Sidebar } from './components/chrome/Sidebar'
 import { WorkspaceShell } from './components/layout/WorkspaceShell'
@@ -10,6 +10,9 @@ import { StartView } from './components/start/StartView'
 import { ConversationView } from './components/chat/ConversationView'
 import { TabWorkspace } from './components/playground/TabWorkspace'
 import { DocumentCanvas } from './prd/DocumentCanvas'
+import { InsightCanvas } from './prd/InsightCanvas'
+import { insightChips } from './prd/insightFlow'
+import type { InsightView } from './prd/insight'
 import { AgentGraph } from './prd/AgentGraph'
 import { ScenarioGraph } from './components/playground/ScenarioGraph'
 import { ScenarioFiles } from './components/playground/ScenarioFiles'
@@ -26,7 +29,7 @@ import { PROFILES } from './data/user'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
-const CORNER_BTN = 'press relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
+const CORNER_BTN = 'press relative grid h-[34px] w-[34px] place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]'
 const CORNER_STYLE = { color: 'var(--muted)', background: 'var(--glass)', border: '1px solid var(--glass-line)' }
 
 export default function App() {
@@ -148,6 +151,12 @@ export default function App() {
     ? j.scenario.chips[j.state.chipStage] ?? []
     : []
 
+  /* The insight run surfaces its next step as a suggestion chip — the next
+     question pre-filled — derived from how far the investigation has got. */
+  const objectChips = j.state.activeObject?.kind === 'insight'
+    ? insightChips(j.state.messages)
+    : []
+
   /* A chip you have already taken does not come back. Read off the thread's own
      user messages rather than a separate "used" list, so it costs no state and
      parking a thread carries the answered chips with it. */
@@ -157,7 +166,7 @@ export default function App() {
 
   const chips = j.state.pendingTopic
     ? [{ label: 'Start a new thread', sends: 'alright' }]
-    : stageChips.filter((c) => !asked.has(c.sends))
+    : [...stageChips, ...objectChips].filter((c) => !asked.has(c.sends))
 
   const inTask = !!j.state.activeTaskId
     && (j.state.arrangement === 'conversation' || j.state.arrangement === 'split')
@@ -221,7 +230,22 @@ export default function App() {
                     className={CORNER_BTN}
                     style={CORNER_STYLE}
                   >
-                    {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+                    {/* Contextual icon transition — sun/moon cross-fade with
+                        scale + blur rather than a hard swap. */}
+                    <span className="relative grid h-[15px] w-[15px] place-items-center">
+                      <AnimatePresence initial={false} mode="popLayout">
+                        <motion.span
+                          key={theme}
+                          className="absolute inset-0 grid place-items-center"
+                          initial={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                          exit={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                          transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                        >
+                          {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -246,7 +270,10 @@ export default function App() {
                   under mode="wait" that could stall the exit so the conversation
                   never mounted. popLayout pops the outgoing view from flow and
                   lets the incoming one mount immediately. */}
-              <AnimatePresence mode="popLayout">
+              {/* initial={false} keeps the enter animation off the very first
+                  render — the app shouldn't animate itself in on load; only
+                  subsequent arrangement switches should transition. */}
+              <AnimatePresence mode="popLayout" initial={false}>
                 {j.state.arrangement === 'start' && (
                   <StartView key="start" name={profile.name} tasks={homeTasks} subtitle={homeSubtitle}
                     onOpenTask={j.openTask}
@@ -269,7 +296,7 @@ export default function App() {
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
-                    onOpenArtifact={(doc) => (doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onOpenArtifact={(doc, insight) => (insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -331,6 +358,19 @@ export default function App() {
                 </div>
               )}
             </div>
+          ) : inObject && j.state.activeObject?.kind === 'insight' ? (
+            /* A Product-Analytics run renders its own evidence dashboards rather
+               than the document canvas or the topology — five views the run
+               advances through and the toolbar switches between. */
+            j.state.activeObject?.docReady ? (
+              <InsightCanvas
+                object={j.state.activeObject}
+                watch={j.state.watchLog}
+                onCollapse={() => j.setPanelOpen(false)}
+                onSelectView={(v: InsightView) => { setCanvasMode('doc'); j.openObjectInsight(v) }}
+                onToast={j.toast}
+              />
+            ) : undefined
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
                the workflow icon is pressed. Closing it returns to the document

@@ -40,11 +40,108 @@
     transition: transform var(--dur) var(--ease-out), background-color var(--dur) var(--ease-out),
       color var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
   }
-  .press:active:not(:disabled) { transform: scale(0.97); }
+  .press:active:not(:disabled) { transform: scale(0.96); }
 
   .hit {
     min-height: var(--hit);
     min-width: var(--hit);
+  }
+
+  /* Icon button — one interaction system for every square icon control (toolbar
+     toggles, canvas tools, rail items). Three distinct, legible states so the
+     control always answers back:
+       idle     → muted glyph, no fill
+       hover    → glyph brightens, a real wash appears, the glyph lifts slightly
+       pressed  → the button dips (scale down)
+       selected → aria-pressed carries a persistent fill + inset ring, so a
+                  selected control never looks the same as a merely-hovered one.
+     34px keeps toolbars compact while clearing the WCAG 2.5.8 target minimum. */
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    width: 34px;
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    transition: transform var(--dur) var(--ease-out),
+      background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+      box-shadow var(--dur) var(--ease-out);
+  }
+  .icon-btn svg { transition: transform var(--dur) var(--ease-out); }
+  .icon-btn:hover:not(:disabled) { color: var(--text-dim); background: var(--wash-4); }
+  .icon-btn:hover:not(:disabled) svg { transform: scale(1.09); }
+  .icon-btn:active:not(:disabled) { transform: scale(0.96); background: var(--wash-5); }
+  .icon-btn[aria-pressed='true'] {
+    color: var(--text);
+    background: var(--wash-4);
+    box-shadow: inset 0 0 0 1px var(--glass-line);
+  }
+  .icon-btn[aria-pressed='true']:hover:not(:disabled) { background: var(--wash-5); }
+  .icon-btn:disabled { color: var(--muted-deep); cursor: default; }
+
+  /* Reduced motion: keep the state changes (color/wash/ring) but drop the
+     glyph lift and the press dip, which are the only decorative parts. */
+  @media (prefers-reduced-motion: reduce) {
+    .icon-btn:hover:not(:disabled) svg,
+    .icon-btn:active:not(:disabled) { transform: none; }
+  }
+
+  /* Menu row — one consistent treatment for every dropdown/flyout item so a row
+     always answers to hover and focus (the app had several ad-hoc menu styles). */
+  .menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+    border-radius: 7px;
+    padding: 7px 8px;
+    text-align: left;
+    font-size: 12.5px;
+    line-height: 1.2;
+    color: var(--text-dim);
+    transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+  }
+  .menu-item:hover:not(:disabled) { background: var(--wash-3); color: var(--text); }
+  .menu-item:active:not(:disabled) { background: var(--wash-4); }
+  .menu-item:disabled { color: var(--muted-deep); cursor: default; }
+
+  /* Action buttons — the filled/outlined pair used by every HITL gate, confirm
+     and sync card. They previously had no hover at all (only a press scale), so
+     the most important controls in the flow felt inert. `btn-primary` darkens
+     its fill on hover (works in both themes: the fill is --text, so brightness
+     < 1 reads as a press in either); `btn-secondary` fills with a wash and
+     firms its border. */
+  .btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .btn-primary {
+    background: var(--text);
+    color: var(--on-text);
+    transition: filter var(--dur) var(--ease-out), transform var(--dur) var(--ease-out),
+      box-shadow var(--dur) var(--ease-out);
+  }
+  .btn-primary:hover:not(:disabled) { filter: brightness(0.9); box-shadow: 0 2px 10px rgba(0, 0, 0, .16); }
+  .btn-primary:active:not(:disabled) { filter: brightness(0.84); transform: scale(0.96); box-shadow: none; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--glass-line-soft);
+    transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+      border-color var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+  }
+  .btn-secondary:hover:not(:disabled) { background: var(--wash-3); color: var(--text); border-color: var(--glass-line); }
+  .btn-secondary:active:not(:disabled) { background: var(--wash-4); transform: scale(0.96); }
+  .btn-primary:disabled, .btn-secondary:disabled { opacity: .45; cursor: default; }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled) { transform: none; }
   }
 
   .sr-only {
