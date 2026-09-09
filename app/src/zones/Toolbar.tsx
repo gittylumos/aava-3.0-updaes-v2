@@ -17,6 +17,7 @@ import { Zone } from './Zone'
 import { availabilityOf, type ObjectView } from './objects'
 import { VIEW_ICON } from './toolbarIcons'
 import { CHANNELS, type ChannelId, type ZoneState } from './types'
+import { Tooltip } from '../components/chrome/Tooltip'
 
 interface Props {
   state: ZoneState
@@ -68,29 +69,30 @@ export function Toolbar({ state, channel, views, activeView, onSelect, compact }
             avail === 'delegated' ? `Opens on another surface — ${cap.label} has no canvas`
             : avail === 'native' ? `Handed to the ${cap.label} host`
             : undefined
+          const tip = iconOnly ? `${view.label}${hint ? ` · ${hint}` : ''}` : hint
           return (
-            <button
-              key={view.id}
-              role="tab"
-              aria-selected={active}
-              title={iconOnly ? `${view.label}${hint ? ` · ${hint}` : ''}` : hint}
-              onClick={() => onSelect(view.id)}
-              className="press relative flex shrink-0 items-center gap-1.5 rounded-[8px] px-2 py-1.5 text-[12px] transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
-              style={{
-                color: active ? 'var(--text)' : 'var(--muted)',
-                background: active ? 'var(--wash-3)' : 'transparent',
-                /* The active view is marked in the zone's own colour — the amber
-                   Toolbar accent — so the frame's colour language is visible. */
-                boxShadow: active ? 'inset 0 -2px 0 var(--zone-accent)' : 'none',
-                opacity: avail === 'delegated' ? 0.55 : 1,
-              }}
-            >
-              <Icon size={16} />
-              {!iconOnly && <span className="truncate">{view.label}</span>}
-              {avail === 'delegated' && (
-                <span aria-hidden className="ml-0.5 text-[9px]" style={{ color: 'var(--zone-accent)' }}>↗</span>
-              )}
-            </button>
+            <Tooltip key={view.id} label={tip ?? ''} disabled={!tip} side="bottom">
+              <button
+                role="tab"
+                aria-selected={active}
+                onClick={() => onSelect(view.id)}
+                className="press relative flex shrink-0 items-center gap-1.5 rounded-[8px] px-2 py-1.5 text-[12px] transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+                style={{
+                  color: active ? 'var(--text)' : 'var(--muted)',
+                  background: active ? 'var(--wash-3)' : 'transparent',
+                  /* The active view is marked in the zone's own colour — the amber
+                     Toolbar accent — so the frame's colour language is visible. */
+                  boxShadow: active ? 'inset 0 -2px 0 var(--zone-accent)' : 'none',
+                  opacity: avail === 'delegated' ? 0.55 : 1,
+                }}
+              >
+                <Icon size={16} />
+                {!iconOnly && <span className="truncate">{view.label}</span>}
+                {avail === 'delegated' && (
+                  <span aria-hidden className="ml-0.5 text-[9px]" style={{ color: 'var(--zone-accent)' }}>↗</span>
+                )}
+              </button>
+            </Tooltip>
           )
         })}
       </div>

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useDismiss } from '../../state/useDismiss'
+import { Tooltip } from './Tooltip'
 
 /* The prompt bar.
  *
@@ -220,13 +221,15 @@ export function Composer({
               <Icon.Mic />
             </PillButton>
 
-            <button
-              type="submit" disabled={!value.trim()} aria-label="Send message"
-              className="press hit hit-pad-sm grid place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
-              style={{ background: 'var(--primary-grad)', color: '#fff' }}
-            >
-              <Icon.Send />
-            </button>
+            <Tooltip label="Send message" side="top" align="end">
+              <button
+                type="submit" disabled={!value.trim()} aria-label="Send message"
+                className="press hit hit-pad-sm grid place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
+                style={{ background: 'var(--primary-grad)', color: '#fff' }}
+              >
+                <Icon.Send />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </form>
@@ -243,13 +246,15 @@ function PillButton({ children, label, onClick, active, round }: {
   children: React.ReactNode; label: string; onClick: () => void; active?: boolean; round?: boolean
 }) {
   return (
-    <button
-      type="button" onClick={onClick} aria-label={label} title={label} aria-pressed={active}
-      className={`press flex items-center gap-1 ${round ? 'h-8 w-8 justify-center rounded-full' : 'h-8 rounded-full px-2.5'} transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]`}
-      style={{ color: active ? 'var(--text)' : 'var(--muted)', background: active ? 'var(--wash-4)' : 'transparent' }}
-    >
-      {children}
-    </button>
+    <Tooltip label={label} disabled={!round} side="top">
+      <button
+        type="button" onClick={onClick} aria-label={label} aria-pressed={active}
+        className={`press flex items-center gap-1 ${round ? 'h-8 w-8 justify-center rounded-full' : 'h-8 rounded-full px-2.5'} transition-colors hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]`}
+        style={{ color: active ? 'var(--text)' : 'var(--muted)', background: active ? 'var(--wash-4)' : 'transparent' }}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 

@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import * as Tooltip from '@radix-ui/react-tooltip'
 import type { Task, TaskTag, Thread } from '../../state/types'
 import { TAG_META, threadIdForTask } from '../../state/reducer'
 
-
+import { Tooltip, TooltipProvider } from './Tooltip'
 import { BrandMark, IconChat, IconChevron, IconFilter, IconMoon, IconPanel, IconPinned, IconPlus, IconSearch, IconSun, IconTasks } from './icons'
 import type { Profile } from '../../data/user'
 import { useDismiss } from '../../state/useDismiss'
@@ -55,29 +54,10 @@ interface Props {
 }
 
 
-const tipClass = 'z-[80] rounded-[7px] px-2.5 py-1.5 text-[12px] leading-none shadow-lg'
-
-const tipStyle = {
-  background: 'var(--slab-raised)',
-  border: '1px solid var(--glass-line)',
-  color: 'var(--text-dim)',
-}
-
 /* Tooltips only earn their keep while the labels are hidden. Once the sidebar
    is open the row says what it does, so the tip would just be noise. */
 function Tip({ label, muted, children }: { label: string; muted: boolean; children: React.ReactNode }) {
-  if (muted) return <>{children}</>
-  return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content side="right" sideOffset={10} className={tipClass} style={tipStyle}>
-          {label}
-          <Tooltip.Arrow width={9} height={4} style={{ fill: 'var(--slab-raised)' }} />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  )
+  return <Tooltip label={label} side="right" sideOffset={10} disabled={muted}>{children}</Tooltip>
 }
 
 function NavRow({
@@ -99,6 +79,13 @@ function NavRow({
         style={{
           color: active ? 'var(--text)' : 'var(--muted)',
           background: active ? 'var(--wash-4)' : 'transparent',
+          /* Collapsed, the row's layout box stays the sidebar's full fixed
+             width (so nothing reflows as it expands) but only the icon is
+             ever painted — clamp the box itself to the icon so a tooltip
+             anchored to this button lands on the visible icon, not out past
+             the clipped edge of the rail. */
+          width: open ? undefined : 'var(--hit)',
+          paddingRight: open ? undefined : 0,
         }}
       >
         <span className="hit grid shrink-0 place-items-center">{children}</span>
@@ -170,17 +157,19 @@ function ThreadRow({
 
       {/* Pin lives on hover, the way chat apps do it — always-on pins would add
           a column of noise to every row. Focus-visible keeps it keyboard-reachable. */}
-      <button
-        onClick={() => onTogglePin(thread.id)}
-        aria-label={pinned ? `Unpin ${thread.title}` : `Pin ${thread.title}`}
-        aria-pressed={pinned}
-        className={`press absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-[7px] transition-opacity hover:bg-[var(--glass-strong)] focus-visible:opacity-100 ${
-          pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        }`}
-        style={{ color: pinned ? 'var(--brand)' : 'var(--muted-deep)' }}
-      >
-        <IconPinned size={14} />
-      </button>
+      <Tooltip label={pinned ? 'Unpin' : 'Pin'} side="top">
+        <button
+          onClick={() => onTogglePin(thread.id)}
+          aria-label={pinned ? `Unpin ${thread.title}` : `Pin ${thread.title}`}
+          aria-pressed={pinned}
+          className={`press absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-[7px] transition-opacity hover:bg-[var(--glass-strong)] focus-visible:opacity-100 ${
+            pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
+          style={{ color: pinned ? 'var(--brand)' : 'var(--muted-deep)' }}
+        >
+          <IconPinned size={14} />
+        </button>
+      </Tooltip>
     </div>
   )
 }
@@ -252,20 +241,22 @@ function RecentsHeader({ value, onChange }: { value: Filter; onChange: (f: Filte
     <div ref={root} className="relative flex items-center gap-2 px-2.5 py-1.5">
       <span className="text-[12.5px]" style={{ color: 'var(--muted)' }}>Recents</span>
 
-      <button
-        type="button"
-        aria-label={on ? `Filter recents — ${FILTERS.find((f) => f.id === value)?.label}` : 'Filter recents'}
-        aria-expanded={menu}
-        aria-haspopup="menu"
-        onClick={() => setMenu((v) => !v)}
-        className="press hit-pad-sm ml-auto grid h-7 w-7 place-items-center rounded-[8px] hover:bg-[var(--glass)]"
-        style={{
-          color: on || menu ? 'var(--brand)' : 'var(--muted)',
-          boxShadow: on || menu ? '0 0 0 1px var(--brand)' : undefined,
-        }}
-      >
-        <IconFilter size={15} />
-      </button>
+      <Tooltip label="Filter recents" side="bottom" disabled={menu}>
+        <button
+          type="button"
+          aria-label={on ? `Filter recents — ${FILTERS.find((f) => f.id === value)?.label}` : 'Filter recents'}
+          aria-expanded={menu}
+          aria-haspopup="menu"
+          onClick={() => setMenu((v) => !v)}
+          className="press hit-pad-sm ml-auto grid h-7 w-7 place-items-center rounded-[8px] hover:bg-[var(--glass)]"
+          style={{
+            color: on || menu ? 'var(--brand)' : 'var(--muted)',
+            boxShadow: on || menu ? '0 0 0 1px var(--brand)' : undefined,
+          }}
+        >
+          <IconFilter size={15} />
+        </button>
+      </Tooltip>
 
       {menu && (
         <div
@@ -323,6 +314,7 @@ function Profile({ open, profile, otherProfile, onSwitchProfile, theme, onToggle
             setMenu(true)
           }}
           className="press flex w-full items-center gap-2.5 rounded-[11px] pr-2.5 text-left"
+          style={{ width: open ? undefined : 'var(--hit)', paddingRight: open ? undefined : 0 }}
         >
           <span
             className="relative grid h-[var(--hit)] w-[var(--hit)] shrink-0 place-items-center rounded-full"
@@ -511,7 +503,7 @@ export function Sidebar({
     )
 
   return (
-    <Tooltip.Provider delayDuration={320} skipDelayDuration={140}>
+    <TooltipProvider delayDuration={320} skipDelayDuration={140}>
       <nav
         aria-label="Primary"
         /* No width transition here: react-resizable-panels owns the geometry
@@ -563,16 +555,18 @@ export function Sidebar({
 
 
             {onToggle && (
-            <button
-              onClick={onToggle}
-              aria-label="Collapse sidebar"
-              aria-expanded={open}
-              tabIndex={open ? 0 : -1}
-              className="press hit-pad-md ml-auto grid h-7 w-7 place-items-center rounded-[7px] transition-opacity duration-200 hover:bg-[var(--glass)]"
-              style={{ color: 'var(--muted)', opacity: open ? 1 : 0 }}
-            >
-              <IconPanel size={16} />
-            </button>
+            <Tooltip label="Collapse sidebar" side="bottom" align="end">
+              <button
+                onClick={onToggle}
+                aria-label="Collapse sidebar"
+                aria-expanded={open}
+                tabIndex={open ? 0 : -1}
+                className="press hit-pad-md ml-auto grid h-7 w-7 place-items-center rounded-[7px] transition-opacity duration-200 hover:bg-[var(--glass)]"
+                style={{ color: 'var(--muted)', opacity: open ? 1 : 0 }}
+              >
+                <IconPanel size={16} />
+              </button>
+            </Tooltip>
             )}
           </div>
 
@@ -634,6 +628,6 @@ export function Sidebar({
           </div>
         </div>
       </nav>
-    </Tooltip.Provider>
+    </TooltipProvider>
   )
 }

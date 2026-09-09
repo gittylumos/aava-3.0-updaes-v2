@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconBell, IconMoon, IconSun } from './components/chrome/icons'
+import { Tooltip, TooltipProvider } from './components/chrome/Tooltip'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
 import { Sidebar } from './components/chrome/Sidebar'
@@ -201,7 +202,7 @@ export default function App() {
   const inObject = !!j.state.activeObject && j.state.arrangement === 'split'
 
   return (
-    <>
+    <TooltipProvider delayDuration={320} skipDelayDuration={140}>
       <AmbientField />
       {/* Landmarks for assistive tech and crawlers. The workspace itself is a
           full-bleed app shell with no visual header/footer bar — the nav's own
@@ -256,46 +257,50 @@ export default function App() {
                   the screens this corner does not appear on. */}
               {j.state.arrangement === 'start' && (
                 <div className="absolute right-4 top-4 z-[60] flex items-center gap-2">
-                  <button
-                    type="button"
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    onClick={toggleTheme}
-                    className={CORNER_BTN}
-                    style={CORNER_STYLE}
-                  >
-                    {/* Contextual icon transition — sun/moon cross-fade with
-                        scale + blur rather than a hard swap. */}
-                    <span className="relative grid h-[15px] w-[15px] place-items-center">
-                      <AnimatePresence initial={false} mode="popLayout">
-                        <motion.span
-                          key={theme}
-                          className="absolute inset-0 grid place-items-center"
-                          initial={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
-                          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-                          exit={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
-                          transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-                        >
-                          {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
-                        </motion.span>
-                      </AnimatePresence>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Notifications"
-                    onClick={() => j.setOverlay(j.state.overlay === 'notifications' ? 'none' : 'notifications')}
-                    className={CORNER_BTN}
-                    style={CORNER_STYLE}
-                  >
-                    <IconBell size={15} />
-                    {!!j.unreadCount && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full"
-                        style={{ background: 'var(--danger)', boxShadow: '0 0 0 2px var(--slab)' }}
-                      />
-                    )}
-                  </button>
+                  <Tooltip label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} side="bottom" align="end">
+                    <button
+                      type="button"
+                      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                      onClick={toggleTheme}
+                      className={CORNER_BTN}
+                      style={CORNER_STYLE}
+                    >
+                      {/* Contextual icon transition — sun/moon cross-fade with
+                          scale + blur rather than a hard swap. */}
+                      <span className="relative grid h-[15px] w-[15px] place-items-center">
+                        <AnimatePresence initial={false} mode="popLayout">
+                          <motion.span
+                            key={theme}
+                            className="absolute inset-0 grid place-items-center"
+                            initial={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                            exit={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
+                            transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                          >
+                            {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+                          </motion.span>
+                        </AnimatePresence>
+                      </span>
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Notifications" side="bottom" align="end">
+                    <button
+                      type="button"
+                      aria-label="Notifications"
+                      onClick={() => j.setOverlay(j.state.overlay === 'notifications' ? 'none' : 'notifications')}
+                      className={CORNER_BTN}
+                      style={CORNER_STYLE}
+                    >
+                      <IconBell size={15} />
+                      {!!j.unreadCount && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full"
+                          style={{ background: 'var(--danger)', boxShadow: '0 0 0 2px var(--slab)' }}
+                        />
+                      )}
+                    </button>
+                  </Tooltip>
                 </div>
               )}
 
@@ -491,7 +496,7 @@ export default function App() {
         }}
       />
       <Toast text={j.state.toast} />
-    </>
+    </TooltipProvider>
   )
 }
 

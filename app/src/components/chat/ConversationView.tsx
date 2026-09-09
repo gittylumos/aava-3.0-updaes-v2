@@ -6,6 +6,7 @@ import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
 import { ContextPane } from '../playground/ContextPane'
 import { IconFolder, IconRightPanel } from '../chrome/icons'
+import { Tooltip } from '../chrome/Tooltip'
 import { prefersReducedMotion } from '../../state/timing'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
@@ -374,14 +375,15 @@ function EdgeToggle({ on, onClick, label, className = '', children }: {
   children: React.ReactNode
 }) {
   return (
-    <button
-      onClick={onClick}
-      aria-pressed={on}
-      aria-label={label}
-      title={label}
-      className={`icon-btn ${className}`}
-    >
-      {children}
-    </button>
+    <Tooltip label={label} side="bottom">
+      <button
+        onClick={onClick}
+        aria-pressed={on}
+        aria-label={label}
+        className={`icon-btn ${className}`}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }

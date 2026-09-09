@@ -170,4 +170,27 @@
   .hit-pad-sm::before, .hit-pad-md::before { content: ''; position: absolute; }
   .hit-pad-sm::before { inset: -3px; }
   .hit-pad-md::before { inset: -5px; }
+
+  /* Tooltip open/close — blurs + scales from 0.9, from the trigger's side. */
+  .aava-tooltip {
+    transform-origin: var(--radix-tooltip-content-transform-origin);
+  }
+  .aava-tooltip[data-state='delayed-open'],
+  .aava-tooltip[data-state='instant-open'] {
+    animation: aava-tooltip-in 180ms var(--ease-out);
+  }
+  .aava-tooltip[data-state='closed'] {
+    animation: aava-tooltip-out 140ms var(--ease-out);
+  }
+  @keyframes aava-tooltip-in {
+    from { opacity: 0; transform: scale(.9); filter: blur(4px); }
+    to   { opacity: 1; transform: scale(1);  filter: blur(0); }
+  }
+  @keyframes aava-tooltip-out {
+    from { opacity: 1; transform: scale(1);  filter: blur(0); }
+    to   { opacity: 0; transform: scale(.9); filter: blur(4px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aava-tooltip[data-state] { animation: none !important; }
+  }
 }

@@ -6,6 +6,7 @@
  * so it reads as part of the canvas, not a modal over it.
  */
 import { WatchBar } from '../../zones/WatchBar'
+import { Tooltip } from '../chrome/Tooltip'
 import type { WatchEntry } from '../../state/types'
 
 export function ScenarioFiles({ files, root, watch, activeFile, onOpen, onCollapse }: {
@@ -32,10 +33,12 @@ export function ScenarioFiles({ files, root, watch, activeFile, onOpen, onCollap
             <div className="text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>Files in this session</div>
             <div className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>{files.length} file{files.length === 1 ? '' : 's'} changed</div>
           </div>
-          <button onClick={onCollapse} aria-label="Close" title="Close"
-            className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
+          <Tooltip label="Close" side="bottom" align="end">
+            <button onClick={onCollapse} aria-label="Close"
+              className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </Tooltip>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto px-2.5 py-2">

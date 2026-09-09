@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useDismiss } from '../state/useDismiss'
 import { WatchBar } from '../zones/WatchBar'
+import { Tooltip } from '../components/chrome/Tooltip'
 import { Markdown } from '../components/playground/Markdown'
 import { prdMarkdown, prdFileName } from './document'
 import { backlogMarkdown, BACKLOG_FILE, type BacklogDoc } from './backlog'
@@ -361,30 +362,32 @@ function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void 
       {tabs.map(({ id, label, icon: Ico }) => {
         const active = view === id
         return (
-          <motion.button
-            key={id} layout onClick={() => onChange(id)} aria-pressed={active} title={label}
-            transition={{ type: 'spring', stiffness: 520, damping: 40 }}
-            className="press flex items-center gap-1.5 rounded-[8px] text-[12.5px] font-medium focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
-            style={active
-              ? { background: 'var(--brand)', color: '#fff', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }
-              : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}
-          >
-            <Ico />
-            <AnimatePresence initial={false}>
-              {active && (
-                <motion.span
-                  layout
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.16 }}
-                  className="overflow-hidden whitespace-nowrap"
-                >
-                  {label}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.button>
+          <Tooltip key={id} label={label} disabled={active} side="bottom">
+            <motion.button
+              layout onClick={() => onChange(id)} aria-pressed={active}
+              transition={{ type: 'spring', stiffness: 520, damping: 40 }}
+              className="press flex items-center gap-1.5 rounded-[8px] text-[12.5px] font-medium focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+              style={active
+                ? { background: 'var(--brand)', color: '#fff', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }
+                : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}
+            >
+              <Ico />
+              <AnimatePresence initial={false}>
+                {active && (
+                  <motion.span
+                    layout
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.16 }}
+                    className="overflow-hidden whitespace-nowrap"
+                  >
+                    {label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </Tooltip>
         )
       })}
     </div>
@@ -393,10 +396,12 @@ function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void 
 
 function ToolBtn({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} aria-pressed={active}
-      className="icon-btn">
-      {children}
-    </button>
+    <Tooltip label={label} side="bottom">
+      <button onClick={onClick} aria-label={label} aria-pressed={active}
+        className="icon-btn">
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 

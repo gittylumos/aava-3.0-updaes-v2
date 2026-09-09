@@ -7,6 +7,7 @@ import { openableTabs, prdTab, saveTaskLayout, taskLayout, workspaceTabFor, type
 import { useDismiss } from '../../state/useDismiss'
 import { TabContentRegistry } from './TabContentRegistry'
 import { WatchBar } from '../../zones/WatchBar'
+import { Tooltip } from '../chrome/Tooltip'
 import '../../design/flexlayout-theme.css'
 
 /* An empty tabset, not a seeded one. Manually reopening an empty workspace has
@@ -237,26 +238,27 @@ function QuickOpen({ pg, taskId, scenario, prdObject, onOpen }: {
 
   return (
     <div ref={root} className="relative shrink-0">
-      <button
-        /* The tab strip clips its children, so the menu is portalled out and
-           positioned from the button's rect rather than anchored to it. */
-        onClick={(e) => {
-          if (open) return setAt(null)
-          const r = e.currentTarget.getBoundingClientRect()
-          setAt({ x: Math.min(r.left, window.innerWidth - 248), y: r.bottom + 6 })
-        }}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-pressed={open}
-        aria-label="Open an artifact"
-        title="Open an artifact"
-        className="icon-btn"
-      >
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
+      <Tooltip label="Open an artifact" disabled={open} side="bottom">
+        <button
+          /* The tab strip clips its children, so the menu is portalled out and
+             positioned from the button's rect rather than anchored to it. */
+          onClick={(e) => {
+            if (open) return setAt(null)
+            const r = e.currentTarget.getBoundingClientRect()
+            setAt({ x: Math.min(r.left, window.innerWidth - 248), y: r.bottom + 6 })
+          }}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-pressed={open}
+          aria-label="Open an artifact"
+          className="icon-btn"
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      </Tooltip>
 
       {at && createPortal(
         <div

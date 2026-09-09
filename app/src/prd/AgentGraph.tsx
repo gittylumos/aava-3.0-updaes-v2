@@ -18,6 +18,7 @@
  */
 import { useMemo } from 'react'
 import { WatchBar } from '../zones/WatchBar'
+import { Tooltip } from '../components/chrome/Tooltip'
 import type { Message, WatchEntry } from '../state/types'
 
 type Kind = 'agent' | 'tool' | 'human'
@@ -169,10 +170,12 @@ export function AgentGraph({ messages, watch, onCollapse }: { messages: Message[
             <div className="text-[11px] font-semibold uppercase tracking-[.14em]" style={{ color: 'var(--muted-deep)' }}>Execution activity</div>
             <div className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Epics &amp; Features Generator · EFG-1.0</div>
           </div>
-          <button onClick={onCollapse} aria-label="Close" title="Close"
-            className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
+          <Tooltip label="Close" side="bottom" align="end">
+            <button onClick={onCollapse} aria-label="Close"
+              className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </Tooltip>
         </div>
 
         {/* Legend */}

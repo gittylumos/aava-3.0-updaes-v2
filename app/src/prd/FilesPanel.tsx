@@ -7,6 +7,7 @@
  * modal over the top of it.
  */
 import { WatchBar } from '../zones/WatchBar'
+import { Tooltip } from '../components/chrome/Tooltip'
 import type { BacklogDoc } from './backlog'
 import type { ReportView } from './report'
 import type { WatchEntry } from '../state/types'
@@ -46,9 +47,11 @@ export function FilesPanel({ files, watch, activeDoc, activeReport, onOpen, onCo
             <div className="text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>Files in this session</div>
             <div className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>{files.length} document{files.length === 1 ? '' : 's'}</div>
           </div>
-          <button onClick={onCollapse} aria-label="Close" title="Close" className="icon-btn">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
+          <Tooltip label="Close" side="bottom" align="end">
+            <button onClick={onCollapse} aria-label="Close" className="icon-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </Tooltip>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto px-2.5 py-2">

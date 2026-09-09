@@ -6,6 +6,7 @@
  * The .html tab renders the reused analytics dashboards under browser chrome;
  * the .pdf tabs render a report-styled document. */
 import { WatchBar } from '../zones/WatchBar'
+import { Tooltip } from '../components/chrome/Tooltip'
 import type { ActiveObject, WatchEntry } from '../state/types'
 import { FunnelView, FeedbackView, ImpactView } from './InsightCanvas'
 import {
@@ -54,22 +55,30 @@ export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, 
                 </button>
               )
             })}
-            <button aria-label="New tab" title="New tab" className="icon-btn shrink-0" onClick={() => onToast('AAVA opens asset tabs as it produces them')}>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-            </button>
+            <Tooltip label="New tab" side="bottom">
+              <button aria-label="New tab" className="icon-btn shrink-0" onClick={() => onToast('AAVA opens asset tabs as it produces them')}>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+            </Tooltip>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
             {/* Same toolset and glyphs as the document canvas — Share, Download, Close. */}
-            <button onClick={() => onToast('Share link copied')} aria-label="Share" title="Share" className="icon-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
-            </button>
-            <button onClick={() => onToast(`Downloaded ${asset.file}`)} aria-label="Download" title="Download" className="icon-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
-            </button>
+            <Tooltip label="Share" side="bottom">
+              <button onClick={() => onToast('Share link copied')} aria-label="Share" className="icon-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+              </button>
+            </Tooltip>
+            <Tooltip label="Download" side="bottom">
+              <button onClick={() => onToast(`Downloaded ${asset.file}`)} aria-label="Download" className="icon-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
+              </button>
+            </Tooltip>
             <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
-            <button onClick={onCollapse} aria-label="Close" title="Close" className="icon-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
+            <Tooltip label="Close" side="bottom" align="end">
+              <button onClick={onCollapse} aria-label="Close" className="icon-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            </Tooltip>
           </div>
         </div>
 
