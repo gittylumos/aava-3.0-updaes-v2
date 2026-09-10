@@ -302,8 +302,10 @@ these are the constructs the shipped scenarios already use (`src/prd/*Flow.ts`,
 3. Define `PROGRESS_STEPS` + the progress selector.
 4. Write the `BEATS` map — one entry per plan step and per gate branch.
 5. Author the artifact content (documents or a dashboard view + its Canvas renderer).
-6. Wire the object kind through `types.ts`, `reducer.ts`, `useJourney.ts`, `App.tsx` (mirror `backlog` / `insight`).
+6. Wire the object kind through `types.ts`, `reducer.ts`, `useJourney.ts`, `App.tsx` (mirror `backlog` / `insight`) — **and `components/chat/ConversationView.tsx`'s two header `EdgeToggle`s** (`Show execution activity` / `Files in this session`): every object flow gets both unless there's a stated reason it shouldn't (see `docs/DECISIONS.md`, 2026-09-04 — this exact file was missed on the first pass of the report scenario because "mirror an existing flow" didn't name it).
 7. Add a `*.test.ts` asserting the plan, the progress advance, and each gate's routing.
+8. Run it against `docs/UX-Principles.md`'s six-question pass (AAVA's own principles).
+9. Walk `docs/AI-Interaction-Checklist.md` §1 (the human-AI interaction checks, from HAX / PAIR / Apple / the 2026 agent framework), then **add the scenario to its §2 coverage register** — a line per principle it leans on, and its honest gaps. A "no" that isn't a stated exception is a gap to fix or to log in `docs/DECISIONS.md`.
 
 ---
 

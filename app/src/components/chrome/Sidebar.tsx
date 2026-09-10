@@ -4,6 +4,7 @@ import * as Collapsible from '@radix-ui/react-collapsible'
 import type { Task, TaskTag, Thread } from '../../state/types'
 import { TAG_META, threadIdForTask } from '../../state/reducer'
 
+import { ArrowLeftRight } from 'lucide-react'
 import { Tooltip, TooltipProvider } from './Tooltip'
 import { BrandMark, IconChat, IconChevron, IconFilter, IconMoon, IconPanel, IconPinned, IconPlus, IconSearch, IconSun, IconTasks } from './icons'
 import type { Profile } from '../../data/user'
@@ -44,9 +45,9 @@ interface Props {
   onOpenTask: (taskId: string) => void
   onTogglePin: (threadId: string) => void
   profile: Profile
-  /** The profile switching would land on — shown in the account menu. */
-  otherProfile: Profile
-  onSwitchProfile: () => void
+  /** Every other profile the demo ships — listed in the account menu. */
+  otherProfiles: Profile[]
+  onSwitchTo: (id: Profile['id']) => void
   theme: 'light' | 'dark'
   onToggleTheme: () => void
 
@@ -286,8 +287,8 @@ function RecentsHeader({ value, onChange }: { value: Filter; onChange: (f: Filte
 }
 
 
-function Profile({ open, profile, otherProfile, onSwitchProfile, theme, onToggleTheme }: {
-  open: boolean; profile: Profile; otherProfile: Profile; onSwitchProfile: () => void
+function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleTheme }: {
+  open: boolean; profile: Profile; otherProfiles: Profile[]; onSwitchTo: (id: Profile['id']) => void
   theme: 'light' | 'dark'; onToggleTheme: () => void
 }) {
   const [menu, setMenu] = useState(false)
@@ -375,30 +376,31 @@ function Profile({ open, profile, otherProfile, onSwitchProfile, theme, onToggle
               </p>
             </div>
           </div>
-          {/* Switch to the other profile. Shows who you'd become — the demo's
-              two personas trade places here. */}
-          <button
-            type="button"
-            onClick={() => { setMenu(false); onSwitchProfile() }}
-            className="press mt-1 flex w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--glass)]"
-          >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-semibold"
-              style={{ background: 'var(--wash-3)', color: 'var(--text-dim)' }}>
-              {otherProfile.initials}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-medium leading-tight" style={{ color: 'var(--text-dim)' }}>
-                Switch to {otherProfile.name}
+          {/* Switch to any other profile — every persona the demo ships is listed
+              here so you can jump straight to one. */}
+          <div className="mb-0.5 mt-1 px-1 text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Switch profile</div>
+          {otherProfiles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => { setMenu(false); onSwitchTo(p.id) }}
+              className="press flex w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--glass)]"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-semibold"
+                style={{ background: 'var(--wash-3)', color: 'var(--text-dim)' }}>
+                {p.initials}
               </span>
-              <span className="block truncate text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>
-                {otherProfile.role}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12px] font-medium leading-tight" style={{ color: 'var(--text-dim)' }}>
+                  {p.name}
+                </span>
+                <span className="block truncate text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>
+                  {p.role}
+                </span>
               </span>
-            </span>
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ color: 'var(--muted-deep)' }}>
-              <path d="M7 8h11l-3-3M17 16H6l3 3" />
-            </svg>
-          </button>
+              <ArrowLeftRight size={14} aria-hidden style={{ color: 'var(--muted-deep)' }} />
+            </button>
+          ))}
 
           <div className="my-1.5 h-px" style={{ background: 'var(--glass-line-soft)' }} />
 
@@ -446,7 +448,7 @@ function MenuRow({ onClick, children }: { onClick: () => void; children: React.R
 export function Sidebar({
   open, threads, tasks, pinnedIds, activeThreadId, activeTaskId, searchActive, tasksActive,
   onHome, onNewChat, onMyTasks, onSearch, onToggle, onOpenThread, onOpenTask, onTogglePin,
-  profile, otherProfile, onSwitchProfile,
+  profile, otherProfiles, onSwitchTo,
   theme, onToggleTheme,
 }: Props) {
 
@@ -622,8 +624,8 @@ export function Sidebar({
           <div className="mt-auto pt-3" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
             <div className="pt-3">
 
-              <Profile open={open} profile={profile} otherProfile={otherProfile}
-                onSwitchProfile={onSwitchProfile} theme={theme} onToggleTheme={onToggleTheme} />
+              <Profile open={open} profile={profile} otherProfiles={otherProfiles}
+                onSwitchTo={onSwitchTo} theme={theme} onToggleTheme={onToggleTheme} />
             </div>
           </div>
         </div>

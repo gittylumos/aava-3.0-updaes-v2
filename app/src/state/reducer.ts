@@ -1,6 +1,6 @@
 import type { Action, Arrangement, AppState, Effect, PlaygroundState, PrepStep, Task, TaskTag, Thread, ThreadSnapshot } from './types'
 import { hasPreview } from './workspace'
-import { DEFAULT_PROFILE } from '../data/user'
+import { DEFAULT_PROFILE, PROFILE_ORDER, type ProfileId } from '../data/user'
 
 /* The board task that mirrors a PRD object. Created when the PRD opens, so a
    PRD parked at a gate shows on the home screen exactly like a scripted task,
@@ -559,6 +559,43 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
         playground: { ...pg, panelOpen: true },
       }
 
+    case 'setAgentArtifact':
+      return {
+        ...state,
+        activeObject: state.activeObject
+          ? { ...state.activeObject, activeArtifact: effect.artifact, docReady: true }
+          : state.activeObject,
+        playground: { ...pg, panelOpen: true },
+      }
+
+    case 'setAgentPhase':
+      return {
+        ...state,
+        activeObject: state.activeObject
+          ? { ...state.activeObject, agentPhase: effect.phase }
+          : state.activeObject,
+      }
+
+    case 'setAgentCloned':
+      /* Cloning can be triggered from the canvas (not the gate), so retire any
+         live read-only gate here too — otherwise it lingers "waiting on you". */
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.block?.kind === 'decision' || m.block?.kind === 'confirm' ? { ...m, live: false } : m),
+        activeObject: state.activeObject
+          ? { ...state.activeObject, agentCloned: true, agentPhase: Math.max(state.activeObject.agentPhase ?? 0, 2) }
+          : state.activeObject,
+      }
+
+    case 'setAgentStakeholder':
+      return {
+        ...state,
+        activeObject: state.activeObject
+          ? { ...state.activeObject, agentStakeholder: true }
+          : state.activeObject,
+      }
+
     /* The Watch zone is append-only and never interactive — a line lands and
        stays. */
     case 'watch':
@@ -594,6 +631,22 @@ export function applyEffects(state: AppState, effects: Effect[]): AppState {
   return effects.reduce(applyEffect, state)
 }
 
+/* Reset to a target profile's home. Deepak opens on the seeded board; Raman on
+   his parked run (his seeded "PRD to Stories" card first, then whatever it
+   became); Ajay's home is intentionally empty — he builds agents from intent. */
+function profileReset(to: ProfileId, state: AppState): AppState {
+  const tasks = to === 'deepak' ? TASKS
+    : to === 'raman' ? (state.profileId === 'ajay' ? RAMAN_TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS)
+    : []
+  return {
+    ...initialState,
+    profileId: to,
+    tasks,
+    parkedTasks: state.profileId === 'raman' ? state.tasks : state.parkedTasks,
+    sidebarOpen: state.sidebarOpen,
+  }
+}
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     /* My Tasks is the board, and looking at it costs you nothing: the thread you
@@ -627,19 +680,12 @@ export function reducer(state: AppState, action: Action): AppState {
     /* Flip to the other signed-in profile and land on that profile's home. The
        outgoing profile's tasks are parked so switching back restores them; the
        threads/stash reset because a profile is a different person's session. */
-    case 'SWITCH_PROFILE': {
-      const to = state.profileId === 'deepak' ? 'raman' : 'deepak'
-      return {
-        ...initialState,
-        profileId: to,
-        // Deepak always opens on the seeded board; Raman opens on whatever he
-        // parked (his seeded "PRD to Stories" card on the first switch, then
-        // whatever that run has become after that).
-        tasks: to === 'deepak' ? TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS,
-        parkedTasks: state.tasks,
-        sidebarOpen: state.sidebarOpen,
-      }
-    }
+    case 'SWITCH_PROFILE':
+      return profileReset(PROFILE_ORDER[(PROFILE_ORDER.indexOf(state.profileId) + 1) % PROFILE_ORDER.length], state)
+
+    /* The account menu lists every other profile — switch straight to one. */
+    case 'SET_PROFILE':
+      return action.profileId === state.profileId ? state : profileReset(action.profileId, state)
 
     case 'USER_SAY': {
       /* First message of a fresh conversation opens a thread, so every chat the
@@ -807,6 +853,20 @@ export function reducer(state: AppState, action: Action): AppState {
         ? {
             ...state,
             activeObject: { ...state.activeObject, activeReport: action.view, docReady: true },
+            playground: { ...state.playground, panelOpen: true },
+          }
+        : state
+
+    /* An artifact match card's click — open the orchestration builder on it,
+       read-only, at the Create/clone plan step (dock step 3). */
+    case 'SET_OBJECT_AGENT':
+      return state.activeObject
+        ? {
+            ...state,
+            activeObject: {
+              ...state.activeObject, activeArtifact: action.artifact, docReady: true,
+              agentPhase: Math.max(state.activeObject.agentPhase ?? 0, 2),
+            },
             playground: { ...state.playground, panelOpen: true },
           }
         : state

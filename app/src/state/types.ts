@@ -32,6 +32,17 @@ export interface ActiveObject {
   activeInsight?: InsightView
   /** For a report object: which named-file asset tab the canvas is showing. */
   activeReport?: ReportView
+  /** For an agent object: which matched artifact is open in the orchestration
+      builder on the canvas. */
+  activeArtifact?: string
+  /** For an agent object: the furthest process-plan step reached (0-based; the
+      dock reads this). length (5) means the run is fully approved/done. */
+  agentPhase?: number
+  /** For an agent object: the matched artifact has been cloned into a working
+      copy — the builder becomes editable (floating library + per-node config). */
+  agentCloned?: boolean
+  /** For an agent object: the user added a Stakeholder Review node to the clone. */
+  agentStakeholder?: boolean
 }
 
 /** One append-only line in the Watch zone — the run log. Never interactive. */
@@ -180,6 +191,36 @@ export type BlockSpec =
           beat. */
       options: { label: string; beat: string; primary?: boolean; sub?: string; collect?: boolean }[]
       summary?: { label: string; detail?: string }[] }
+  /** The proposed capability/step list in the agent-designer flow — shown as a
+      clean ordered list in the conversation (not the dock-linked plan card), so
+      the user can refine it by typing before matching artifacts. `added` flags a
+      step the user just introduced (e.g. C4 Diagram Generation), so it lands
+      highlighted. */
+  | { kind: 'process'; title?: string; steps: { label: string; added?: boolean }[] }
+  /** The golden-artifact matches — rendered as a titled "catalog" window (like a
+      code block: a header the run can maximise to a modal, no copy control) that
+      holds one clickable card per match. Each card opens the orchestration
+      builder on the canvas. `title` overrides the window heading. */
+  | { kind: 'artifacts'; items: ArtifactMatch[]; title?: string }
+
+/** One golden-artifact match card in the agent-designer flow. Every match here
+    is a golden *process* — a ranked fit for the refined requirement. */
+export interface ArtifactMatch {
+  id: string
+  type: 'Process' | 'Workflow' | 'Agent'
+  title: string
+  /** 0–100 fit against the refined process — drives the ranked ordering and the
+      match badge; the highest is the "Best fit". */
+  match: number
+  /** The workflow the process runs, as a short arrow chain. */
+  workflow: string
+  /** Why this is a good (or partial) fit — one line under the workflow. */
+  why: string
+  /** Adoption signal: total runs, version, and how many teams use it. */
+  uses: number
+  version: string
+  teams?: number
+}
 
 export interface Message {
   id: string
@@ -220,6 +261,18 @@ export type Effect =
   | { type: 'setInsight'; view: InsightView }
   /** Open a report asset tab in the canvas, and open the panel. */
   | { type: 'setReport'; view: ReportView }
+  /** Open the orchestration builder for a matched artifact, and open the panel. */
+  | { type: 'setAgentArtifact'; artifact: string }
+  /** Advance the agent-designer run's dock to a plan step (0-based; length = all
+      done). Set at the head of each agent beat so the hanging dock tracks it. */
+  | { type: 'setAgentPhase'; phase: number }
+  /** Flip the open golden artifact from read-only to a working copy — the canvas
+      gains its floating library and per-node config, and the dock reaches the
+      Create/clone step. */
+  | { type: 'setAgentCloned' }
+  /** Add the Stakeholder Review node to the cloned workflow — the builder renders
+      it after the HITL Review node. */
+  | { type: 'setAgentStakeholder' }
   /** Resolve the newest capability block from searching to matched. */
   | { type: 'capabilityMatched' }
   /** Advance the newest connector card to a new state (searching → offer →
@@ -445,6 +498,9 @@ export type Action =
   | { type: 'SET_OBJECT_INSIGHT'; view: InsightView }
   /** Open a specific report asset tab in the canvas — an asset card's Open. */
   | { type: 'SET_OBJECT_REPORT'; view: ReportView }
+  | { type: 'SET_OBJECT_AGENT'; artifact: string }
+  /** Switch directly to a named profile (the account menu lists all of them). */
+  | { type: 'SET_PROFILE'; profileId: ProfileId }
   /** Record what the user typed into a gate's inline textarea, and retire the
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }

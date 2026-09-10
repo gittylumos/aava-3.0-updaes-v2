@@ -1,11 +1,144 @@
 import { useState } from 'react'
-import type { BlockSpec, TabId } from '../../state/types'
+import type { ArtifactMatch, BlockSpec, TabId } from '../../state/types'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
 import type { ReportView } from '../../prd/report'
 import { ToolSteps } from './ToolSteps'
 
 type DecisionSpec = Extract<BlockSpec, { kind: 'decision' }>
+
+/* Artifact-type tone — reuses the orchestration canvas colour semantics:
+   Process = indigo (brand), Workflow = blue, Agent = green. */
+const ARTIFACT_TONE: Record<ArtifactMatch['type'], React.CSSProperties> = {
+  Process: { background: 'color-mix(in srgb, var(--brand) 16%, transparent)', color: 'var(--brand)' },
+  Workflow: { background: 'color-mix(in srgb, var(--zone-canvas-accent) 16%, transparent)', color: 'var(--zone-canvas-accent)' },
+  Agent: { background: 'color-mix(in srgb, var(--ok) 18%, transparent)', color: 'var(--ok)' },
+}
+
+function ArtifactGlyph({ type }: { type: ArtifactMatch['type'] }) {
+  const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (type === 'Process') return <svg viewBox="0 0 24 24" width="15" height="15" {...p} aria-hidden><rect x="3" y="4" width="7" height="5" rx="1.5" /><rect x="14" y="15" width="7" height="5" rx="1.5" /><rect x="3" y="15" width="7" height="5" rx="1.5" /><path d="M6.5 9v6M10 17.5h4M6.5 12h8.5a2 2 0 0 1 2 2v1" /></svg>
+  if (type === 'Workflow') return <svg viewBox="0 0 24 24" width="15" height="15" {...p} aria-hidden><path d="M4 7h10M4 12h16M4 17h7" /><circle cx="18" cy="7" r="2" /><circle cx="14" cy="17" r="2" /></svg>
+  return <svg viewBox="0 0 24 24" width="15" height="15" {...p} aria-hidden><rect x="4" y="7" width="16" height="12" rx="2.5" /><path d="M12 3v4M9 13h.01M15 13h.01" /></svg>
+}
+
+type ArtifactsSpec = Extract<BlockSpec, { kind: 'artifacts' }>
+
+/* The match badge — best fit reads amber ("Best fit"), the rest brand. */
+function matchTone(best: boolean): React.CSSProperties {
+  return best
+    ? { background: 'color-mix(in srgb, var(--warn) 20%, transparent)', color: 'var(--warn)' }
+    : { background: 'color-mix(in srgb, var(--brand) 16%, transparent)', color: 'var(--brand)' }
+}
+
+/* A small stat chip — the adoption signals under a match. */
+function Stat({ children, tone }: { children: React.ReactNode; tone?: string }) {
+  return (
+    <span className="flex items-center gap-1 rounded-[6px] px-1.5 py-[2px] text-[10.5px]"
+      style={{ background: 'var(--wash-2)', color: tone ?? 'var(--muted)' }}>{children}</span>
+  )
+}
+
+/* One ranked process match. Clicking it opens the builder on the canvas.
+   Compact hierarchy: title + a prominent match %, the workflow as a quiet
+   sub-line, the fit rationale, then the adoption stats as chips. */
+function MatchCard({ a, best, onOpen }: { a: ArtifactMatch; best: boolean; onOpen?: (id: string) => void }) {
+  return (
+    <button onClick={() => onOpen?.(a.id)}
+      className="press group relative flex w-full gap-3 overflow-hidden rounded-[var(--r-md)] p-3 pl-3.5 text-left transition-colors hover:bg-[var(--wash-3)]"
+      style={{
+        background: best ? 'color-mix(in srgb, var(--warn) 6%, var(--slab))' : 'var(--slab)',
+        border: `1px solid ${best ? 'color-mix(in srgb, var(--warn) 38%, transparent)' : 'var(--glass-line)'}`,
+      }}>
+      {/* Best-fit accent rail. */}
+      {best && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: 'var(--warn)' }} />}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[5px]" style={ARTIFACT_TONE[a.type]}>
+            <ArtifactGlyph type={a.type} />
+          </span>
+          <span className="truncate text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{a.title}</span>
+          {best && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-[.06em]" style={matchTone(true)}>
+              <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+              Best fit
+            </span>
+          )}
+        </div>
+        <div className="truncate text-[11px]" style={{ color: 'var(--muted-deep)' }} title={a.workflow}>{a.workflow}</div>
+        <div className="text-[11.5px] leading-[1.45]" style={{ color: 'var(--text-dim)' }}>{a.why}</div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+          <Stat tone="var(--ok)"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12.5 4.5 4.5L19 7" /></svg><span className="mono">{a.uses}</span> uses</Stat>
+          <Stat><span className="mono">{a.version}</span></Stat>
+          {a.teams ? <Stat><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a3 3 0 100-6 3 3 0 000 6M22 20v-1a4 4 0 0 0-3-3.87M16 5.13A4 4 0 0119 9" /></svg>{a.teams} teams</Stat> : null}
+        </div>
+      </div>
+
+      {/* The match % — the card's headline stat. */}
+      <div className="flex shrink-0 flex-col items-end justify-start">
+        <span className="text-[17px] font-bold leading-none" style={{ color: best ? 'var(--warn)' : 'var(--brand)' }}>{a.match}%</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[.08em]" style={{ color: 'var(--muted-deep)' }}>match</span>
+        <span className="mt-auto flex items-center gap-1 pt-2 text-[10.5px] font-medium opacity-0 transition-opacity group-hover:opacity-100" style={{ color: 'var(--brand)' }}>
+          View
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </span>
+      </div>
+    </button>
+  )
+}
+
+/* The catalog window — a titled container (no copy control) that holds the
+   ranked matches and maximises to a modal, so a long match list stays usable. */
+function ArtifactCatalog({ block, onOpen }: { block: ArtifactsSpec; onOpen?: (id: string) => void }) {
+  const [modal, setModal] = useState(false)
+  const items = [...block.items].sort((a, b) => b.match - a.match)
+  const bestId = items[0]?.id
+  const heading = block.title ?? `${items.length} matching artifacts`
+
+  const Header = ({ inModal }: { inModal: boolean }) => (
+    <div className="flex items-center gap-2 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
+      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px]" style={{ background: 'var(--wash-3)', color: 'var(--muted)' }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" /></svg>
+      </span>
+      <span className="text-[12.5px] font-semibold" style={{ color: 'var(--text-dim)' }}>{heading}</span>
+      <span className="mono ml-auto text-[10.5px]" style={{ color: 'var(--muted-deep)' }}>Artifact catalog</span>
+      {inModal ? (
+        <button onClick={() => setModal(false)} aria-label="Close" className="press grid h-7 w-7 place-items-center rounded-[7px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      ) : (
+        <button onClick={() => setModal(true)} aria-label="Maximize" title="Maximize" className="press grid h-7 w-7 place-items-center rounded-[7px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
+        </button>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      <div className="mt-3 w-full max-w-[560px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+        <Header inModal={false} />
+        <div className="flex flex-col gap-2.5 p-3">
+          {items.map((a) => <MatchCard key={a.id} a={a} best={a.id === bestId} onOpen={onOpen} />)}
+        </div>
+      </div>
+
+      {modal && (
+        <div className="fixed inset-0 z-[80] grid place-items-center p-4" style={{ background: 'var(--scrim)' }} onClick={() => setModal(false)}>
+          <div className="flex max-h-[82vh] w-full max-w-[620px] flex-col overflow-hidden rounded-[var(--r-lg)]"
+            style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)', boxShadow: 'var(--shadow-pop)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <Header inModal />
+            <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3.5">
+              {items.map((a) => <MatchCard key={a.id} a={a} best={a.id === bestId} onOpen={(id) => { setModal(false); onOpen?.(id) }} />)}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 interface Props {
   block: BlockSpec
@@ -20,6 +153,8 @@ interface Props {
   /** Reveal the artefact panel — the document card's Open button. A doc opens
       that specific backlog document; no doc just reveals the panel. */
   onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
+  /** An artifact match card's click — open the orchestration builder on it. */
+  onOpenAgentArtifact?: (id: string) => void
   /** Record what the user typed into a gate's inline textarea (the gate's own
       message id is already bound in). */
   onRecordAnswer?: (text: string) => void
@@ -27,7 +162,7 @@ interface Props {
   answer?: string
 }
 
-export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, answer }: Props) {
+export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onRecordAnswer, answer }: Props) {
   if (block.kind === 'tools') return <ToolSteps steps={block.steps} done={block.done} title={block.title} />
 
   if (block.kind === 'capability') return <Capability block={block} />
@@ -250,6 +385,43 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
         )}
       </div>
     )
+  }
+
+  /* The agent-designer capability/step list — an ordered, editable-by-talking
+     process, shown as a clean card (no dock pointer). A step the user just
+     added lands highlighted. */
+  if (block.kind === 'process') {
+    return (
+      <div className="mt-3 w-full max-w-[460px] overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+        {block.title && (
+          <div className="px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[.14em]"
+            style={{ color: 'var(--muted-deep)', borderBottom: '1px solid var(--glass-line-soft)' }}>
+            {block.title}
+          </div>
+        )}
+        {block.steps.map((s, i) => (
+          <div key={s.label} className="flex items-center gap-3 px-3.5 py-2.5"
+            style={{ borderTop: i ? '1px solid var(--glass-line-soft)' : undefined }}>
+            <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]"
+              style={s.added
+                ? { background: 'var(--brand)', color: '#fff' }
+                : { background: 'var(--wash-3)', color: 'var(--muted)' }}>{i + 1}</span>
+            <span className="min-w-0 flex-1 text-[13px]" style={{ color: 'var(--text)', fontWeight: s.added ? 600 : 400 }}>{s.label}</span>
+            {s.added && (
+              <span className="shrink-0 rounded-full px-2 py-[2px] text-[10px] font-semibold uppercase tracking-[.06em]"
+                style={{ background: 'color-mix(in srgb, var(--brand) 18%, transparent)', color: 'var(--brand)' }}>New</span>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  /* The golden-artifact matches — a titled "catalog" window (code-block style)
+     that maximises to a modal; each card opens the builder on the canvas. */
+  if (block.kind === 'artifacts') {
+    return <ArtifactCatalog block={block} onOpen={onOpenAgentArtifact} />
   }
 
   /* A human-in-the-loop gate. Three variants share the golden "waiting on you"

@@ -15,6 +15,8 @@ import { InsightCanvas } from './prd/InsightCanvas'
 import { insightChips } from './prd/insightFlow'
 import type { InsightView } from './prd/insight'
 import { ReportCanvas } from './prd/ReportCanvas'
+import { OrchestrationCanvas } from './prd/OrchestrationCanvas'
+import { AgentPlayground } from './prd/AgentPlayground'
 import { type ReportView, REPORT_ASSETS, REPORT_ORDER } from './prd/report'
 import { AgentGraph } from './prd/AgentGraph'
 import { ReportGraph } from './prd/ReportGraph'
@@ -29,7 +31,7 @@ import { Search } from './components/overlays/Search'
 import { Toast } from './components/overlays/Toast'
 import { useJourney } from './state/useJourney'
 import { useTheme } from './state/useTheme'
-import { PROFILES } from './data/user'
+import { PROFILES, PROFILE_ORDER } from './data/user'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
@@ -40,15 +42,21 @@ export default function App() {
   const j = useJourney()
   const { theme, toggle: toggleTheme } = useTheme()
   const profile = PROFILES[j.state.profileId]
-  const otherProfile = PROFILES[j.state.profileId === 'deepak' ? 'raman' : 'deepak']
+  /* The account switch cycles the profiles in order, so "the other profile" is
+     simply the next one round the ring. */
+  /* Every profile except the one signed in — the account menu lists them all. */
+  const otherProfiles = PROFILE_ORDER.filter((id) => id !== j.state.profileId).map((id) => PROFILES[id])
   /* Raman's home stays empty until something he started needs him: it surfaces
      only active work (a PRD in flight, shown as "needs your input"), never
-     completed work. Deepak keeps his full seeded board. */
+     completed work. Ajay's home is always empty — he builds from intent, there
+     is no board of assigned work. Deepak keeps his full seeded board. */
   const homeTasks = j.state.profileId === 'raman'
     ? j.state.tasks.filter((t) => t.tag !== 'done')
     : j.state.tasks
   const homeSubtitle = homeTasks.length === 0
-    ? 'What would you like to work on?'
+    ? j.state.profileId === 'ajay'
+      ? 'Describe the agent or artifact you want, and I will find the golden match.'
+      : 'What would you like to work on?'
     : j.state.profileId === 'raman'
       ? "Here's what's waiting on your input."
       : 'I have worked on a couple of your tasks. Would you like to review these?'
@@ -60,6 +68,14 @@ export default function App() {
   /* The right canvas shows one of three things: the active document, the session
      files list, or the agent-workflow topology. Held here above the arrangements. */
   const [canvasMode, setCanvasMode] = useState<'doc' | 'files' | 'graph'>('doc')
+  /* The agent object's right-panel view: the orchestration builder, or the
+     Playground (execution & monitoring) — Run swaps between them IN the panel,
+     never a new screen. The builder can still be expanded to the full window. */
+  const [agentView, setAgentView] = useState<'builder' | 'playground'>('builder')
+  const [agentExpanded, setAgentExpanded] = useState(false)
+  /* Run: hand off to the Playground, docked in the same panel (leaving any
+     full-window expand first, so the Playground is always in the panel). */
+  const runAgent = () => { setAgentExpanded(false); setAgentView('playground') }
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
   const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
@@ -98,7 +114,7 @@ export default function App() {
 
   /* A fresh session starts on its default canvas — the workspace/document — not
      whatever graph/files view the last session was left on. */
-  useEffect(() => { setCanvasMode('doc') }, [j.state.activeTaskId, j.state.activeObject?.taskId])
+  useEffect(() => { setCanvasMode('doc'); setAgentView('builder'); setAgentExpanded(false) }, [j.state.activeTaskId, j.state.activeObject?.taskId])
 
   /* Prompt-bar settings live here, above the composer, so they survive the
      composer's remount when the arrangement changes — the same reason the draft
@@ -242,8 +258,8 @@ export default function App() {
               onOpenThread={j.openThread}
               onOpenTask={j.openTask}
               profile={profile}
-              otherProfile={otherProfile}
-              onSwitchProfile={j.switchProfile}
+              otherProfiles={otherProfiles}
+              onSwitchTo={j.setProfile}
               theme={theme}
               onToggleTheme={toggleTheme}
             />
@@ -335,6 +351,7 @@ export default function App() {
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
                     onOpenArtifact={(doc, insight, report) => (report ? j.openObjectReport(report) : insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
+                    onOpenAgentArtifact={(id) => { setCanvasMode('doc'); j.openObjectAgent(id) }}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -425,6 +442,30 @@ export default function App() {
                 onToast={j.toast}
               />
             ) : undefined
+          ) : inObject && j.state.activeObject?.kind === 'agent' ? (
+            /* The Agent Designer run renders, in the same panel, either the
+               orchestration builder or — after Run — the Playground. Swapping
+               between them is a docked transition, never a new screen. */
+            j.state.activeObject?.docReady ? (
+              agentView === 'playground' ? (
+                <AgentPlayground
+                  object={j.state.activeObject}
+                  onClose={() => setAgentView('builder')}
+                  onToast={j.toast}
+                />
+              ) : (
+                <OrchestrationCanvas
+                  object={j.state.activeObject}
+                  onCollapse={() => j.setPanelOpen(false)}
+                  onToast={j.toast}
+                  onToggleExpand={() => setAgentExpanded(true)}
+                  onRun={runAgent}
+                  readOnly={!j.state.activeObject.agentCloned}
+                  onClone={j.cloneArtifact}
+                  stakeholderAdded={j.state.activeObject.agentStakeholder}
+                />
+              )
+            ) : undefined
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
                the workflow icon is pressed. Each run has its own blueprint.
@@ -495,6 +536,23 @@ export default function App() {
           else if (hit.thread) j.openThread(hit.thread)
         }}
       />
+      {/* The orchestration builder, expanded to the whole window. Run from here
+          drops back into the docked panel and shows the Playground there. */}
+      {agentExpanded && j.state.activeObject?.kind === 'agent' && (
+        <div className="fixed inset-0 z-[70]" style={{ background: 'var(--ground)' }}>
+          <OrchestrationCanvas
+            object={j.state.activeObject}
+            onCollapse={() => setAgentExpanded(false)}
+            onToast={j.toast}
+            expanded
+            onToggleExpand={() => setAgentExpanded(false)}
+            onRun={runAgent}
+            readOnly={!j.state.activeObject.agentCloned}
+            onClone={j.cloneArtifact}
+            stakeholderAdded={j.state.activeObject.agentStakeholder}
+          />
+        </div>
+      )}
       <Toast text={j.state.toast} />
     </TooltipProvider>
   )

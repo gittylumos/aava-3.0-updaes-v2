@@ -14,6 +14,7 @@ import type { ReportView } from '../../prd/report'
 import { backlogProgress, DOC_PHASE } from '../../prd/backlogFlow'
 import { insightProgress } from '../../prd/insightFlow'
 import { reportProgress } from '../../prd/pmReportFlow'
+import { agentProgress } from '../../prd/agentFlow'
 
 interface Props {
   state: AppState
@@ -30,6 +31,7 @@ interface Props {
   onOpenFile?: (file: string) => void
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
+  onOpenAgentArtifact?: (id: string) => void
   onRecordAnswer?: (messageId: string, text: string) => void
   onToggleContext?: () => void
   onTogglePanel?: () => void
@@ -54,7 +56,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
@@ -81,6 +83,8 @@ export function ConversationView({
   const ip = object?.kind === 'insight' ? insightProgress(state.messages) : null
   /* The report run's progress dock. */
   const rp = object?.kind === 'report' ? reportProgress(state.messages) : null
+  /* The agent-designer run's dock — reads the object's furthest plan step. */
+  const ap = object?.kind === 'agent' ? agentProgress(state.messages, object.agentPhase) : null
   /* Clicking a report progress step reopens the latest asset in the canvas. */
   const openPhaseReport = () => {
     for (let i = state.messages.length - 1; i >= 0; i--) {
@@ -191,15 +195,20 @@ export function ConversationView({
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {object.kind === 'insight' || object.kind === 'report'
                   ? <><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></>
-                  : <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>}
+                  : object.kind === 'agent'
+                    ? <><rect x="3" y="4" width="7" height="5" rx="1.5" /><rect x="14" y="15" width="7" height="5" rx="1.5" /><rect x="3" y="15" width="7" height="5" rx="1.5" /><path d="M6.5 9v6M10 17.5h4" /></>
+                    : <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>}
               </svg>
-              {object.kind === 'insight' || object.kind === 'report' ? 'Google Analytics · Production v3.4' : 'PRD_v2.4.docx'}
+              {object.kind === 'insight' || object.kind === 'report'
+                ? 'Google Analytics · Production v3.4'
+                : object.kind === 'agent' ? 'Golden Artifact Catalog' : 'PRD_v2.4.docx'}
             </span>
             <div className="ml-auto flex items-center gap-1">
               {/* The agentic process topology and session files. The lighter
                   insight run has neither; the structured triage report run does —
-                  it runs a real agent pipeline and produces named-file assets. */}
-              {object.kind !== 'insight' && (
+                  it runs a real agent pipeline and produces named-file assets.
+                  The agent-builder run has its own canvas, no graph/files. */}
+              {object.kind !== 'insight' && object.kind !== 'agent' && (
                 <>
                   <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
                     <IconWorkflow size={15} />
@@ -245,6 +254,13 @@ export function ConversationView({
           </div>
         )}
 
+        {/* The agent-designer run's dock — the five artifact-identification steps. */}
+        {ap?.started && (
+          <div className="relative z-20 shrink-0 px-6 -mt-px">
+            <RunStrip steps={ap.steps} at={ap.at} waiting={ap.waiting} onOpenStep={() => {}} />
+          </div>
+        )}
+
         {/* Scenario run progress — the same hanging dock, driven by the
             scenario's prep steps. (Backlog and scenario are mutually exclusive.) */}
         {taskProgress && (
@@ -258,7 +274,7 @@ export function ConversationView({
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onRecordAnswer={onRecordAnswer}
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onRecordAnswer={onRecordAnswer}
               pinnedId={pinnedGate?.id} />
           </div>
         </div>
@@ -285,7 +301,7 @@ export function ConversationView({
               <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
                 <Block block={pinnedGate.block} live preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
-                  onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact}
+                  onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact}
                   onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer} />
               </div>
             ) : composer}

@@ -6,6 +6,8 @@ import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS 
 import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
 import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
+import { isArtifactIntent, agentOpening, agentRouter, AGENT_BEATS } from '../prd/agentFlow'
+import type { ProfileId } from '../data/user'
 import { BACKLOG_FILE, type BacklogDoc } from '../prd/backlog'
 import type { InsightView } from '../prd/insight'
 import type { ReportView } from '../prd/report'
@@ -190,6 +192,11 @@ export function useJourney() {
       if (beat) play(beat)
       return
     }
+    if (state.activeObject?.kind === 'agent') {
+      const beat = AGENT_BEATS[name]
+      if (beat) play(beat)
+      return
+    }
     const sc = state.activeTaskId ? getScenario(state.activeTaskId) : null
     const beat = sc?.beats[name]
     if (beat) play(withGate(sc, beat))
@@ -209,6 +216,17 @@ export function useJourney() {
        before the plainer insight intent, since a report ask also names analytics
        keywords; the extra deliverable cue (triage/report/recommendations) is what
        routes it here instead. */
+    /* Agent Designer (Ajay) — an intent to find/build a golden artifact or agent.
+       Checked first among the object intents: it names none of the others'
+       keywords, so pinning it first keeps the agent-builder path clean. */
+    if (!state.activeTaskId && !state.activeObject && !pending && isArtifactIntent(text)) {
+      cancel()
+      dispatch({ type: 'OPEN_OBJECT', kind: 'agent', title: 'Agent Builder · HLD Authoring', subject: 'HLD Authoring', said: text })
+      dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
+      play(agentOpening())
+      return
+    }
+
     if (!state.activeTaskId && !state.activeObject && !pending && isReportIntent(text)) {
       cancel()
       dispatch({ type: 'OPEN_OBJECT', kind: 'report', title: 'Analytics Triage · Checkout post-v3.4', subject: 'Checkout Funnel', said: text })
@@ -272,6 +290,15 @@ export function useJourney() {
     if (state.activeObject?.kind === 'report') {
       dispatch({ type: 'USER_SAY', text })
       play([{ type: 'say', lines: ['Use the buttons above to steer the triage — pick an option and I will continue.'] }])
+      return
+    }
+
+    /* Inside the agent-designer run: a typed refinement ("add C4 …") re-shapes
+       the process; a match/proceed cue lists the artifacts; anything else nudges
+       the user back to the process card. */
+    if (state.activeObject?.kind === 'agent') {
+      dispatch({ type: 'USER_SAY', text })
+      play(agentRouter(text) ?? [{ type: 'say', lines: ['Tell me the step to add, remove or reorder — or use the buttons to match golden artifacts.'] }])
       return
     }
 
@@ -401,6 +428,7 @@ export function useJourney() {
     openThread,
     goHome: () => { cancel(); dispatch({ type: 'GO_HOME' }) },
     switchProfile: () => { cancel(); dispatch({ type: 'SWITCH_PROFILE' }) },
+    setProfile: (profileId: ProfileId) => { cancel(); dispatch({ type: 'SET_PROFILE', profileId }) },
     showTasks: () => dispatch({ type: 'SHOW_TASKS' }),
     closeTasks: () => dispatch({ type: 'CLOSE_TASKS' }),
     closePlayground: () => dispatch({ type: 'CLOSE_PLAYGROUND' }),
@@ -411,6 +439,12 @@ export function useJourney() {
     openObjectInsight: (view: InsightView) => dispatch({ type: 'SET_OBJECT_INSIGHT', view }),
     /* An asset card's Open — focus that report tab in the canvas. */
     openObjectReport: (view: ReportView) => dispatch({ type: 'SET_OBJECT_REPORT', view }),
+    /* An artifact match card's click — open the orchestration builder on it,
+       read-only, and narrate the read-only state + clone offer in the thread. */
+    openObjectAgent: (artifact: string) => { cancel(); dispatch({ type: 'SET_OBJECT_AGENT', artifact }); play(AGENT_BEATS.openArtifact) },
+    /* The canvas Clone button (or the read-only gate) — make a working copy: the
+       builder becomes editable and the run advances to the Create/clone step. */
+    cloneArtifact: () => { cancel(); play(AGENT_BEATS.cloneArtifact) },
     /* A gate's inline note — record it on the gate before its beat fires. */
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
     /* Apply the pending inline comments — they land in the conversation as a turn
