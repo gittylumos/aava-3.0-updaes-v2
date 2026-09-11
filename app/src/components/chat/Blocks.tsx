@@ -24,66 +24,79 @@ function ArtifactGlyph({ type }: { type: ArtifactMatch['type'] }) {
 
 type ArtifactsSpec = Extract<BlockSpec, { kind: 'artifacts' }>
 
-/* The match badge — best fit reads amber ("Best fit"), the rest brand. */
-function matchTone(best: boolean): React.CSSProperties {
-  return best
-    ? { background: 'color-mix(in srgb, var(--warn) 20%, transparent)', color: 'var(--warn)' }
-    : { background: 'color-mix(in srgb, var(--brand) 16%, transparent)', color: 'var(--brand)' }
-}
-
-/* A small stat chip — the adoption signals under a match. */
-function Stat({ children, tone }: { children: React.ReactNode; tone?: string }) {
+/* A step chip — one stage of the process's workflow, on a faint inner wash. */
+function StepChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-1 rounded-[6px] px-1.5 py-[2px] text-[10.5px]"
-      style={{ background: 'var(--wash-2)', color: tone ?? 'var(--muted)' }}>{children}</span>
+    <span className="shrink-0 rounded-[5px] px-1.5 py-[2px] text-[10px] leading-none" style={{ background: 'var(--wash-2)', color: 'var(--muted)' }}>{children}</span>
   )
 }
 
-/* One ranked process match. Clicking it opens the builder on the canvas.
-   Compact hierarchy: title + a prominent match %, the workflow as a quiet
-   sub-line, the fit rationale, then the adoption stats as chips. */
-function MatchCard({ a, best, onOpen }: { a: ArtifactMatch; best: boolean; onOpen?: (id: string) => void }) {
+/* An inline adoption stat — icon + number + label, kept on one line so runs and
+   teams sit together without adding height. */
+function Stat({ value, label, icon }: { value: React.ReactNode; label: string; icon: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1 text-[10.5px]" style={{ color: 'var(--muted)' }}>
+      <span style={{ color: 'var(--muted-deep)' }}>{icon}</span>
+      <b className="mono font-bold" style={{ color: 'var(--text-dim)' }}>{value}</b>{label}
+    </span>
+  )
+}
+
+/* One ranked process match — compact, so three tile across in a single row and
+   the whole block reads in one viewport. The fit % is the hero (a big number +
+   a meter), the workflow steps sit on one line, and runs/teams/version share the
+   next line, over a two-line rationale. Best fit is amber. */
+function MatchCard({ a, best, rank, onOpen }: { a: ArtifactMatch; best: boolean; rank: number; onOpen?: (id: string) => void }) {
+  const accent = best ? 'var(--warn)' : 'var(--brand)'
+  const shown = a.steps.slice(0, 3)
+  const extra = a.steps.length - shown.length
   return (
     <button onClick={() => onOpen?.(a.id)}
-      className="press group relative flex w-full gap-3 overflow-hidden rounded-[var(--r-md)] p-3 pl-3.5 text-left transition-colors hover:bg-[var(--wash-3)]"
+      className="press group flex h-full flex-col gap-2 rounded-[var(--r-md)] p-3 text-left transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,.2)]"
       style={{
-        background: best ? 'color-mix(in srgb, var(--warn) 6%, var(--slab))' : 'var(--slab)',
-        border: `1px solid ${best ? 'color-mix(in srgb, var(--warn) 38%, transparent)' : 'var(--glass-line)'}`,
+        background: best ? 'color-mix(in srgb, var(--warn) 7%, var(--slab-raised))' : 'var(--slab-raised)',
+        border: `1px solid ${best ? 'color-mix(in srgb, var(--warn) 48%, transparent)' : 'var(--glass-line)'}`,
       }}>
-      {/* Best-fit accent rail. */}
-      {best && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: 'var(--warn)' }} />}
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[5px]" style={ARTIFACT_TONE[a.type]}>
-            <ArtifactGlyph type={a.type} />
-          </span>
-          <span className="truncate text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{a.title}</span>
-          {best && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-[.06em]" style={matchTone(true)}>
-              <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-              Best fit
-            </span>
-          )}
-        </div>
-        <div className="truncate text-[11px]" style={{ color: 'var(--muted-deep)' }} title={a.workflow}>{a.workflow}</div>
-        <div className="text-[11.5px] leading-[1.45]" style={{ color: 'var(--text-dim)' }}>{a.why}</div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <Stat tone="var(--ok)"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12.5 4.5 4.5L19 7" /></svg><span className="mono">{a.uses}</span> uses</Stat>
-          <Stat><span className="mono">{a.version}</span></Stat>
-          {a.teams ? <Stat><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a3 3 0 100-6 3 3 0 000 6M22 20v-1a4 4 0 0 0-3-3.87M16 5.13A4 4 0 0119 9" /></svg>{a.teams} teams</Stat> : null}
-        </div>
-      </div>
-
-      {/* The match % — the card's headline stat. */}
-      <div className="flex shrink-0 flex-col items-end justify-start">
-        <span className="text-[17px] font-bold leading-none" style={{ color: best ? 'var(--warn)' : 'var(--brand)' }}>{a.match}%</span>
-        <span className="text-[9px] font-semibold uppercase tracking-[.08em]" style={{ color: 'var(--muted-deep)' }}>match</span>
-        <span className="mt-auto flex items-center gap-1 pt-2 text-[10.5px] font-medium opacity-0 transition-opacity group-hover:opacity-100" style={{ color: 'var(--brand)' }}>
-          View
-          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      {/* Icon + title/rank on the left, the hero fit % on the right. */}
+      <div className="flex items-center gap-2">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px]" style={ARTIFACT_TONE[a.type]}>
+          <ArtifactGlyph type={a.type} />
         </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[12.5px] font-semibold leading-tight" style={{ color: 'var(--text)' }} title={a.title}>{a.title}</div>
+          <div className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[.06em]">
+            {best
+              ? <span className="inline-flex items-center gap-1" style={{ color: 'var(--warn)' }}><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>Best fit</span>
+              : <span style={{ color: 'var(--muted-deep)' }}>Rank {rank}</span>}
+          </div>
+        </div>
+        <div className="shrink-0 text-right leading-none">
+          <span className="mono font-bold" style={{ color: accent, fontSize: 20 }}>{a.match}<span className="text-[11px]">%</span></span>
+          <div className="text-[8.5px] font-semibold uppercase tracking-[.1em]" style={{ color: 'var(--muted-deep)' }}>fit</div>
+        </div>
       </div>
+
+      {/* Fit meter — the % made visible and accessible. */}
+      <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'var(--wash-3)' }}
+        role="meter" aria-valuenow={a.match} aria-valuemin={0} aria-valuemax={100} aria-label={`Fit ${a.match} percent`}>
+        <div className="h-full rounded-full" style={{ width: `${a.match}%`, background: accent }} />
+      </div>
+
+      {/* Workflow steps — one line, overflow folds into +N. */}
+      <div className="flex items-center gap-1 overflow-hidden">
+        {shown.map((s) => <StepChip key={s}>{s}</StepChip>)}
+        {extra > 0 && <StepChip>+{extra}</StepChip>}
+      </div>
+
+      {/* Runs · teams · version — the adoption signals on one line. */}
+      <div className="flex items-center gap-2.5">
+        <Stat value={a.uses} label="runs" icon={<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polygon points="5 3 19 12 5 21 5 3" /></svg>} />
+        {a.teams ? <Stat value={a.teams} label="teams" icon={<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /></svg>} /> : null}
+        <span className="mono ml-auto text-[10px]" style={{ color: 'var(--muted-deep)' }}>{a.version}</span>
+      </div>
+
+      {/* Rationale */}
+      <div className="line-clamp-2 text-[10.5px] leading-[1.4]" style={{ color: 'var(--text-dim)' }} title={a.why}>{a.why}</div>
     </button>
   )
 }
@@ -117,21 +130,25 @@ function ArtifactCatalog({ block, onOpen }: { block: ArtifactsSpec; onOpen?: (id
 
   return (
     <>
-      <div className="mt-3 w-full max-w-[560px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+      {/* Full-width window (fills the conversation column). Compact cards tile
+          three-across (auto-fit folds to fewer when narrow), so the whole set of
+          matches reads in one viewport. The outer surface is a solid neutral so
+          the cards lift off it. */}
+      <div className="mt-3 w-full overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--slab)', border: '1px solid var(--glass-line)' }}>
         <Header inModal={false} />
-        <div className="flex flex-col gap-2.5 p-3">
-          {items.map((a) => <MatchCard key={a.id} a={a} best={a.id === bestId} onOpen={onOpen} />)}
+        <div className="grid gap-2.5 p-3 [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]">
+          {items.map((a, i) => <MatchCard key={a.id} a={a} best={a.id === bestId} rank={i + 1} onOpen={onOpen} />)}
         </div>
       </div>
 
       {modal && (
         <div className="fixed inset-0 z-[80] grid place-items-center p-4" style={{ background: 'var(--scrim)' }} onClick={() => setModal(false)}>
-          <div className="flex max-h-[82vh] w-full max-w-[620px] flex-col overflow-hidden rounded-[var(--r-lg)]"
-            style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)', boxShadow: 'var(--shadow-pop)' }}
+          <div className="flex max-h-[82vh] w-full max-w-[820px] flex-col overflow-hidden rounded-[var(--r-lg)]"
+            style={{ background: 'var(--slab)', border: '1px solid var(--glass-line)', boxShadow: 'var(--shadow-pop)' }}
             onClick={(e) => e.stopPropagation()}>
             <Header inModal />
-            <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3.5">
-              {items.map((a) => <MatchCard key={a.id} a={a} best={a.id === bestId} onOpen={(id) => { setModal(false); onOpen?.(id) }} />)}
+            <div className="grid min-h-0 flex-1 gap-2.5 overflow-y-auto p-3.5 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+              {items.map((a, i) => <MatchCard key={a.id} a={a} best={a.id === bestId} rank={i + 1} onOpen={(id) => { setModal(false); onOpen?.(id) }} />)}
             </div>
           </div>
         </div>
@@ -155,6 +172,8 @@ interface Props {
   onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
   /** An artifact match card's click — open the orchestration builder on it. */
   onOpenAgentArtifact?: (id: string) => void
+  /** The agent Sample I/O card's Open — open the doc tab in the canvas workspace. */
+  onOpenAgentDoc?: () => void
   /** Record what the user typed into a gate's inline textarea (the gate's own
       message id is already bound in). */
   onRecordAnswer?: (text: string) => void
@@ -162,7 +181,7 @@ interface Props {
   answer?: string
 }
 
-export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onRecordAnswer, answer }: Props) {
+export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, answer }: Props) {
   if (block.kind === 'tools') return <ToolSteps steps={block.steps} done={block.done} title={block.title} />
 
   if (block.kind === 'capability') return <Capability block={block} />
@@ -422,6 +441,24 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
      that maximises to a modal; each card opens the builder on the canvas. */
   if (block.kind === 'artifacts') {
     return <ArtifactCatalog block={block} onOpen={onOpenAgentArtifact} />
+  }
+
+  /* A produced-document card (agent flow) — the Sample I/O; Open adds it as a
+     tab in the canvas workspace. */
+  if (block.kind === 'agentDoc') {
+    return (
+      <div className="mt-3 flex w-full max-w-[460px] items-center gap-3 rounded-[var(--r-md)] px-3.5 py-3"
+        style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[9px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--zone-canvas-accent)' }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="mono truncate text-[12.5px] font-medium" style={{ color: 'var(--text-dim)' }}>{block.name}</div>
+          {block.sub && <div className="truncate text-[11.5px]" style={{ color: 'var(--muted)' }}>{block.sub}</div>}
+        </div>
+        <button onClick={() => onOpenAgentDoc?.()} className="btn-secondary shrink-0">Open</button>
+      </div>
+    )
   }
 
   /* A human-in-the-loop gate. Three variants share the golden "waiting on you"

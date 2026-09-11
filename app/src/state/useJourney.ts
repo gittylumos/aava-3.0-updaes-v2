@@ -445,6 +445,8 @@ export function useJourney() {
     /* The canvas Clone button (or the read-only gate) — make a working copy: the
        builder becomes editable and the run advances to the Create/clone step. */
     cloneArtifact: () => { cancel(); play(AGENT_BEATS.cloneArtifact) },
+    /* The Sample I/O artifact card's Open — open it as a tab in the workspace. */
+    openAgentDoc: () => dispatch({ type: 'SET_AGENT_DOC' }),
     /* A gate's inline note — record it on the gate before its beat fires. */
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
     /* Apply the pending inline comments — they land in the conversation as a turn

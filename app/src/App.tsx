@@ -16,7 +16,6 @@ import { insightChips } from './prd/insightFlow'
 import type { InsightView } from './prd/insight'
 import { ReportCanvas } from './prd/ReportCanvas'
 import { OrchestrationCanvas } from './prd/OrchestrationCanvas'
-import { AgentPlayground } from './prd/AgentPlayground'
 import { type ReportView, REPORT_ASSETS, REPORT_ORDER } from './prd/report'
 import { AgentGraph } from './prd/AgentGraph'
 import { ReportGraph } from './prd/ReportGraph'
@@ -68,14 +67,10 @@ export default function App() {
   /* The right canvas shows one of three things: the active document, the session
      files list, or the agent-workflow topology. Held here above the arrangements. */
   const [canvasMode, setCanvasMode] = useState<'doc' | 'files' | 'graph'>('doc')
-  /* The agent object's right-panel view: the orchestration builder, or the
-     Playground (execution & monitoring) — Run swaps between them IN the panel,
-     never a new screen. The builder can still be expanded to the full window. */
-  const [agentView, setAgentView] = useState<'builder' | 'playground'>('builder')
+  /* The agent object's builder can be expanded to the full window. Run, Execute
+     and Analytics all live inside the canvas mini-header now (Build / Execute /
+     Analytics tabs), so there is no separate playground screen to swap to. */
   const [agentExpanded, setAgentExpanded] = useState(false)
-  /* Run: hand off to the Playground, docked in the same panel (leaving any
-     full-window expand first, so the Playground is always in the panel). */
-  const runAgent = () => { setAgentExpanded(false); setAgentView('playground') }
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
   const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
@@ -114,7 +109,7 @@ export default function App() {
 
   /* A fresh session starts on its default canvas — the workspace/document — not
      whatever graph/files view the last session was left on. */
-  useEffect(() => { setCanvasMode('doc'); setAgentView('builder'); setAgentExpanded(false) }, [j.state.activeTaskId, j.state.activeObject?.taskId])
+  useEffect(() => { setCanvasMode('doc'); setAgentExpanded(false) }, [j.state.activeTaskId, j.state.activeObject?.taskId])
 
   /* Prompt-bar settings live here, above the composer, so they survive the
      composer's remount when the arrangement changes — the same reason the draft
@@ -352,6 +347,7 @@ export default function App() {
                     onOpenTab={j.setTab}
                     onOpenArtifact={(doc, insight, report) => (report ? j.openObjectReport(report) : insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
                     onOpenAgentArtifact={(id) => { setCanvasMode('doc'); j.openObjectAgent(id) }}
+                    onOpenAgentDoc={j.openAgentDoc}
                     onRecordAnswer={j.recordAnswer}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -443,28 +439,19 @@ export default function App() {
               />
             ) : undefined
           ) : inObject && j.state.activeObject?.kind === 'agent' ? (
-            /* The Agent Designer run renders, in the same panel, either the
-               orchestration builder or — after Run — the Playground. Swapping
-               between them is a docked transition, never a new screen. */
+            /* The Agent Designer run renders in the orchestration canvas. Build /
+               Execute / Analytics all live inside the canvas mini-header, so Run
+               is an in-canvas section switch, never a new screen. */
             j.state.activeObject?.docReady ? (
-              agentView === 'playground' ? (
-                <AgentPlayground
-                  object={j.state.activeObject}
-                  onClose={() => setAgentView('builder')}
-                  onToast={j.toast}
-                />
-              ) : (
-                <OrchestrationCanvas
-                  object={j.state.activeObject}
-                  onCollapse={() => j.setPanelOpen(false)}
-                  onToast={j.toast}
-                  onToggleExpand={() => setAgentExpanded(true)}
-                  onRun={runAgent}
-                  readOnly={!j.state.activeObject.agentCloned}
-                  onClone={j.cloneArtifact}
-                  stakeholderAdded={j.state.activeObject.agentStakeholder}
-                />
-              )
+              <OrchestrationCanvas
+                object={j.state.activeObject}
+                onCollapse={() => j.setPanelOpen(false)}
+                onToast={j.toast}
+                onToggleExpand={() => setAgentExpanded(true)}
+                readOnly={!j.state.activeObject.agentCloned}
+                onClone={j.cloneArtifact}
+                stakeholderAdded={j.state.activeObject.agentStakeholder}
+              />
             ) : undefined
           ) : inObject && canvasMode === 'graph' ? (
             /* The agent-workflow topology — shown in place of the document when
@@ -546,7 +533,6 @@ export default function App() {
             onToast={j.toast}
             expanded
             onToggleExpand={() => setAgentExpanded(false)}
-            onRun={runAgent}
             readOnly={!j.state.activeObject.agentCloned}
             onClone={j.cloneArtifact}
             stakeholderAdded={j.state.activeObject.agentStakeholder}

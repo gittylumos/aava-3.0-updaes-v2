@@ -43,6 +43,9 @@ export interface ActiveObject {
   agentCloned?: boolean
   /** For an agent object: the user added a Stakeholder Review node to the clone. */
   agentStakeholder?: boolean
+  /** For an agent object: the Sample I/O document tab has been opened in the
+      right-panel workspace (from the conversation's artifact card). */
+  agentDocOpen?: boolean
 }
 
 /** One append-only line in the Watch zone — the run log. Never interactive. */
@@ -202,6 +205,10 @@ export type BlockSpec =
       holds one clickable card per match. Each card opens the orchestration
       builder on the canvas. `title` overrides the window heading. */
   | { kind: 'artifacts'; items: ArtifactMatch[]; title?: string }
+  /** A produced-artifact card for the agent flow — a document (the HLD's sample
+      input & output) with an Open button that opens it as a tab in the canvas
+      workspace. */
+  | { kind: 'agentDoc'; name: string; sub?: string }
 
 /** One golden-artifact match card in the agent-designer flow. Every match here
     is a golden *process* — a ranked fit for the refined requirement. */
@@ -214,6 +221,8 @@ export interface ArtifactMatch {
   match: number
   /** The workflow the process runs, as a short arrow chain. */
   workflow: string
+  /** The workflow's steps as short labels — shown as connected dots on the card. */
+  steps: string[]
   /** Why this is a good (or partial) fit — one line under the workflow. */
   why: string
   /** Adoption signal: total runs, version, and how many teams use it. */
@@ -499,6 +508,8 @@ export type Action =
   /** Open a specific report asset tab in the canvas — an asset card's Open. */
   | { type: 'SET_OBJECT_REPORT'; view: ReportView }
   | { type: 'SET_OBJECT_AGENT'; artifact: string }
+  /** Open the agent flow's Sample I/O document as a tab in the canvas workspace. */
+  | { type: 'SET_AGENT_DOC' }
   /** Switch directly to a named profile (the account menu lists all of them). */
   | { type: 'SET_PROFILE'; profileId: ProfileId }
   /** Record what the user typed into a gate's inline textarea, and retire the

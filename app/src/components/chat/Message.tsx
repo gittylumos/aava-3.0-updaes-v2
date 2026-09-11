@@ -18,12 +18,13 @@ interface Props {
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
   onOpenAgentArtifact?: (id: string) => void
+  onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
   /** This message's block is pinned to the composer slot — skip it inline. */
   pinned?: boolean
 }
 
-export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onRecordAnswer, pinned }: Props) {
+export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, pinned }: Props) {
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -52,7 +53,7 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
           {msg.block && !pinned && (
             <Block block={msg.block} live={msg.live !== false} preview={preview}
               onAccept={onAccept} onDismiss={() => onDismiss(msg.id)} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact}
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
               onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} answer={msg.answer} />
           )}
         </>

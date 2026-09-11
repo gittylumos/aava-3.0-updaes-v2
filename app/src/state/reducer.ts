@@ -871,6 +871,16 @@ export function reducer(state: AppState, action: Action): AppState {
           }
         : state
 
+    /* The conversation's Sample I/O card Open — open the doc tab in the workspace. */
+    case 'SET_AGENT_DOC':
+      return state.activeObject
+        ? {
+            ...state,
+            activeObject: { ...state.activeObject, agentDocOpen: true },
+            playground: { ...state.playground, panelOpen: true },
+          }
+        : state
+
     case 'SET_TAB':
       return {
         ...state,

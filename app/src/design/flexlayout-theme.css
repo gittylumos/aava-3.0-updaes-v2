@@ -118,9 +118,9 @@
   border-bottom: 1px solid var(--glass-line-soft);
 }
 
-/* Close affordance stays quiet until the tab is under the cursor. */
+/* Close affordance stays hidden until the tab is under the cursor (or selected). */
 .flexlayout__tab_button_trailing {
-  opacity: 0.45;
+  opacity: 0;
   transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 

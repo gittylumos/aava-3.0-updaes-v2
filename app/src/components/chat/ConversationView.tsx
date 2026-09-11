@@ -32,6 +32,7 @@ interface Props {
   onOpenTab?: (tab: TabId) => void
   onOpenArtifact?: (doc?: BacklogDoc, insight?: InsightView, report?: ReportView) => void
   onOpenAgentArtifact?: (id: string) => void
+  onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
   onToggleContext?: () => void
   onTogglePanel?: () => void
@@ -56,7 +57,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
@@ -274,7 +275,7 @@ export function ConversationView({
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
-              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onRecordAnswer={onRecordAnswer}
+              onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc} onRecordAnswer={onRecordAnswer}
               pinnedId={pinnedGate?.id} />
           </div>
         </div>
@@ -301,7 +302,7 @@ export function ConversationView({
               <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
                 <Block block={pinnedGate.block} live preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
-                  onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact}
+                  onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
                   onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer} />
               </div>
             ) : composer}

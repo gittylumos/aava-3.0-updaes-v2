@@ -79,18 +79,21 @@ export const ARTIFACT_MATCHES: ArtifactMatch[] = [
   {
     id: '2345', type: 'Process', title: 'HLD Architecture Builder', match: 97,
     workflow: 'Architecture analysis → Solution proposal → C4 diagram generation → API contract → Documentation → Architect review → HITL review',
+    steps: ['Analysis', 'Proposal', 'C4 Gen', 'API Contract', 'Docs', 'Architect Review', 'HITL'],
     why: 'Already covers the core steps in your process, including C4 diagram generation — you only adapt the parts specific to your team.',
     uses: 97, version: 'v2.1', teams: 4,
   },
   {
     id: '4567', type: 'Process', title: 'System Architect Builder', match: 89,
     workflow: 'Architecture analysis → Solution proposal → Design review → Publish',
+    steps: ['Analysis', 'Proposal', 'Design Review', 'Publish'],
     why: 'Strong architectural coverage, but does not include C4 diagram generation out of the box.',
     uses: 71, version: 'v1.9', teams: 3,
   },
   {
     id: '3456', type: 'Process', title: 'Solution Design Builder', match: 82,
     workflow: 'Requirement intake → Solution proposal → Design review',
+    steps: ['Intake', 'Proposal', 'Design Review'],
     why: 'Covers the solution-design core, but omits the C4 and documentation stages your process needs.',
     uses: 54, version: 'v1.8', teams: 2,
   },
@@ -196,12 +199,20 @@ export const AGENT_BEATS: Record<string, Effect[]> = {
     { type: 'say', lines: [
       "Here's the HLD Architecture Builder v2.1 — already used across 4 teams over 97 runs. The workflow on the right shows how the existing process is structured and where it lines up with what you described.",
     ] },
+    /* A sample of what the process produces — input & a drafted HLD (with C4
+       diagrams). Opens as its own tab in the canvas workspace. */
+    { type: 'say', lines: [
+      "Here's a sample run of this process, so you can see what you'd get — the input brief it takes in, and the HLD it produces. Open it to take a look before you clone.",
+    ] },
+    { type: 'say', lines: [], stream: false, block: {
+      kind: 'agentDoc', name: 'HLD — Sample Input & Output', sub: 'A sample run: the requirement brief and the drafted HLD, with C4 diagrams',
+    } },
     { type: 'say',
       lines: ['This artifact is read-only. Create your own version to adapt the workflow to your organisation’s HLD process.'],
       block: {
         kind: 'decision', variant: 'action', icon: 'sparkle', title: 'Read-only artifact',
         question: 'Clone HLD Architecture Builder v2.1 into a working copy you can edit.',
-        options: [{ label: 'Clone & Customize', beat: 'cloneArtifact', primary: true }],
+        options: [{ label: 'Clone', beat: 'cloneArtifact', primary: true }],
       },
     },
   ],
