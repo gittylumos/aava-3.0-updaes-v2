@@ -16,7 +16,7 @@ import {
 import { RunDockPreview } from './previews/runStatus'
 import { InlineGatePreview, HitlGatePreview, PlanEditPreview, HonestAfterStatePreview } from './previews/decisionsGates'
 import { ViewTabsPreview, InlineCommentsPreview, ChangesTrayPreview, MatchCardPreview, SplitTabsPreview } from './previews/canvasDocuments'
-import { ChipsPreview, ToastPreview, PressFeedbackPreview, AmbientFieldPreview } from './previews/feedbackAmbient'
+import { ChipsPreview, ToastPreview, TooltipPreview, PressFeedbackPreview, AmbientFieldPreview } from './previews/feedbackAmbient'
 
 const PREVIEWS: Record<string, React.ComponentType> = {
   'thinking-dots': ThinkingDotsPreview,
@@ -36,6 +36,7 @@ const PREVIEWS: Record<string, React.ComponentType> = {
   'split-tabs': SplitTabsPreview,
   'chips': ChipsPreview,
   'toast': ToastPreview,
+  'tooltip': TooltipPreview,
   'press-feedback': PressFeedbackPreview,
   'ambient-field': AmbientFieldPreview,
 }

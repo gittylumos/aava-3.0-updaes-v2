@@ -1,9 +1,10 @@
-/* Feedback & ambient. Staggered chips, the toast, press feedback, and a
- * contained slice of the ambient field — matched to Chips.tsx / Toast.tsx /
- * .press / AmbientField.tsx. */
-import { useState } from 'react'
+/* Feedback & ambient. Staggered chips, the toast, the real tooltip, press
+ * feedback, and a contained slice of the ambient field — matched to
+ * Chips.tsx / Toast.tsx / Tooltip.tsx / .press / AmbientField.tsx. */
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { Replayable } from '../shared'
+import { Tooltip, TooltipProvider } from '../../components/chrome/Tooltip'
 
 /* ── Suggestion chips ──────────────────────────────────────────────────── */
 const CHIP_LABELS = ['Summarize this', 'Find related tickets', 'Draft a reply']
@@ -38,6 +39,41 @@ function ToastDemo() {
 }
 export function ToastPreview() {
   return <Replayable render={(key) => <div key={key}><ToastDemo /></div>} minHeight={140} />
+}
+
+/* ── Tooltip ───────────────────────────────────────────────────────────────
+   The REAL component, imported directly — Tooltip carries no app-state, so
+   there's nothing to re-implement. It auto-triggers by dispatching the same
+   pointer events a real hover produces (Radix's TooltipTrigger opens on
+   onPointerMove, closes on onPointerLeave — matched here rather than using
+   .focus(), which some hosting contexts suppress when the tab isn't the
+   OS-focused window), so the tooltip visibly opens and closes on its own —
+   but a real hover still works too, since this is the actual Tooltip. */
+function TooltipDemo() {
+  const ref = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const open = () => ref.current?.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }))
+    const close = () => ref.current?.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true, pointerType: 'mouse' }))
+    const t1 = window.setTimeout(open, 500)
+    const t2 = window.setTimeout(close, 2400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip label="Duplicate" side="top">
+        <button ref={ref} aria-label="Duplicate"
+          className="icon-btn grid h-10 w-10 place-items-center rounded-[10px]"
+          style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+          </svg>
+        </button>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+export function TooltipPreview() {
+  return <Replayable render={(key) => <div key={key}><TooltipDemo /></div>} minHeight={160} />
 }
 
 /* ── Press feedback ────────────────────────────────────────────────────── */

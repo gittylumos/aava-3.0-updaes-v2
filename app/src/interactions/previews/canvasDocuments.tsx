@@ -1,5 +1,6 @@
 /* Canvas & documents (P3, P5). The Preview/Code segmented pill, inline
- * highlighted comments, the changes tray, and the compact match card. */
+ * highlighted comments, the changes tray, the compact match card, and the
+ * split-tab workspace. */
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Replayable } from '../shared'
@@ -192,104 +193,169 @@ export function MatchCardPreview() {
   return <Replayable render={(key) => <div key={key}><MatchCardDemo /></div>} minHeight={200} />
 }
 
-/* ── Split-tab workspace ─────────────────────────────────────────────────
-   Deepak's Add-feedback-form flow: dragging the Code tab to the right edge
-   docks it into its own pane. Waiting for a real drag would make this the
-   one preview nobody ever sees run, so it auto-plays the drag once per
-   mount/replay — a cursor glide from the tab to the edge, a drop-zone flash,
-   then the panel actually splits into two tabsets. */
+/* ── Split-tab workspace ─────────────────────────────────────────────────────
+   Deepak's Add-feedback-form flow (TabWorkspace.tsx, flexlayout-react). Waiting
+   for a real drag would make this the one preview nobody ever sees run, so it
+   auto-plays it once per mount/replay — but the drag mechanics themselves are
+   FlexLayout's own, straight from flexlayout-theme.css's tokens, not invented:
+   a translucent brand-tinted "drag rect" (the tab being lifted) travels toward
+   the edge; a bold brand-tinted "edge rect" claims the target half of the
+   panel, then settles to a quieter hold the instant it's clearly claimed —
+   exactly how it reads live. The tab row itself is FlexLayout's real chrome
+   too: a brand underline on the active tab (not a filled pill), a close "×"
+   that only shows on hover, and the same sticky "+" that sits after the last
+   tab. Full page-width canvas, with its own header, rather than a cropped
+   card — this is what the panel actually looks like, not an abstracted widget
+   of it. Once the split lands, the whole canvas settles into a slight zoom so
+   the result — not the chrome around it — is what's left holding the eye. */
 type SplitPhase = 'single' | 'dragging' | 'split'
 
+/* The real Preview tab's own chrome (src/components/playground/Preview.tsx)
+   at preview scale — a fake browser window (the exact traffic-light hexes,
+   the "localhost:4200" mono URL bar) around the running app, on --preview-bg,
+   inside the same p-3 the real Padded wrapper uses. Not a bare form. */
 function MockFeedbackForm() {
   return (
-    <div className="p-3">
-      <div className="text-[11px] font-semibold" style={{ color: 'var(--text)' }}>How was your experience?</div>
-      <div className="mt-0.5 text-[9px]" style={{ color: 'var(--muted)' }}>Your feedback goes straight to the product team.</div>
-      <div className="mt-2 text-[9px] font-medium" style={{ color: 'var(--muted)' }}>Rating</div>
-      <div className="mt-1 flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => <span key={n} className="grid h-5 w-5 place-items-center rounded-[4px] text-[9px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>{n}</span>)}
+    <div className="h-full overflow-auto p-3">
+      <div className="overflow-hidden rounded-[var(--r-sm)]" style={{ border: '1px solid var(--glass-line-soft)' }}>
+        <div className="flex items-center gap-2 px-3 py-2" style={{ background: 'var(--wash-2)' }}>
+          <span className="flex gap-1.5" aria-hidden="true">
+            {['#FF6B6B', '#FBBF24', '#4ADE80'].map((c) => <i key={c} className="h-2 w-2 rounded-full" style={{ background: c, display: 'block' }} />)}
+          </span>
+          <span className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>localhost:4200</span>
+        </div>
+        <div className="p-4" style={{ background: 'var(--preview-bg)' }}>
+          <div className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>How was your experience?</div>
+          <div className="mt-1 text-[10.5px]" style={{ color: 'var(--muted)' }}>Your feedback goes straight to the product team.</div>
+          <div className="mt-3 text-[10px] font-medium" style={{ color: 'var(--muted)' }}>Rating</div>
+          <div className="mt-1.5 flex gap-1.5">
+            {[1, 2, 3, 4, 5].map((n) => <span key={n} className="grid h-7 w-7 place-items-center rounded-[6px] text-[11px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>{n}</span>)}
+          </div>
+          <div className="mt-3 text-[10px] font-medium" style={{ color: 'var(--muted)' }}>Comment</div>
+          <div className="mt-1.5 h-12 rounded-[7px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }} />
+          <div className="mt-3 inline-block rounded-[7px] px-3.5 py-1.5 text-[11px] font-medium" style={{ background: 'var(--wash-3)', color: 'var(--text-dim)' }}>Submit</div>
+        </div>
       </div>
-      <div className="mt-2 h-8 rounded-[5px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }} />
-      <div className="mt-2 inline-block rounded-[5px] px-2.5 py-1 text-[9px] font-medium" style={{ background: 'var(--wash-3)', color: 'var(--text-dim)' }}>Submit</div>
     </div>
   )
 }
 function MockCodePane() {
   const lines = ['<form [formGroup]="form">', '  <h3>How was your experience?</h3>', '', '  <play-rating-scale formC…>', '  <play-form-field label…>', '    <textarea formControl…>', '  </play-form-field>', '</form>']
   return (
-    <div className="p-2.5">
+    <div className="h-full overflow-auto p-3">
       {lines.map((l, i) => (
-        <div key={i} className="mono flex gap-2 text-[9px] leading-[1.6]">
-          <span className="w-3 shrink-0 text-right" style={{ color: 'var(--muted-deep)' }}>{i + 1}</span>
-          <span style={{ color: 'var(--muted)' }}>{l || ' '}</span>
+        <div key={i} className="mono flex gap-2.5 text-[10.5px] leading-[1.7]">
+          <span className="w-3.5 shrink-0 text-right" style={{ color: 'var(--muted-deep)' }}>{i + 1}</span>
+          <span style={{ color: 'var(--muted)' }}>{l || ' '}</span>
         </div>
       ))}
     </div>
   )
 }
-function SplitTab({ label, active }: { label: string; active: boolean }) {
+
+/* The real FlexLayout tab chrome, at preview scale — a brand underline on the
+   active tab (never a filled pill), a close "×" that only reveals on hover or
+   when active, matching .flexlayout__tab_button / _trailing exactly. Clickable
+   where a click makes sense, so this reads as a real workspace, not a frozen
+   frame of one. */
+function FlexTab({ label, active, dimmed, onClick }: { label: string; active: boolean; dimmed?: boolean; onClick?: () => void }) {
   return (
-    <span className="rounded-[6px] px-2 py-1 text-[10px] font-medium"
-      style={active ? { background: 'var(--brand)', color: '#fff' } : { color: 'var(--muted)' }}>
+    <button onClick={onClick} disabled={!onClick} className="press relative flex items-center gap-1.5 px-3 py-[7px] text-[11.5px] font-medium disabled:cursor-default"
+      style={{ color: active ? 'var(--text)' : 'var(--muted)', boxShadow: active ? 'inset 0 -2px 0 var(--brand)' : 'inset 0 -2px 0 transparent', opacity: dimmed ? 0.35 : 1 }}>
       {label}
-    </span>
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden
+        style={{ opacity: active ? 0.7 : 0, transition: 'opacity var(--dur) var(--ease)' }}><path d="M6 6l12 12M18 6 6 18" /></svg>
+    </button>
   )
 }
-function SplitTabsDemo() {
-  const [phase, setPhase] = useState<SplitPhase>('single')
-  useEffect(() => {
-    const t1 = window.setTimeout(() => setPhase('dragging'), 900)
-    const t2 = window.setTimeout(() => setPhase('split'), 1750)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [])
-
+/* The sticky "+" (QuickOpen) that rides at the end of every tab strip — a real
+   toggling dropdown, the same list of openable artefacts the real one offers. */
+const QUICK_OPEN_ITEMS = ['Preview', 'Code', 'Validation Agent results', 'Working diff', 'Evidence']
+function FlexQuickOpen() {
+  const [open, setOpen] = useState(false)
   return (
-    <div className="relative w-full max-w-[520px] overflow-hidden rounded-[var(--r-md)]" style={{ border: '1px solid var(--glass-line)', background: 'var(--wash-1)', height: 200 }}>
-      <div className="flex h-full w-full">
-        {/* Left tabset — always Preview. */}
-        <motion.div layout transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-          className="flex h-full min-w-0 flex-col overflow-hidden" style={{ width: phase === 'split' ? '50%' : '100%', borderRight: phase === 'split' ? '1px solid var(--glass-line)' : undefined }}>
-          <div className="flex shrink-0 items-center gap-0.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-            <SplitTab label="Preview" active />
-            {phase !== 'split' && <SplitTab label="Code" active={false} />}
-          </div>
-          <div className="min-h-0 flex-1 overflow-hidden"><MockFeedbackForm /></div>
-        </motion.div>
-
-        {/* Right tabset — appears once split. */}
-        <AnimatePresence>
-          {phase === 'split' && (
-            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: '50%', opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-              className="flex h-full min-w-0 flex-col overflow-hidden">
-              <div className="flex shrink-0 items-center gap-0.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-                <SplitTab label="Code" active />
-              </div>
-              <div className="min-h-0 flex-1 overflow-hidden"><MockCodePane /></div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* The drop-zone flash at the right edge while "dragging". */}
-      {phase === 'dragging' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0.4] }} transition={{ duration: 0.85, times: [0, 0.3, 0.7, 1] }}
-          className="pointer-events-none absolute inset-y-2 right-2 w-[3px] rounded-full" style={{ background: 'var(--brand)' }} />
-      )}
-
-      {/* The auto-playing drag cursor — glides from the Code tab to the drop zone. */}
-      {phase === 'dragging' && (
-        <motion.div
-          initial={{ left: 74, top: 16 }} animate={{ left: [74, 74, 480], top: [16, 16, 90] }}
-          transition={{ duration: 0.85, times: [0, 0.25, 1], ease: [0.16, 1, 0.3, 1] }}
-          className="pointer-events-none absolute z-10">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--text)" stroke="var(--ground)" strokeWidth="1" aria-hidden style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,.4))' }}>
-            <path d="M5 3l14 6-6 2-2 6-6-14z" />
-          </svg>
-        </motion.div>
+    <div className="relative shrink-0">
+      <button onClick={() => setOpen((o) => !o)} aria-label="Open an artifact" aria-expanded={open}
+        className="press grid h-6 w-6 place-items-center rounded-[6px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-[188px] overflow-hidden rounded-[10px] py-1 shadow-xl" style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}>
+          {QUICK_OPEN_ITEMS.map((label) => (
+            <button key={label} onClick={() => setOpen(false)}
+              className="press flex w-full items-center px-3 py-[7px] text-left text-[12px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--text-dim)' }}>{label}</button>
+          ))}
+        </div>
       )}
     </div>
   )
 }
+function FlexTabStrip({ children }: { children: React.ReactNode }) {
+  return <div className="flex shrink-0 items-center gap-1 px-1.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>{children}</div>
+}
+
+function SplitTabsDemo() {
+  const [phase, setPhase] = useState<SplitPhase>('single')
+  /* Before the auto-play split, the single pane's own tab is still genuinely
+     clickable — a visitor can look at Code without waiting for the drag. */
+  const [singleTab, setSingleTab] = useState<'preview' | 'code'>('preview')
+  useEffect(() => {
+    const t1 = window.setTimeout(() => setPhase('dragging'), 1200)
+    const t2 = window.setTimeout(() => setPhase('split'), 2250)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+
+  return (
+    <motion.div animate={{ scale: phase === 'split' ? 1.02 : 1 }} transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+      className="relative flex w-full overflow-hidden rounded-[var(--r-md)]" style={{ border: '1px solid var(--glass-line)', background: 'var(--slab-raised)', height: 480 }}>
+      {/* Left tabset — Preview, or Code if the visitor picked it manually. */}
+      <motion.div layout transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+        className="flex h-full min-w-0 flex-col overflow-hidden" style={{ width: phase === 'split' ? '50%' : '100%', borderRight: phase === 'split' ? '1px solid var(--glass-line)' : undefined }}>
+        <FlexTabStrip>
+          <FlexTab label="Preview" active={phase === 'split' || singleTab === 'preview'} onClick={phase === 'single' ? () => setSingleTab('preview') : undefined} />
+          {phase !== 'split' && <FlexTab label="Code" active={singleTab === 'code'} dimmed={phase === 'dragging'} onClick={phase === 'single' ? () => setSingleTab('code') : undefined} />}
+          <FlexQuickOpen />
+        </FlexTabStrip>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {phase !== 'split' && singleTab === 'code' ? <MockCodePane /> : <MockFeedbackForm />}
+        </div>
+      </motion.div>
+
+      {/* Right tabset — appears once split. */}
+      <AnimatePresence>
+        {phase === 'split' && (
+          <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: '50%', opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+            className="flex h-full min-w-0 flex-col overflow-hidden">
+            <FlexTabStrip><FlexTab label="Code" active /><FlexQuickOpen /></FlexTabStrip>
+            <div className="min-h-0 flex-1 overflow-hidden"><MockCodePane /></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* The edge rect — FlexLayout's own drop indicator: bold on arrival,
+          then settling to a quieter hold, in the theme's real edge-marker tint
+          (brand at 40%) over the drag-rect fill (brand at 18%). */}
+      {phase === 'dragging' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.95, 0.95, 0.45] }} transition={{ duration: 1.05, times: [0, 0.28, 0.5, 1], delay: 0.35 }}
+          className="pointer-events-none absolute inset-y-0 right-0 w-1/2"
+          style={{ background: 'color-mix(in srgb, var(--brand) 40%, transparent)', borderLeft: '2px solid var(--brand)' }} />
+      )}
+
+      {/* The drag rect — the tab itself, lifted and travelling toward the drop
+          zone, FlexLayout's brand-18%-fill / brand-border ghost. */}
+      {phase === 'dragging' && (
+        <motion.div
+          initial={{ left: 80, top: 14, opacity: 0 }}
+          animate={{ left: [80, 80, '72%'], top: [14, 14, '46%'], opacity: [0, 1, 1] }}
+          transition={{ duration: 0.85, times: [0, 0.2, 1], ease: [0.16, 1, 0.3, 1] }}
+          className="pointer-events-none absolute z-10 flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-[11.5px] font-medium"
+          style={{ background: 'color-mix(in srgb, var(--brand) 18%, var(--slab-raised))', border: '1px solid var(--brand)', color: 'var(--text)', boxShadow: '0 6px 18px rgba(0,0,0,.35)' }}>
+          Code
+        </motion.div>
+      )}
+    </motion.div>
+  )
+}
 export function SplitTabsPreview() {
-  return <Replayable render={(key) => <div key={key} className="w-full max-w-[520px]"><SplitTabsDemo /></div>} minHeight={220} />
+  return <Replayable render={(key) => <div key={key} className="w-full"><SplitTabsDemo /></div>} minHeight={500} />
 }

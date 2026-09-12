@@ -164,7 +164,7 @@ export const PATTERNS: PatternMeta[] = [
     blurb: 'Drag a tab to the edge and it splits into its own pane — a real docking workspace, not a fixed layout.',
     principles: ['P3'],
     file: 'src/components/playground/TabWorkspace.tsx',
-    mechanism: 'A flexlayout-react Model backs the panel; dragging a tab to an edge calls Actions.addNode(..., DockLocation.RIGHT) to dock it into a new tabset. Persisted to localStorage, so a user\'s arrangement survives a reload.',
+    mechanism: 'A flexlayout-react Model backs the panel; dragging a tab to an edge calls Actions.addNode(..., DockLocation.RIGHT) to dock it into a new tabset. The drag itself renders FlexLayout\'s own drag-rect (brand 18% fill) and edge-rect (brand 40% tint) tokens from flexlayout-theme.css — bold on arrival, then a quieter hold. Persisted to localStorage, so a user\'s arrangement survives a reload.',
   },
 
   // ── Feedback & ambient ──────────────────────────────────────────────────
@@ -185,6 +185,15 @@ export const PATTERNS: PatternMeta[] = [
     principles: ['P6', 'P7'],
     file: 'src/components/overlays/Toast.tsx',
     mechanism: 'Slides y:10→0 on enter, drops to y:8 on exit, via AnimatePresence. role="status" aria-live="polite" so assistive tech hears it without a focus change.',
+  },
+  {
+    id: 'tooltip',
+    group: 'Feedback & ambient',
+    label: 'Tooltip',
+    blurb: 'One tooltip for the whole app — a blur-and-scale reveal on every icon-only control.',
+    principles: ['P7'],
+    file: 'src/components/chrome/Tooltip.tsx',
+    mechanism: 'The real component, live — it auto-triggers here so you see it without hovering, but it still responds to a real hover too. Opens with a 180ms scale(.9→1) + blur(4px→0) via Radix state, closes the same way in 140ms; the arrow tracks Radix\'s own collision-aware placement.',
   },
   {
     id: 'press-feedback',
