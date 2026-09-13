@@ -97,7 +97,7 @@ function AgentDrawerDemo() {
   }, [])
 
   return (
-    <div className="relative h-[300px] w-full overflow-hidden rounded-[14px]" style={{ border: '1px solid var(--glass-line)', background: 'var(--slab-raised)', backgroundImage: 'radial-gradient(var(--glass-line-soft) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+    <div className="relative h-[420px] w-full overflow-hidden rounded-[14px]" style={{ border: '1px solid var(--glass-line)', background: 'var(--slab-raised)', backgroundImage: 'radial-gradient(var(--glass-line-soft) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
       onMouseEnter={() => { paused.current = true }} onMouseLeave={() => { paused.current = false }}>
       {/* Topology — a horizontal chain of nodes. */}
       <div className="flex h-full items-center gap-0 px-6">
@@ -156,5 +156,5 @@ function AgentDrawerDemo() {
 }
 
 export function AgentDrawerPreview() {
-  return <PreviewBox minHeight={340}><AgentDrawerDemo /></PreviewBox>
+  return <PreviewBox minHeight={460}><AgentDrawerDemo /></PreviewBox>
 }

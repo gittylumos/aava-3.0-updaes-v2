@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'react'
 import { GROUPS, PATTERNS } from './data'
 import { ImplementationNote } from './shared'
+import { InteractionLanding } from './Landing'
 import {
   ThinkingDotsPreview, StreamedTextPreview, ToolStepsPreview, CapabilityShimmerPreview, ExecutionGraphPreview,
 } from './previews/agentPresence'
@@ -52,6 +53,7 @@ const PREVIEWS: Record<string, React.ComponentType> = {
 }
 
 export function InteractionLibrary() {
+  const [entered, setEntered] = useState(false)
   const [activeId, setActiveId] = useState(PATTERNS[0].id)
   const [query, setQuery] = useState('')
   const [railOpen, setRailOpen] = useState(false)
@@ -66,6 +68,10 @@ export function InteractionLibrary() {
   const Preview = PREVIEWS[active.id]
 
   const select = (id: string) => { setActiveId(id); setRailOpen(false) }
+
+  // The library opens on its front door; View Library reveals the catalogue.
+  // (After every hook above, so hook order stays stable across the switch.)
+  if (!entered) return <InteractionLanding onEnter={() => setEntered(true)} />
 
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: 'var(--ground)' }}>

@@ -48,7 +48,7 @@ function AddMenuDemo() {
   }, [])
 
   return (
-    <div className="relative h-[300px] w-full overflow-hidden rounded-[14px]" style={{ border: '1px solid var(--glass-line)', background: 'var(--slab-raised)', backgroundImage: 'radial-gradient(var(--glass-line-soft) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+    <div className="relative h-[420px] w-full overflow-hidden rounded-[14px]" style={{ border: '1px solid var(--glass-line)', background: 'var(--slab-raised)', backgroundImage: 'radial-gradient(var(--glass-line-soft) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
       onMouseEnter={() => { paused.current = true }} onMouseLeave={() => { paused.current = false }}>
       {/* Faint node chain behind, so the panel reads as floating over a canvas. */}
       <div className="flex h-full items-center justify-center gap-3 opacity-40" aria-hidden>
@@ -68,12 +68,13 @@ function AddMenuDemo() {
         </button>
       )}
 
-      {/* The Add library — slides in from the left. */}
+      {/* The Add library — expands out of the "+" corner and collapses back into
+          it, growing from the top-left the "+" sits at. */}
       <AnimatePresence>
         {open && (
-          <motion.div key="lib" initial={{ x: -280, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -280, opacity: 0 }} transition={{ type: 'spring', stiffness: 360, damping: 34 }}
+          <motion.div key="lib" initial={{ opacity: 0, scale: 0.82 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.82 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className="absolute left-3 top-3 z-20 flex max-h-[calc(100%-24px)] w-[248px] flex-col overflow-hidden rounded-[12px] shadow-xl"
-            style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}>
+            style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)', transformOrigin: 'top left' }}>
             <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--brand)" strokeWidth="1.9" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>
               <span className="text-[12px] font-semibold" style={{ color: 'var(--text)' }}>Add</span>
@@ -120,5 +121,5 @@ function AddMenuDemo() {
 }
 
 export function AddMenuPreview() {
-  return <PreviewBox minHeight={340}><AddMenuDemo /></PreviewBox>
+  return <PreviewBox minHeight={460}><AddMenuDemo /></PreviewBox>
 }
