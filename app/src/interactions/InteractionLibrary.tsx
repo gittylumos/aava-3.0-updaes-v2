@@ -79,17 +79,25 @@ export function InteractionLibrary() {
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[264px] shrink-0 flex-col overflow-hidden transition-transform duration-200 md:static md:translate-x-0
           ${railOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: 'var(--slab)', borderRight: '1px solid var(--glass-line-soft)' }}>
-        <div className="flex items-center gap-2 px-4 pb-3 pt-5">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px]" style={{ background: 'var(--wash-3)' }}>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--brand)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {/* The brand doubles as the way home — back to the landing page. */}
+        <button type="button" onClick={() => setEntered(false)} aria-label="Back to overview"
+          className="press group mx-2 mt-3 flex items-center gap-2 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-[var(--wash-2)]">
+          <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[8px]" style={{ background: 'var(--wash-3)' }}>
+            {/* Sparkle by default; a back-arrow surfaces on hover. */}
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--brand)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              className="transition-opacity group-hover:opacity-0">
               <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+            </svg>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              className="absolute opacity-0 transition-opacity group-hover:opacity-100">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </span>
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-semibold" style={{ color: 'var(--text)' }}>AAVA</div>
             <div className="truncate text-[10.5px] uppercase tracking-[.1em]" style={{ color: 'var(--muted)' }}>Interaction Library</div>
           </div>
-        </div>
+        </button>
 
         <div className="px-3 pb-3">
           <div className="flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
