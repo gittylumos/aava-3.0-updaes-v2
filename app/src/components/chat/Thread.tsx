@@ -19,12 +19,13 @@ interface Props {
   onOpenAgentArtifact?: (id: string) => void
   onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  onToast?: (text: string) => void
   /** The message whose block is pinned to the composer slot — its block is
       skipped inline while it waits there. */
   pinnedId?: string
 }
 
-export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, pinnedId }: Props) {
+export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, pinnedId }: Props) {
   const end = useRef<HTMLDivElement>(null)
   useEffect(() => {
     end.current?.scrollIntoView({
@@ -38,7 +39,7 @@ export function Thread({ messages, chips, preview, onChip, onAccept, onDismiss, 
       {messages.map((m) => (
         <Message key={m.id} msg={m} preview={preview} onAccept={onAccept} onDismiss={onDismiss}
           onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc} onRecordAnswer={onRecordAnswer}
-          pinned={m.id === pinnedId} />
+          onToast={onToast} pinned={m.id === pinnedId} />
       ))}
       <Chips chips={chips} onPick={onChip} />
       <div ref={end} />

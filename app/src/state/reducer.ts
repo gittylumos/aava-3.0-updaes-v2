@@ -394,6 +394,7 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
         typing: false,
         live: true,
         stream: effect.stream !== false,
+        citations: effect.citations,
       }
       const base = trailing?.typing ? state.messages.slice(0, -1) : state.messages
       /* One live decision at a time, and it is the newest one. A gate that

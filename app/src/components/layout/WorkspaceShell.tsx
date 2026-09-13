@@ -144,6 +144,22 @@ export function WorkspaceShell({
   const [peek, setPeek] = useState(false)
   useEffect(() => { if (!autoHideSidebar) setPeek(false) }, [autoHideSidebar])
 
+  /* The library sets flexBasis on every mousemove during a live drag — a CSS
+     transition on that property would then chase the cursor a beat behind it,
+     which is exactly the "fighting the library" the header comment warns
+     about. But a *toggle* click is a single discrete change, not a stream of
+     them, so it is exactly the case a transition is for. `resizing` tells the
+     two apart: true only for the span of an actual pointer drag on the
+     separator, so the CSS transition below is live for every commanded
+     collapse/expand but steps aside the moment a real drag starts. */
+  const [resizing, setResizing] = useState(false)
+  useEffect(() => {
+    if (!resizing) return
+    const up = () => setResizing(false)
+    window.addEventListener('pointerup', up)
+    return () => window.removeEventListener('pointerup', up)
+  }, [resizing])
+
   useEffect(() => {
     const panel = rightRef.current
     if (!panel) return
@@ -153,6 +169,10 @@ export function WorkspaceShell({
 
   return (
     <div className="relative h-full w-full">
+    {/* Targets the sidebar Panel's real sizing node — see the comment on that
+        Panel's className below; `Group` only expects Panel/Separator children,
+        so this lives outside it rather than as a sibling in that tree. */}
+    <style>{`[data-panel]:has(> .sidebar-panel-live) { transition: flex var(--spring-slow) var(--ease-out); }`}</style>
     <Group
       groupRef={groupRef}
       orientation="horizontal"
@@ -201,12 +221,17 @@ export function WorkspaceShell({
           }
           if (!collapsed && !programmatic.current) latestPx.current = Math.round(size.inPixels)
         }}
-        className="flex min-w-0"
+        /* The `className`/`style` props land on Panel's own wrapper div, but
+           the library sizes its PARENT node instead — the actual `[data-panel]`
+           element, styled via the `flex` shorthand it sets directly. There is
+           no prop that reaches that ancestor, so the <style> above Group
+           selects it with `:has()` instead, keyed off this class. */
+        className={`flex min-w-0 ${resizing ? '' : 'sidebar-panel-live'}`}
       >
         {sidebar}
       </Panel>
 
-      <ShellSeparator label="Resize sidebar" />
+      <ShellSeparator label="Resize sidebar" onPointerDown={() => setResizing(true)} />
       </>
       )}
 
@@ -272,16 +297,16 @@ export function WorkspaceShell({
 /* The library gives the separator role="separator" and the ARIA value props;
    this only dresses it. Colour is the only thing that moves — a separator that
    changes width on hover shifts the layout under the cursor you are aiming. */
-function ShellSeparator({ label }: { label: string }) {
+function ShellSeparator({ label, onPointerDown }: { label: string; onPointerDown?: () => void }) {
   return (
     <Separator
       aria-label={label}
+      onPointerDown={onPointerDown}
       className="
         w-px shrink-0 bg-[var(--glass-line-soft)] outline-none
         transition-colors duration-[var(--dur)] ease-[var(--ease)]
         hover:bg-[var(--brand)]
         focus-visible:bg-[var(--focus-ring)]
-        data-[state=dragging]:bg-[var(--brand)]
       "
     />
   )

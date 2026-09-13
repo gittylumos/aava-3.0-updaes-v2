@@ -5,7 +5,9 @@ import { T, prefersReducedMotion } from '../../state/timing'
  *
  * Text that appears fully formed is the single strongest "this is canned" tell,
  * stronger than any timing choice. Revealing by word (not character) matches how
- * tokens actually arrive and avoids the typewriter-toy feel.
+ * tokens actually arrive and avoids the typewriter-toy feel. Each word also
+ * resolves out of a slight blur rather than just appearing — the same "settling
+ * into focus" a generated token has, not a hard cut from nothing to text.
  *
  * Streams once per line, ever — not once per mount. `stream` on the message
  * only says the line was new when it arrived, and nothing clears it, so without
@@ -49,9 +51,17 @@ export function StreamedText({ id, text, onTick, onDone }: {
     return () => clearTimeout(timer)
   }, [shown, done, onTick, id])
 
+  /* Already-finished lines (a reopened thread) render as plain text — the blur
+     keyframe is for the live arrival, not a permanent per-word wrapper. */
+  if (finished.has(id) && shown >= words.current.length) {
+    return <>{words.current.join(' ')}</>
+  }
+
   return (
     <>
-      {words.current.slice(0, shown).join(' ')}
+      {words.current.slice(0, shown).map((w, i) => (
+        <span key={i} className="word-resolve">{w}{' '}</span>
+      ))}
       {!done && (
         <span
           aria-hidden="true"
@@ -59,6 +69,19 @@ export function StreamedText({ id, text, onTick, onDone }: {
           style={{ background: 'var(--muted)' }}
         />
       )}
+      <style>{`
+        .word-resolve {
+          display: inline-block;
+          animation: aava-word-resolve 260ms var(--ease-out) both;
+        }
+        @keyframes aava-word-resolve {
+          from { opacity: 0; filter: blur(4px); transform: translateY(1px); }
+          to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .word-resolve { animation: none; }
+        }
+      `}</style>
     </>
   )
 }

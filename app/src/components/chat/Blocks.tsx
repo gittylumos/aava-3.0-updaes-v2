@@ -179,10 +179,18 @@ interface Props {
   onRecordAnswer?: (text: string) => void
   /** The note the user recorded on this gate, shown back once it is answered. */
   answer?: string
+  /** A tool step's cited source pill was opened. */
+  onToast?: (text: string) => void
 }
 
-export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, answer }: Props) {
-  if (block.kind === 'tools') return <ToolSteps steps={block.steps} done={block.done} title={block.title} />
+export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, answer }: Props) {
+  if (block.kind === 'tools') {
+    return (
+      <ToolSteps steps={block.steps} done={block.done} title={block.title}
+        onOpenSource={onToast ? (step) => onToast(`Opening ${step.result} in ${step.source}`) : undefined}
+        onOpenTab={onOpenTab} />
+    )
+  }
 
   if (block.kind === 'capability') return <Capability block={block} />
   if (block.kind === 'connect') return <Connect block={block} live={live} onAccept={onAccept} />
@@ -973,8 +981,9 @@ function PlanGlyph() {
 }
 
 /* The Jira mark — three stacked chevrons in Jira blue. A clean recreation,
-   used on the "Push to Jira" card and its action button. */
-function JiraLogo({ size = 18 }: { size?: number }) {
+   used on the "Push to Jira" card and its action button, and on the inline
+   source pill (InlineSource.tsx) wherever a Jira ticket is cited. */
+export function JiraLogo({ size = 18 }: { size?: number }) {
   const el = 'h10 a2 2 0 0 1 2 2 v10 l-6 -6 h-4 a2 2 0 0 1 -2 -2 z'
   return (
     <svg viewBox="0 0 34 34" width={size} height={size} aria-hidden>

@@ -34,6 +34,8 @@ interface Props {
   onOpenAgentArtifact?: (id: string) => void
   onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  /** A tool step's cited source pill was opened (e.g. "Opening MOB-2841 in Jira"). */
+  onToast?: (text: string) => void
   onToggleContext?: () => void
   onTogglePanel?: () => void
   /** Open the "all files in this session" modal. */
@@ -57,7 +59,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
@@ -276,7 +278,7 @@ export function ConversationView({
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
               onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc} onRecordAnswer={onRecordAnswer}
-              pinnedId={pinnedGate?.id} />
+              onToast={onToast} pinnedId={pinnedGate?.id} />
           </div>
         </div>
 
@@ -347,13 +349,13 @@ function ChangesTray({ changes, onApply, onDiscard, onRemove }: {
         </button>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => { setOpen(false); onDiscard?.() }}
-            className="press rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium"
+            className="press rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-[var(--wash-3)]"
             style={{ background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-line-soft)' }}>
             Discard
           </button>
           <button onClick={() => { setOpen(false); onApply?.() }}
-            className="press rounded-[9px] px-4 py-1.5 text-[12.5px] font-medium"
-            style={{ background: 'var(--brand)', color: '#fff' }}>
+            className="press rounded-[9px] px-4 py-1.5 text-[12.5px] font-medium transition-[filter] hover:brightness-90"
+            style={{ background: 'var(--text)', color: 'var(--on-text)' }}>
             Apply
           </button>
         </div>

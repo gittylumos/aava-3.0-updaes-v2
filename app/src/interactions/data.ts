@@ -21,6 +21,7 @@ export const GROUPS = [
   'Decisions & gates',
   'Canvas & documents',
   'Feedback & ambient',
+  'Chrome & navigation',
 ] as const
 
 export const PATTERNS: PatternMeta[] = [
@@ -70,6 +71,15 @@ export const PATTERNS: PatternMeta[] = [
     file: 'src/prd/AgentGraph.tsx',
     mechanism: 'Everything grey while planning; only the node genuinely running carries a pulsing stroke and a flowing edge; done nodes go green, a gate node reads REVIEW in amber, the rest read QUEUED.',
   },
+  {
+    id: 'inline-citations',
+    group: 'Agent presence',
+    label: 'Inline source citations',
+    blurb: 'Every claim carries its receipts — the ticket, the frame, the PR it came from, cited in the flow of the sentence.',
+    principles: ['P1', 'P5'],
+    file: 'src/components/chat/InlineSource.tsx',
+    mechanism: 'A source pill (logo + handle) trails the claim it backs. Hovering opens a preview card — what it is, where it lives, and an Open control on every source (Jira, Figma, a GitHub PR alike), not just some — so a reader can follow any citation straight to its origin.',
+  },
 
   // ── Run status — always in view (P2) ───────────────────────────────────
   {
@@ -113,11 +123,11 @@ export const PATTERNS: PatternMeta[] = [
   {
     id: 'honest-afterstate',
     group: 'Decisions & gates',
-    label: 'Honest after-state',
-    blurb: '"Pushed" only if you actually pushed — "Skipped" if you chose not to.',
+    label: 'Commit Gate',
+    blurb: 'Publish the work or skip it — and the card afterward says which you actually chose, never a hopeful default.',
     principles: [],
     file: 'src/components/chat/Blocks.tsx (Sync)',
-    mechanism: 'A push card offers a primary (push now) and secondary ("Proceed for now"). Once retired, the label truthfully reflects which one you picked — the transcript never lies about what happened.',
+    mechanism: 'A push card offers a primary (publish now) and secondary ("Skip for now"). Once retired, the label truthfully reflects which one you picked — the transcript never lies about what happened.',
   },
 
   // ── Canvas & documents (P3, P5) ─────────────────────────────────────────
@@ -158,6 +168,24 @@ export const PATTERNS: PatternMeta[] = [
     mechanism: 'The fit percentage is the hero number with a meter bar under it; the workflow renders as step chips; runs/teams/version share one line — three-across in a compact grid, so a full match set reads in one viewport.',
   },
   {
+    id: 'agent-drawer',
+    group: 'Canvas & documents',
+    label: 'Node drawer',
+    blurb: 'Click an agent in the topology and its panel slides in from the right — Configure, Run node, Evaluate — springing its height to each tab.',
+    principles: ['P3', 'P5'],
+    file: 'src/prd/OrchestrationCanvas.tsx (ConfigPanel)',
+    mechanism: 'The panel enters from the right edge on a spring. Its body measures the active tab\'s content with a ResizeObserver and animates its height to fit, so Configure → Run node → Evaluate reads as one panel reshaping rather than three separate cards swapping.',
+  },
+  {
+    id: 'add-menu',
+    group: 'Canvas & documents',
+    label: 'Add library',
+    blurb: 'Once a golden process is cloned it turns editable, and the canvas\'s "+" opens the Add library — artefacts, logic and building blocks to drop in.',
+    principles: ['P3'],
+    file: 'src/prd/OrchestrationCanvas.tsx (Library)',
+    mechanism: 'A floating "+" at the top-left opens a panel that slides in from the left edge, grouping matched artefacts (process, workflow, agent), routing logic and building blocks — each a draggable row you drop onto the canvas.',
+  },
+  {
     id: 'split-tabs',
     group: 'Canvas & documents',
     label: 'Split-tab workspace',
@@ -196,21 +224,32 @@ export const PATTERNS: PatternMeta[] = [
     mechanism: 'The real component, live — it auto-triggers here so you see it without hovering, but it still responds to a real hover too. Opens with a 180ms scale(.9→1) + blur(4px→0) via Radix state, closes the same way in 140ms; the arrow tracks Radix\'s own collision-aware placement.',
   },
   {
-    id: 'press-feedback',
+    id: 'prompt-composer',
     group: 'Feedback & ambient',
-    label: 'Press feedback',
-    blurb: 'The universal "I felt that" — one class, on every tactile control.',
-    principles: ['P7'],
-    file: 'src/index.css (.press)',
-    mechanism: 'scale(0.96) on :active, transform-only so it never fights layout, applied to every card, chip, icon button and send control in the app.',
+    label: 'Prompt composer',
+    blurb: 'The bar you talk to AAVA through — @ to pull in sources, / for commands, a model picker, file and connector attachments, and dictation.',
+    principles: ['P3', 'P6', 'P7'],
+    file: 'src/components/chrome/Composer.tsx',
+    mechanism: 'One input carries every way in: @ opens a source picker (a ticket, a frame, a PR) that drops in as a chip; / opens the command menu; the + attaches files and connectors; a model picker and dictation sit alongside. Send stays out of the way until it is needed.',
+  },
+
+  // ── Chrome & navigation ─────────────────────────────────────────────────
+  {
+    id: 'theme-transition',
+    group: 'Chrome & navigation',
+    label: 'Theme transition',
+    blurb: 'Light ⇄ dark does not cut — the old look blurs out and fades as the new one resolves out of the same blur.',
+    principles: ['P6', 'P7'],
+    file: 'src/state/useTheme.ts',
+    mechanism: 'The swap rides the View Transition API: a blur-out / blur-in keyframe pair is applied to the root old/new snapshots so the whole page crossfades through a soft blur in one pass. Falls back to a transition-suppressed instant swap where the API is absent or motion is reduced.',
   },
   {
-    id: 'ambient-field',
-    group: 'Feedback & ambient',
-    label: 'Ambient field',
-    blurb: 'A slow, low-contrast background drift — life without distraction.',
-    principles: ['P6', 'P7'],
-    file: 'src/components/ambient/AmbientField.tsx',
-    mechanism: 'Large, soft radial lobes drift on a multi-minute loop, opacity capped low enough that it never competes with content; honours prefers-reduced-motion by freezing in place.',
+    id: 'session-pin',
+    group: 'Chrome & navigation',
+    label: 'Session pin',
+    blurb: 'A session\'s pin hides until you\'re on the row, then lifts it into Pinned and fills solid — unpinning drops it back into Recents.',
+    principles: ['P5', 'P7'],
+    file: 'src/components/chrome/Sidebar.tsx (ThreadRow)',
+    mechanism: 'The pin is opacity-0 until the row is hovered or focused; pinned rows keep it lit and filled. Toggling moves the row between the Pinned and Recents groups, which reflow with a spring layout animation so the change reads as motion, not a redraw.',
   },
 ]

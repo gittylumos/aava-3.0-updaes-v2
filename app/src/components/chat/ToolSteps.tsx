@@ -1,17 +1,27 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import type { ToolStep } from '../../state/types'
+import type { TabId, ToolStep } from '../../state/types'
+import { InlineSource, sourceKindOf } from './InlineSource'
+import { FileDiffChip } from './FileDiffChip'
 
 /* Tool calls resolving in real time.
  *
  * This is what makes AAVA read as an agent rather than a chatbot: before it
  * answers, you watch it go and fetch the things it needs. Each row shows
- * pending -> running -> done with the result it came back with.
+ * pending -> running -> done with the result it came back with — and once
+ * done, a result from a known source (Jira, Figma, GitHub…) becomes a real
+ * inline citation pill instead of plain mono text, hoverable for a preview.
  *
  * With a `title`, the whole run is a collapsible accordion: open and animating
  * while it works, folded to a one-line summary once every step is done — the way
  * agent tools group a finished sequence — with a chevron to reopen it. */
-export function ToolSteps({ steps, done, title }: { steps: ToolStep[]; done: number; title?: string }) {
+export function ToolSteps({ steps, done, title, onOpenSource, onOpenTab }: {
+  steps: ToolStep[]; done: number; title?: string
+  /** A done step's source pill was opened — the caller decides what that means. */
+  onOpenSource?: (step: ToolStep) => void
+  /** A done step's file-diff chip was opened — jumps to the Diff tab. */
+  onOpenTab?: (tab: TabId) => void
+}) {
   const complete = done >= steps.length
   const [open, setOpen] = useState(true)
 
@@ -46,7 +56,16 @@ export function ToolSteps({ steps, done, title }: { steps: ToolStep[]; done: num
               {step.label}
             </span>
             {state === 'done' ? (
-              <span className="mono shrink-0 text-[10.5px]" style={{ color: 'var(--muted-deep)' }}>{step.result}</span>
+              step.diff ? (
+                <FileDiffChip result={step.result} lines={step.diff} onOpen={onOpenTab ? () => onOpenTab('diff') : undefined} />
+              ) : sourceKindOf(step.source) ? (
+                <InlineSource
+                  source={{ kind: sourceKindOf(step.source)!, label: step.result, title: step.label, meta: `${step.source} · cited in this run` }}
+                  onOpen={onOpenSource ? () => onOpenSource(step) : undefined}
+                />
+              ) : (
+                <span className="mono shrink-0 text-[10.5px]" style={{ color: 'var(--muted-deep)' }}>{step.result}</span>
+              )
             ) : (
               <span className="shrink-0 text-[10px] uppercase tracking-[.13em]" style={{ color: 'var(--muted-deep)' }}>{step.source}</span>
             )}

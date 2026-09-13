@@ -40,7 +40,7 @@ function RunDockDemo() {
   }, [bounds.width, bounds.height, controls])
 
   return (
-    <div className="relative flex w-full justify-center" style={{ height: 140 }}>
+    <div className="relative flex w-full justify-center" style={{ height: 300 }}>
       <motion.div animate={controls} initial={false} transition={{ type: 'spring', stiffness: 320, damping: 26, mass: 1 }}
         className="absolute left-1/2 top-0 -translate-x-1/2 overflow-hidden"
         style={{ background: 'var(--slab)', borderRadius: '0 0 20px 20px', boxShadow: 'var(--shadow-panel)' }}>
@@ -99,5 +99,5 @@ function RunDockDemo() {
   )
 }
 export function RunDockPreview() {
-  return <Replayable render={(key) => <div key={key} className="w-full"><RunDockDemo /></div>} minHeight={200} />
+  return <Replayable render={(key) => <div key={key} className="w-full"><RunDockDemo /></div>} minHeight={340} />
 }

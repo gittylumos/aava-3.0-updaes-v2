@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconBell, IconMoon, IconSun } from './components/chrome/icons'
+import { IconMoon, IconSun } from './components/chrome/icons'
+import { NotificationBell } from './components/chrome/NotificationBell'
 import { Tooltip, TooltipProvider } from './components/chrome/Tooltip'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
@@ -136,6 +137,7 @@ export default function App() {
       files={files}
       onAddFiles={(names) => setFiles((f) => [...new Set([...f, ...names])])}
       onRemoveFile={(name) => setFiles((f) => f.filter((x) => x !== name))}
+      busy={j.busy} onStop={j.stop}
     />
   )
 
@@ -302,14 +304,7 @@ export default function App() {
                       className={CORNER_BTN}
                       style={CORNER_STYLE}
                     >
-                      <IconBell size={15} />
-                      {!!j.unreadCount && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full"
-                          style={{ background: 'var(--danger)', boxShadow: '0 0 0 2px var(--slab)' }}
-                        />
-                      )}
+                      <NotificationBell count={j.unreadCount} />
                     </button>
                   </Tooltip>
                 </div>
@@ -349,6 +344,7 @@ export default function App() {
                     onOpenAgentArtifact={(id) => { setCanvasMode('doc'); j.openObjectAgent(id) }}
                     onOpenAgentDoc={j.openAgentDoc}
                     onRecordAnswer={j.recordAnswer}
+                    onToast={j.toast}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
                     onShowFiles={showFiles}

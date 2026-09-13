@@ -20,7 +20,7 @@ function ViewTabsDemo() {
           <motion.button key={t.id} layout onClick={() => setView(t.id)} aria-pressed={active}
             transition={{ type: 'spring', stiffness: 520, damping: 40 }}
             className="press flex items-center gap-1.5 rounded-[8px] text-[12.5px] font-medium"
-            style={active ? { background: 'var(--brand)', color: '#fff', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' } : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}>
+            style={active ? { background: 'var(--text)', color: 'var(--on-text)', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' } : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               {t.id === 'preview' ? <><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M3 9h18" /></> : <path d="m8 6-5 6 5 6M16 6l5 6-5 6" />}
             </svg>
@@ -41,27 +41,108 @@ export function ViewTabsPreview() {
   return <Replayable render={(key) => <div key={key}><ViewTabsDemo /></div>} minHeight={140} />
 }
 
-/* ── Inline comments ───────────────────────────────────────────────────── */
+/* ── Inline comments ──────────────────────────────────────────────────────
+   Plays the whole gesture, not a frozen end-state: the comment tool arms, a
+   phrase is selected (the highlight sweeps in), a floating composer types the
+   note, and on save the passage settles into its commented highlight with a
+   numbered marker tied to the entry below — the real DocumentCanvas flow, on a
+   loop. */
+type CommentPhase = 'idle' | 'selecting' | 'composing' | 'saved'
+const COMMENT_NOTE = 'Should this also cover the wallet flows, or just card auth?'
 function InlineCommentsDemo() {
+  const [phase, setPhase] = useState<CommentPhase>('idle')
+  const [typed, setTyped] = useState('')
+
+  useEffect(() => {
+    const t = [
+      window.setTimeout(() => setPhase('selecting'), 650),
+      window.setTimeout(() => setPhase('composing'), 1350),
+      window.setTimeout(() => setPhase('saved'), 3400),
+    ]
+    return () => t.forEach(clearTimeout)
+  }, [])
+  useEffect(() => {
+    if (phase !== 'composing') { if (phase === 'idle') setTyped(''); return }
+    let i = 0
+    const iv = window.setInterval(() => {
+      i += 1; setTyped(COMMENT_NOTE.slice(0, i))
+      if (i >= COMMENT_NOTE.length) window.clearInterval(iv)
+    }, 26)
+    return () => window.clearInterval(iv)
+  }, [phase])
+
+  const armed = phase !== 'idle'
+  const highlighted = phase === 'selecting' || phase === 'composing'
+  const committed = phase === 'saved'
+
   return (
-    <div className="w-full max-w-[460px]">
-      <p className="text-[13px] leading-[1.7]" style={{ color: 'var(--text-dim)' }}>
+    <div className="relative w-full max-w-[460px]">
+      {/* The comment tool, as it sits in the canvas toolbar — it arms, then the
+          selection follows. */}
+      <div className="mb-2.5 flex items-center justify-end">
+        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+          style={{ background: armed ? 'var(--wash-5)' : 'var(--wash-2)', border: `1px solid ${armed ? 'var(--glass-line)' : 'var(--glass-line-soft)'}`, color: armed ? 'var(--text)' : 'var(--muted)' }}>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          {armed ? 'Commenting' : 'Comment'}
+        </span>
+      </div>
+
+      <p className="text-[13px] leading-[1.8]" style={{ color: 'var(--text-dim)' }}>
         The Checkout Payments Service is a stateless authorisation gateway fronting the card processor.{' '}
-        <span className="relative rounded-[3px] px-0.5" style={{ background: 'color-mix(in srgb, var(--brand) 22%, transparent)' }}>
+        <span className="relative rounded-[3px] px-0.5 transition-colors duration-300"
+          style={{
+            background: committed ? 'var(--wash-5)' : highlighted ? 'var(--wash-6)' : 'transparent',
+            boxShadow: committed ? 'inset 0 -1.5px 0 var(--text-dim)' : 'none',
+          }}>
           It exposes a synchronous authorise/capture API
-          <sup className="mono ml-0.5 grid h-[14px] w-[14px] place-items-center rounded-full align-super text-[9px] font-bold" style={{ background: 'var(--brand)', color: '#fff' }}>1</sup>
+          {committed && (
+            <motion.sup initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+              className="mono ml-0.5 inline-grid h-[15px] w-[15px] place-items-center rounded-full align-super text-[9px] font-bold" style={{ background: 'var(--text)', color: 'var(--on-text)' }}>1</motion.sup>
+          )}
         </span>{' '}
         to the checkout front-end.
       </p>
-      <div className="mt-3 flex items-start gap-2.5 rounded-[var(--r-md)] p-3" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-        <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold" style={{ background: 'var(--brand)', color: '#fff' }}>1</span>
-        <p className="text-[12.5px] leading-[1.5]" style={{ color: 'var(--text-dim)' }}>Should this also cover the wallet flows, or just card auth?</p>
-      </div>
+
+      {/* Floating composer while the note is being written. */}
+      <AnimatePresence>
+        {phase === 'composing' && (
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.18 }}
+            className="mt-3 flex items-center gap-2 rounded-[var(--r-md)] p-1.5 pl-3 shadow-xl" style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}>
+            <span className="min-w-0 flex-1 truncate text-[12.5px]" style={{ color: typed ? 'var(--text)' : 'var(--muted-deep)' }}>
+              {typed || 'Add a comment…'}<span className="ilib-caret" />
+            </span>
+            <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-full" style={{ background: 'var(--text)', color: 'var(--on-text)' }} aria-hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5.5M12 5.5 6 11.5M12 5.5l6 6" /></svg>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* The saved comment, tied to marker 1. */}
+      <AnimatePresence>
+        {committed && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
+            className="mt-3 flex items-start gap-2.5 rounded-[var(--r-md)] p-3" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
+            <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold" style={{ background: 'var(--text)', color: 'var(--on-text)' }}>1</span>
+            <div className="min-w-0">
+              <div className="mb-0.5 flex items-center gap-1.5">
+                <span className="grid h-4 w-4 place-items-center rounded-full text-[8px] font-semibold" style={{ background: 'var(--wash-4)', color: 'var(--text-dim)' }}>D</span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>Deepak</span>
+              </div>
+              <p className="text-[12.5px] leading-[1.5]" style={{ color: 'var(--text-dim)' }}>{COMMENT_NOTE}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <style>{`
+        .ilib-caret { display: inline-block; width: 1.5px; height: 13px; margin-left: 1px; vertical-align: text-bottom; background: var(--text); animation: ilib-caret-blink 1s steps(1) infinite; }
+        @keyframes ilib-caret-blink { 0%,50% { opacity: 1 } 50.01%,100% { opacity: 0 } }
+      `}</style>
     </div>
   )
 }
 export function InlineCommentsPreview() {
-  return <Replayable render={(key) => <div key={key} className="w-full max-w-[460px]"><InlineCommentsDemo /></div>} minHeight={200} />
+  return <Replayable render={(key) => <div key={key} className="w-full max-w-[460px]"><InlineCommentsDemo /></div>} minHeight={260} />
 }
 
 /* ── Changes tray ──────────────────────────────────────────────────────────
@@ -140,8 +221,8 @@ function ChangesTrayDemo() {
           {TRAY_CHANGES.length} changes
         </button>
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => setPhase('applied')} className="press rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium" style={{ background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-line-soft)' }}>Discard</button>
-          <button onClick={() => setPhase('applying')} className="press rounded-[9px] px-4 py-1.5 text-[12.5px] font-medium" style={{ background: 'var(--brand)', color: '#fff' }}>Apply</button>
+          <button onClick={() => setPhase('applied')} className="press rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-[var(--wash-3)]" style={{ background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--glass-line-soft)' }}>Discard</button>
+          <button onClick={() => setPhase('applying')} className="press rounded-[9px] px-4 py-1.5 text-[12.5px] font-medium transition-[filter] hover:brightness-90" style={{ background: 'var(--text)', color: 'var(--on-text)' }}>Apply</button>
         </div>
       </div>
     </div>
@@ -154,34 +235,34 @@ export function ChangesTrayPreview() {
 /* ── Match card ────────────────────────────────────────────────────────── */
 function MatchCardDemo() {
   return (
-    <button className="press group flex h-full w-full max-w-[280px] flex-col gap-2 rounded-[var(--r-md)] p-3 text-left"
-      style={{ background: 'color-mix(in srgb, var(--warn) 7%, var(--slab-raised))', border: '1px solid color-mix(in srgb, var(--warn) 48%, transparent)' }}>
-      <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px]" style={{ background: 'color-mix(in srgb, var(--zone-canvas-accent) 18%, transparent)', color: 'var(--zone-canvas-accent)' }}>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+    <button className="press group flex h-full w-full max-w-[340px] flex-col gap-3 rounded-[var(--r-md)] p-4 text-left transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,.2)]"
+      style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}>
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px]" style={{ background: 'var(--wash-3)', color: 'var(--text-dim)' }}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[12.5px] font-semibold leading-tight" style={{ color: 'var(--text)' }}>HLD Architecture Builder</div>
-          <div className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[.06em]">
-            <span className="inline-flex items-center gap-1" style={{ color: 'var(--warn)' }}>
+          <div className="truncate text-[13px] font-semibold leading-tight" style={{ color: 'var(--text)' }}>HLD Architecture Builder</div>
+          <div className="mt-1 text-[9.5px] font-semibold uppercase tracking-[.07em]">
+            <span className="inline-flex items-center gap-1" style={{ color: 'var(--text-dim)' }}>
               <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
               Best fit
             </span>
           </div>
         </div>
         <div className="shrink-0 text-right leading-none">
-          <span className="mono font-bold" style={{ color: 'var(--warn)', fontSize: 20 }}>97<span className="text-[11px]">%</span></span>
-          <div className="text-[8.5px] font-semibold uppercase tracking-[.1em]" style={{ color: 'var(--muted-deep)' }}>fit</div>
+          <span className="mono font-bold" style={{ color: 'var(--text)', fontSize: 22 }}>97<span className="text-[12px]" style={{ color: 'var(--muted)' }}>%</span></span>
+          <div className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-[.1em]" style={{ color: 'var(--muted-deep)' }}>fit</div>
         </div>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'var(--wash-3)' }}>
-        <div className="h-full rounded-full" style={{ width: '97%', background: 'var(--warn)' }} />
+      <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--wash-3)' }}>
+        <div className="h-full rounded-full" style={{ width: '97%', background: 'var(--text-dim)' }} />
       </div>
-      <div className="flex items-center gap-1">
-        {['Analysis', 'Proposal', 'C4 Gen'].map((s) => <span key={s} className="shrink-0 rounded-[5px] px-1.5 py-[2px] text-[10px]" style={{ background: 'var(--wash-2)', color: 'var(--muted)' }}>{s}</span>)}
-        <span className="shrink-0 rounded-[5px] px-1.5 py-[2px] text-[10px]" style={{ background: 'var(--wash-2)', color: 'var(--muted)' }}>+4</span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {['Analysis', 'Proposal', 'C4 Gen'].map((s) => <span key={s} className="shrink-0 rounded-[6px] px-2 py-[3px] text-[10px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>{s}</span>)}
+        <span className="shrink-0 rounded-[6px] px-2 py-[3px] text-[10px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--muted)' }}>+4</span>
       </div>
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-3 pt-0.5" style={{ borderTop: '1px solid var(--glass-line-soft)', paddingTop: 10 }}>
         <span className="flex items-center gap-1 text-[10.5px]" style={{ color: 'var(--muted)' }}><b className="mono font-bold" style={{ color: 'var(--text-dim)' }}>97</b>runs</span>
         <span className="flex items-center gap-1 text-[10.5px]" style={{ color: 'var(--muted)' }}><b className="mono font-bold" style={{ color: 'var(--text-dim)' }}>4</b>teams</span>
         <span className="mono ml-auto text-[10px]" style={{ color: 'var(--muted-deep)' }}>v2.1</span>
@@ -332,24 +413,25 @@ function SplitTabsDemo() {
         )}
       </AnimatePresence>
 
-      {/* The edge rect — FlexLayout's own drop indicator: bold on arrival,
-          then settling to a quieter hold, in the theme's real edge-marker tint
-          (brand at 40%) over the drag-rect fill (brand at 18%). */}
+      {/* The edge rect — FlexLayout's own drop indicator for the target half:
+          it fades in only as the lifted tab nears the edge, then settles to a
+          quieter hold, rather than flashing on at full strength. */}
       {phase === 'dragging' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.95, 0.95, 0.45] }} transition={{ duration: 1.05, times: [0, 0.28, 0.5, 1], delay: 0.35 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 0.7, 0.4] }} transition={{ duration: 1.05, times: [0, 0.4, 0.75, 1] }}
           className="pointer-events-none absolute inset-y-0 right-0 w-1/2"
-          style={{ background: 'color-mix(in srgb, var(--brand) 40%, transparent)', borderLeft: '2px solid var(--brand)' }} />
+          style={{ background: 'color-mix(in srgb, var(--brand) 26%, transparent)', borderLeft: '2px solid color-mix(in srgb, var(--brand) 70%, transparent)' }} />
       )}
 
-      {/* The drag rect — the tab itself, lifted and travelling toward the drop
-          zone, FlexLayout's brand-18%-fill / brand-border ghost. */}
+      {/* The drag rect — the Code tab lifted off the strip and carried toward the
+          drop zone. It emerges FROM the tab's own place (small, tab-sized, a soft
+          lift-shadow) and eases across — not a big button popping in at a corner. */}
       {phase === 'dragging' && (
         <motion.div
-          initial={{ left: 80, top: 14, opacity: 0 }}
-          animate={{ left: [80, 80, '72%'], top: [14, 14, '46%'], opacity: [0, 1, 1] }}
-          transition={{ duration: 0.85, times: [0, 0.2, 1], ease: [0.16, 1, 0.3, 1] }}
-          className="pointer-events-none absolute z-10 flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-[11.5px] font-medium"
-          style={{ background: 'color-mix(in srgb, var(--brand) 18%, var(--slab-raised))', border: '1px solid var(--brand)', color: 'var(--text)', boxShadow: '0 6px 18px rgba(0,0,0,.35)' }}>
+          initial={{ left: 92, top: 8, opacity: 0, scale: 0.94 }}
+          animate={{ left: [92, 110, '70%'], top: [8, 4, '46%'], opacity: [0, 1, 1], scale: [0.94, 1, 1] }}
+          transition={{ duration: 1.0, times: [0, 0.35, 1], ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute z-10 flex items-center gap-1.5 rounded-[7px] px-2.5 py-[5px] text-[11px] font-medium"
+          style={{ background: 'var(--slab)', border: '1px solid var(--glass-line)', color: 'var(--text-dim)', boxShadow: '0 8px 20px rgba(0,0,0,.28)' }}>
           Code
         </motion.div>
       )}

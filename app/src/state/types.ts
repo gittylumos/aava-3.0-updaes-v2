@@ -112,6 +112,10 @@ export interface ToolStep {
   result: string
   /** How long this call takes, from `T` in state/timing.ts. */
   ms: number
+  /** A repo-read step that touched files gets a diff preview instead of a
+      plain result — hovering the chip shows these lines (same shape as
+      `DiffGroup.lines`), clicking opens the Diff tab. */
+  diff?: { tone: 'ctx' | 'del' | 'add'; text: string }[]
 }
 
 export type BlockSpec =
@@ -231,6 +235,20 @@ export interface ArtifactMatch {
   teams?: number
 }
 
+/** A source cited at the end of a claim — rendered as a small pill trailing
+    the last line of the message it backs (see chat/InlineSource.tsx's
+    CitationPills, which this shape mirrors field-for-field). Kept as a plain
+    string union here rather than importing that component's own `SourceKind`
+    — state/types.ts stays UI-free the way ToolStep's `source: string` does. */
+export interface Citation {
+  kind: 'jira' | 'figma' | 'github' | 'confluence' | 'azure'
+  label: string
+  title: string
+  meta: string
+  description?: string
+  date?: string
+}
+
 export interface Message {
   id: string
   from: 'user' | 'aava'
@@ -244,10 +262,13 @@ export interface Message {
   /** What the user typed into a gate's inline textarea before answering — shown
       back inside the retired gate card as their recorded note. */
   answer?: string
+  /** Sources backing this message's last line — shown as trailing pills once
+      that line finishes revealing. */
+  citations?: Citation[]
 }
 
 export type Effect =
-  | { type: 'say'; lines: string[]; block?: BlockSpec; stream?: boolean }
+  | { type: 'say'; lines: string[]; block?: BlockSpec; stream?: boolean; citations?: Citation[] }
   /** Show tool calls resolving one by one before the answer arrives. `title`
       groups them into a collapsible accordion that folds once they finish. */
   | { type: 'tools'; steps: ToolStep[]; title?: string }

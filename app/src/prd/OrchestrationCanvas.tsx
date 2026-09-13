@@ -603,7 +603,7 @@ function ConfigPanel({ node, onClose, onToast }: { node: GNode; onClose: () => v
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.97, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: -4 }} transition={HOVER_SPRING}
+      initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ type: 'spring', stiffness: 360, damping: 34 }}
       className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-24px)] w-[340px] flex-col overflow-hidden rounded-[var(--r-md)] shadow-xl"
       style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)', transformOrigin: 'top right' }}>
       <div className="flex shrink-0 items-center gap-2 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>

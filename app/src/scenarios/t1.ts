@@ -178,11 +178,23 @@ export const t1: Scenario = {
       ] },
       { type: 'say', stream: false, lines: [
         'MOB-2841 matched the Feedback Form v3 frame cleanly. Six PLAY components in the design — four already in the library, two I built and staged for their own PR.',
+      ], citations: [
+        { kind: 'jira', label: 'MOB-2841', title: 'Add a feedback form to the mobile app',
+          meta: 'Jira · Mobile Platform', description: 'A 1–5 rating and an optional comment, posted to the feedback endpoint — the acceptance criteria this build was matched against.',
+          date: 'Opened Sep 8, 2026' },
+        { kind: 'figma', label: 'Feedback Form v3', title: 'Feedback Form v3',
+          meta: 'Figma · Mobile Components', description: 'The approved frame in the Mobile Components file — six components matched against it, four reused from PLAY.',
+          date: 'Updated Sep 9, 2026' },
       ] },
       { type: 'tools', title: 'Building & wiring the screen', steps: [
         { label: 'Verifying the API contract', source: 'OpenAPI', result: 'POST /api/v1/feedback', ms: 0 },
         { label: 'Locating the feature module & route', source: 'Repo', result: 'src/app/feedback/', ms: 0 },
-        { label: 'Generating the page & wiring the endpoint', source: 'Repo', result: '7 files changed', ms: 0 },
+        { label: 'Generating the page & wiring the endpoint', source: 'Repo', result: '7 files changed', ms: 0, diff: [
+          { tone: 'add', text: '+ <play-rating-scale formControlName="rating"></play-rating-scale>' },
+          { tone: 'add', text: '+ <play-form-field label="Comment">' },
+          { tone: 'add', text: '+   <play-character-counter [max]="500"></play-character-counter>' },
+          { tone: 'ctx', text: '  … 7 files, 11 specs' },
+        ] },
       ] },
       { type: 'say', stream: false, lines: [
         'The endpoint was already live, so no contract change. I generated the Angular page, wired it to POST /api/v1/feedback and registered the route — seven files in all.',
@@ -236,7 +248,12 @@ export const t1: Scenario = {
       { type: 'tools', steps: [
         { label: 'Re-reading acceptance criteria', source: 'Jira',   result: 'MOB-2841',    ms: T.jira },
         { label: 'Comparing against the Figma frame', source: 'Figma', result: 'v3 · 2 gaps', ms: T.figma },
-        { label: 'Scanning the working diff',      source: 'Repo',   result: '7 files',      ms: T.diffScan },
+        { label: 'Scanning the working diff',      source: 'Repo',   result: '7 files',      ms: T.diffScan, diff: [
+          { tone: 'add', text: '+ <play-rating-scale formControlName="rating"></play-rating-scale>' },
+          { tone: 'add', text: '+ <play-form-field label="Comment">' },
+          { tone: 'add', text: '+   <play-character-counter [max]="500"></play-character-counter>' },
+          { tone: 'ctx', text: '  … 7 files, 11 specs' },
+        ] },
         { label: 'Checking the API contract',      source: 'OpenAPI', result: 'no anon field', ms: T.contract },
       ] },
       { type: 'say', lines: ["Here is where it stands."], block: { kind: 'coverage', groups: [

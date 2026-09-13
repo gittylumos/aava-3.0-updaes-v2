@@ -4,6 +4,7 @@ import type { Message as Msg, TabId } from '../../state/types'
 import { TypingDots } from './TypingDots'
 import { StreamedText } from './StreamedText'
 import { Block } from './Blocks'
+import { CitationPills } from './InlineSource'
 import { fadeUp } from '../../design/motion'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
@@ -20,11 +21,12 @@ interface Props {
   onOpenAgentArtifact?: (id: string) => void
   onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  onToast?: (text: string) => void
   /** This message's block is pinned to the composer slot — skip it inline. */
   pinned?: boolean
 }
 
-export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, pinned }: Props) {
+export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, pinned }: Props) {
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -48,13 +50,20 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
       {msg.typing ? <TypingDots /> : (
         <>
           {msg.stream
-            ? <StreamingLines msg={msg} />
-            : msg.lines.map((line, i) => <Line key={i}>{line}</Line>)}
+            ? <StreamingLines msg={msg} onToast={onToast} />
+            : msg.lines.map((line, i) => (
+                <Line key={i}>
+                  {line}
+                  {i === msg.lines.length - 1 && msg.citations && (
+                    <CitationPills sources={msg.citations} onOpen={onToast ? (s) => onToast(`Opening ${s.title}`) : undefined} />
+                  )}
+                </Line>
+              ))}
           {msg.block && !pinned && (
             <Block block={msg.block} live={msg.live !== false} preview={preview}
               onAccept={onAccept} onDismiss={() => onDismiss(msg.id)} onOpenFile={onOpenFile}
               onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
-              onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} answer={msg.answer} />
+              onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} onToast={onToast} answer={msg.answer} />
           )}
         </>
       )}
@@ -67,8 +76,9 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
    written — and the second line finishing before the first is nonsense. A line
    that has already streamed resolves on mount, so a remounted thread cascades
    through in a few frames rather than replaying. */
-function StreamingLines({ msg }: { msg: Msg }) {
+function StreamingLines({ msg, onToast }: { msg: Msg; onToast?: (text: string) => void }) {
   const [at, setAt] = useState(0)
+  const lastIdx = msg.lines.length - 1
 
   return (
     <>
@@ -80,6 +90,12 @@ function StreamingLines({ msg }: { msg: Msg }) {
               text={line}
               onDone={() => setAt((n) => n + 1)}
             />
+          )}
+          {/* Only once the last line has actually finished revealing (i < at,
+              not just i === at mid-stream) — a citation trailing text that is
+              still typing would read as answered before it is. */}
+          {i === lastIdx && i < at && msg.citations && (
+            <CitationPills sources={msg.citations} onOpen={onToast ? (s) => onToast(`Opening ${s.title}`) : undefined} />
           )}
         </Line>
       ))}

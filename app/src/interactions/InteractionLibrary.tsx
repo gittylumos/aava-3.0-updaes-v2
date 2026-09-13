@@ -13,10 +13,16 @@ import { ImplementationNote } from './shared'
 import {
   ThinkingDotsPreview, StreamedTextPreview, ToolStepsPreview, CapabilityShimmerPreview, ExecutionGraphPreview,
 } from './previews/agentPresence'
+import { InlineCitationsPreview } from './previews/citations'
 import { RunDockPreview } from './previews/runStatus'
 import { InlineGatePreview, HitlGatePreview, PlanEditPreview, HonestAfterStatePreview } from './previews/decisionsGates'
 import { ViewTabsPreview, InlineCommentsPreview, ChangesTrayPreview, MatchCardPreview, SplitTabsPreview } from './previews/canvasDocuments'
-import { ChipsPreview, ToastPreview, TooltipPreview, PressFeedbackPreview, AmbientFieldPreview } from './previews/feedbackAmbient'
+import { AgentDrawerPreview } from './previews/agentDrawer'
+import { AddMenuPreview } from './previews/addMenu'
+import { ChipsPreview, ToastPreview, TooltipPreview } from './previews/feedbackAmbient'
+import { PromptComposerPreview } from './previews/promptComposer'
+import { ThemeTransitionPreview } from './previews/themeTransition'
+import { SessionPinPreview } from './previews/sessionPin'
 
 const PREVIEWS: Record<string, React.ComponentType> = {
   'thinking-dots': ThinkingDotsPreview,
@@ -24,6 +30,7 @@ const PREVIEWS: Record<string, React.ComponentType> = {
   'tool-steps': ToolStepsPreview,
   'capability-shimmer': CapabilityShimmerPreview,
   'execution-graph': ExecutionGraphPreview,
+  'inline-citations': InlineCitationsPreview,
   'run-dock': RunDockPreview,
   'gate-inline': InlineGatePreview,
   'hitl-gate': HitlGatePreview,
@@ -33,12 +40,15 @@ const PREVIEWS: Record<string, React.ComponentType> = {
   'inline-comments': InlineCommentsPreview,
   'changes-tray': ChangesTrayPreview,
   'match-card': MatchCardPreview,
+  'agent-drawer': AgentDrawerPreview,
+  'add-menu': AddMenuPreview,
   'split-tabs': SplitTabsPreview,
   'chips': ChipsPreview,
   'toast': ToastPreview,
   'tooltip': TooltipPreview,
-  'press-feedback': PressFeedbackPreview,
-  'ambient-field': AmbientFieldPreview,
+  'prompt-composer': PromptComposerPreview,
+  'theme-transition': ThemeTransitionPreview,
+  'session-pin': SessionPinPreview,
 }
 
 export function InteractionLibrary() {

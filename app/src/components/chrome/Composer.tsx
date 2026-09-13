@@ -35,6 +35,11 @@ interface Props {
   files: string[]
   onAddFiles: (names: string[]) => void
   onRemoveFile: (name: string) => void
+
+  /* While AAVA is generating, the send control becomes a Stop — so a long run
+     is always interruptible, the way it works everywhere else. */
+  busy?: boolean
+  onStop?: () => void
 }
 
 type MenuId = 'none' | 'plus' | 'model' | 'effort'
@@ -43,11 +48,12 @@ export function Composer({
   onSend, value, onChange, className = '', joined = false,
   placeholder = 'Ask AAVA anything…',
   model, onModel, effort, onEffort, connectors, onToggleConnector,
-  files, onAddFiles, onRemoveFile,
+  files, onAddFiles, onRemoveFile, busy = false, onStop,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<MenuId>('none')
+  const [listening, setListening] = useState(false)
   /* The Connectors flyout, nested under the + menu. Opened on hover/click of the
      "Connectors" row and kept open while the pointer is over the row or the
      flyout — a short close timer bridges the gap between the two so moving
@@ -64,7 +70,7 @@ export function Composer({
 
   const submit = () => {
     const text = value.trim()
-    if (!text) return
+    if (!text || busy) return
     onSend(text)
     onChange('')
     if (ref.current) ref.current.style.height = 'auto'
@@ -128,7 +134,7 @@ export function Composer({
           {/* + menu: attachments and a Connectors submenu (a side flyout rather
               than a wall of toggles dumped inline). */}
           <PillButton label="Add files or connectors" onClick={() => { setMenu(menu === 'plus' ? 'none' : 'plus'); setSub(false) }} active={menu === 'plus'} round>
-            <Icon.Plus />
+            {menu === 'plus' ? <Icon.Close /> : <Icon.Plus />}
           </PillButton>
 
           {menu === 'plus' && (
@@ -216,20 +222,45 @@ export function Composer({
               </Menu>
             )}
 
-            {/* Voice input. Prototype: toggles a listening state only. */}
-            <PillButton label="Voice input" onClick={() => {}} round>
-              <Icon.Mic />
-            </PillButton>
-
-            <Tooltip label="Send message" side="top" align="end">
+            {/* Voice input — the mic dissolves into a live waveform while it
+                listens. Prototype: toggles the listening state only. */}
+            <Tooltip label={listening ? 'Stop listening' : 'Voice input'} side="top">
               <button
-                type="submit" disabled={!value.trim()} aria-label="Send message"
-                className="press hit hit-pad-sm grid place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
-                style={{ background: 'var(--primary-grad)', color: '#fff' }}
+                type="button" aria-label={listening ? 'Stop listening' : 'Voice input'} aria-pressed={listening}
+                onClick={() => setListening((l) => !l)}
+                className="press grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-[var(--wash-4)]"
+                style={{ color: listening ? 'var(--text)' : 'var(--muted)', background: listening ? 'var(--wash-5)' : 'transparent' }}
               >
-                <Icon.Send />
+                {listening ? <Waveform /> : <Icon.Mic />}
               </button>
             </Tooltip>
+
+            {/* Send ↔ Stop. Disabled and dim with no text; a neutral white fill
+                when there is something to send; a Stop square while AAVA answers,
+                so the run can always be interrupted. */}
+            {busy ? (
+              <Tooltip label="Stop" side="top" align="end">
+                <button
+                  type="button" aria-label="Stop" onClick={onStop}
+                  className="press hit-pad-sm relative grid h-8 w-8 place-items-center rounded-full"
+                  style={{ background: 'var(--text)', color: 'var(--on-text)' }}
+                >
+                  <span className="absolute inset-[2px] rounded-full" style={{ border: '1.5px solid transparent', borderTopColor: 'var(--on-text)', opacity: 0.5, animation: 'aava-composer-spin .7s linear infinite' }} />
+                  <span className="h-[9px] w-[9px] rounded-[2px]" style={{ background: 'var(--on-text)' }} />
+                  <style>{`@keyframes aava-composer-spin { to { transform: rotate(360deg) } }`}</style>
+                </button>
+              </Tooltip>
+            ) : (
+              <Tooltip label="Send message" side="top" align="end">
+                <button
+                  type="submit" disabled={!value.trim()} aria-label="Send message"
+                  className="press hit-pad-sm grid h-8 w-8 place-items-center rounded-full disabled:opacity-35 disabled:active:transform-none"
+                  style={{ background: 'var(--text)', color: 'var(--on-text)' }}
+                >
+                  <Icon.Send />
+                </button>
+              </Tooltip>
+            )}
           </div>
         </div>
       </form>
@@ -310,4 +341,21 @@ const Icon = {
   Connector: () => <svg {...svg} width="16" height="16"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.6" /></svg>,
   ChevronRight: () => <svg {...svg} width="14" height="14"><path d="m9 6 6 6-6 6" /></svg>,
   Gear: () => <svg {...svg} width="16" height="16"><path d="M4 8h9M17 8h3M4 16h3M11 16h9" /><circle cx="15" cy="8" r="2.1" /><circle cx="9" cy="16" r="2.1" /></svg>,
+  Close: () => <svg {...svg} width="17" height="17" strokeWidth={2}><path d="M6 6l12 12M18 6 6 18" /></svg>,
+}
+
+/* The mic's listening state — a three-bar equalizer bouncing in place. */
+function Waveform() {
+  return (
+    <span className="flex h-3.5 items-center gap-[2.5px]" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="aava-eq w-[2.5px] rounded-full bg-current" style={{ height: '100%', animation: `aava-eq-bounce 900ms ease-in-out ${i * 150}ms infinite` }} />
+      ))}
+      <style>{`
+        .aava-eq { transform-origin: center; }
+        @keyframes aava-eq-bounce { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+        @media (prefers-reduced-motion: reduce) { .aava-eq { animation: none !important; transform: scaleY(.6); } }
+      `}</style>
+    </span>
+  )
 }

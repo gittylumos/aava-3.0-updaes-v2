@@ -14,6 +14,8 @@ import { useDismiss } from '../state/useDismiss'
 import { WatchBar } from '../zones/WatchBar'
 import { Tooltip } from '../components/chrome/Tooltip'
 import { Markdown } from '../components/playground/Markdown'
+import { SelectionActions } from './SelectionActions'
+import { LoadingState } from '../components/chat/LoadingState'
 import { prdMarkdown, prdFileName } from './document'
 import { backlogMarkdown, BACKLOG_FILE, type BacklogDoc } from './backlog'
 import type { SessionFile } from './FilesPanel'
@@ -57,7 +59,6 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
      small input (a mini prompt bar) appears where the selection is. */
   const [commenting, setCommenting] = useState(false)
   const [pin, setPin] = useState<{ quote: string; top: number; left: number; range: Range } | null>(null)
-  const [note, setNote] = useState('')
   const cardRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -70,7 +71,6 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
     const rect = range.getBoundingClientRect()
     const box = cardRef.current?.getBoundingClientRect()
     if (!box) return
-    setNote('')
     setPin({
       quote: text.length > 60 ? text.slice(0, 57) + '…' : text,
       top: rect.bottom - box.top + 8,
@@ -78,13 +78,18 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
       range: range.cloneRange(),
     })
   }
-  /* Send a comment → it stacks in the changes tray above the composer, and the
-     selected passage stays highlighted (with its change number) in the doc;
-     commenting stays armed so more selections can be added before applying. */
-  const sendComment = () => {
-    if (!note.trim() || !pin) return
-    onAddChange?.({ quote: pin.quote, note: note.trim(), range: pin.range })
-    setPin(null); setNote('')
+  /* Keep on the selection bar → the rewrite stacks in the changes tray above
+     the composer, same as before, and the selected passage stays highlighted
+     (with its change number) in the doc; commenting stays armed so more
+     selections can be added before the whole batch is applied. */
+  const keepEdit = (rewrite: string) => {
+    if (!pin) return
+    onAddChange?.({ quote: pin.quote, note: rewrite, range: pin.range })
+    setPin(null)
+    window.getSelection()?.removeAllRanges()
+  }
+  const discardEdit = () => {
+    setPin(null)
     window.getSelection()?.removeAllRanges()
   }
 
@@ -150,9 +155,8 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
         <div className="m-[12px] mb-0 grid min-h-0 flex-1 place-items-center overflow-hidden rounded-t-[var(--r-md)]"
           style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
           <div className="max-w-[280px] px-8 text-center">
-            <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full" style={{ border: '2px solid var(--glass-line)', borderTopColor: 'var(--zone-canvas-accent)' }} />
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-dim)' }}>Drafting the document</p>
-            <p className="mt-1.5 text-[12px] leading-[1.5]" style={{ color: 'var(--muted-deep)' }}>
+            <div className="mb-3 flex justify-center"><LoadingState label="Drafting the document" /></div>
+            <p className="text-[12px] leading-[1.5]" style={{ color: 'var(--muted-deep)' }}>
               The PRD will appear here once it is ready to review.
             </p>
           </div>
@@ -225,25 +229,11 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
           </div>
         )}
 
-        {/* The inline comment input — a mini prompt bar anchored to the selection. */}
+        {/* The inline comment bar — pick a quick AI action or describe the edit,
+            watch the rewrite stream in, then Keep (stacks into the changes
+            tray) or Discard. */}
         {pin && (
-          <div className="absolute z-20 w-[312px] rounded-[12px] p-2 shadow-lg"
-            style={{ top: pin.top, left: pin.left, background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}
-            onMouseDown={(e) => e.stopPropagation()}>
-            <div className="mb-1.5 truncate px-1 text-[11px] italic" style={{ color: 'var(--muted)' }}>“{pin.quote}”</div>
-            <div className="flex items-end gap-1.5 rounded-[9px] px-2 py-1.5" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-              <textarea autoFocus rows={1} value={note} onChange={(e) => setNote(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment() } }}
-                placeholder="Add a comment…"
-                className="min-h-[24px] flex-1 resize-none bg-transparent text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-none"
-                style={{ color: 'var(--text-dim)' }} />
-              <button onClick={sendComment} disabled={!note.trim()} aria-label="Send comment"
-                className="press grid h-7 w-7 shrink-0 place-items-center rounded-[7px] disabled:opacity-40"
-                style={{ background: 'var(--text)', color: 'var(--on-text)' }}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h13M12 5l7 7-7 7" /></svg>
-              </button>
-            </div>
-          </div>
+          <SelectionActions quote={pin.quote} top={pin.top} left={pin.left} onKeep={keepEdit} onDiscard={discardEdit} />
         )}
       </div>
 

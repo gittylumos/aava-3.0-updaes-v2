@@ -27,7 +27,7 @@ function InlineGateDemo() {
       {collecting ? (
         <div className="mt-3">
           <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Please describe here…"
-            className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+            className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--text-dim)]"
             style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
           <div className="mt-2 flex flex-wrap justify-end gap-2">
             <button onClick={() => { setCollecting(false); setNote('') }} className="btn-secondary">Cancel</button>
@@ -51,19 +51,20 @@ export function InlineGatePreview() {
 function HitlGateDemo() {
   const [decided, setDecided] = useState<'approved' | 'rejected' | null>(null)
   return (
-    <div className="w-full max-w-[420px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'color-mix(in srgb, var(--warn) 8%, var(--wash-1))', border: '1px solid color-mix(in srgb, var(--warn) 45%, transparent)' }}>
-      <div className="flex items-center gap-2 px-3.5 py-2.5" style={{ borderBottom: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)' }}>
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--warn)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="m17 11 2 2 4-4" /></svg>
+    <div className="w-full max-w-[420px] overflow-hidden rounded-[var(--r-md)]"
+      style={{ background: 'var(--glass)', border: `1px solid ${decided ? 'var(--glass-line)' : 'var(--warn)'}` }}>
+      <div className="flex items-center gap-2 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={decided === 'approved' ? 'var(--ok)' : decided === 'rejected' ? 'var(--muted)' : 'var(--warn)'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="m17 11 2 2 4-4" /></svg>
         <span className="text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>Architect Review</span>
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[10px] font-semibold"
-          style={{ background: decided ? 'color-mix(in srgb, var(--ok) 16%, transparent)' : 'color-mix(in srgb, var(--warn) 16%, transparent)', color: decided ? 'var(--ok)' : 'var(--warn)' }}>
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-[.08em]"
+          style={{ color: decided === 'approved' ? 'var(--ok)' : decided === 'rejected' ? 'var(--muted)' : 'var(--warn)' }}>
           {decided === 'approved' ? 'Approved' : decided === 'rejected' ? 'Rejected' : 'Awaiting approval'}
         </span>
       </div>
       <div className="px-3.5 py-3">
-        <div className="mb-1 text-[11px] font-medium" style={{ color: 'var(--muted)' }}>Comments</div>
+        <div className="mb-1.5 text-[11px] font-medium" style={{ color: 'var(--muted)' }}>Comments</div>
         <textarea rows={2} disabled={!!decided} placeholder="Enter comments"
-          className="w-full resize-none rounded-[8px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+          className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--text-dim)]"
           style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
         {!decided && (
           <div className="mt-2.5 flex justify-end gap-2">
@@ -85,12 +86,13 @@ const PLAN_STEPS = [
   { title: 'Identify matching artifacts', detail: 'Rank golden processes by fit to the requirement' },
   { title: 'Create or clone artifact', detail: 'Open the best fit and clone it to customise' },
 ]
+type PlanMode = 'idle' | 'editing' | 'sent' | 'proceeded'
 function PlanEditDemo() {
-  const [editing, setEditing] = useState(false)
+  const [mode, setMode] = useState<PlanMode>('idle')
   const [note, setNote] = useState('')
-  const [sent, setSent] = useState(false)
+  const live = mode === 'idle' || mode === 'editing'
   return (
-    <div className="w-full max-w-[440px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: `1px solid ${editing ? 'var(--warn)' : 'var(--glass-line)'}` }}>
+    <div className="w-full max-w-[440px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: `1px solid ${live ? 'var(--warn)' : 'var(--glass-line)'}` }}>
       <div className="px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: 'var(--muted-deep)', borderBottom: '1px solid var(--glass-line-soft)' }}>
         Artifact Identification process · {PLAN_STEPS.length} steps
       </div>
@@ -104,24 +106,24 @@ function PlanEditDemo() {
         </div>
       ))}
       <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
-        {sent ? (
+        {mode === 'proceeded' ? (
+          <p className="text-[12px]" style={{ color: 'var(--text-dim)' }}><span style={{ color: 'var(--muted-deep)' }}>Approved — </span>running the process.</p>
+        ) : mode === 'sent' ? (
           <p className="text-[12px]" style={{ color: 'var(--text-dim)' }}><span style={{ color: 'var(--muted-deep)' }}>Edit recorded — </span>{note}</p>
-        ) : editing ? (
+        ) : mode === 'editing' ? (
           <>
             <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add or reorder a step…"
-              className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+              className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--text-dim)]"
               style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
             <div className="mt-2 flex justify-end gap-2">
-              <button onClick={() => { setEditing(false); setNote('') }} className="btn-secondary">Cancel</button>
-              <button onClick={() => note.trim() && setSent(true)} disabled={!note.trim()} className="btn-primary">Send</button>
+              <button onClick={() => { setMode('idle'); setNote('') }} className="btn-secondary">Cancel</button>
+              <button onClick={() => note.trim() && setMode('sent')} disabled={!note.trim()} className="btn-primary">Send</button>
             </div>
           </>
         ) : (
-          <div className="flex justify-end">
-            <button onClick={() => setEditing(true)} className="btn-primary">
-              Edit plan
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </button>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setMode('editing')} className="btn-secondary">Edit plan</button>
+            <button onClick={() => setMode('proceeded')} className="btn-primary">Proceed</button>
           </div>
         )}
       </div>
@@ -132,7 +134,7 @@ export function PlanEditPreview() {
   return <Replayable render={(key) => <div key={key} className="w-full max-w-[440px]"><PlanEditDemo /></div>} minHeight={260} />
 }
 
-/* ── Honest after-state ──────────────────────────────────────────────────
+/* ── Commit Gate ─────────────────────────────────────────────────────────
    One live card, not two static outcomes: state 1 is the real choice (Skip
    for now / Publish); clicking either resolves the SAME card in place, and
    the label truthfully reflects whichever one was actually picked. */

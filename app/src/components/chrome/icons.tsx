@@ -64,11 +64,11 @@ export function IconSearch({ size = 19, className }: IconProps) {
 
 /* Pinned — an upright pushpin. The angled classic renders as a scribble at 19px;
    this one holds its silhouette. */
-export function IconPinned({ size = 19, className }: IconProps) {
+export function IconPinned({ size = 19, className, filled }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base(size)} className={className}>
       <path d="M9 3.5h6" />
-      <path d="M13.5 3.5v4.75c0 .95.54 1.82 1.4 2.24l1.35.66H7.75l1.35-.66c.86-.42 1.4-1.29 1.4-2.24V3.5" />
+      <path d="M13.5 3.5v4.75c0 .95.54 1.82 1.4 2.24l1.35.66H7.75l1.35-.66c.86-.42 1.4-1.29 1.4-2.24V3.5" fill={filled ? 'currentColor' : 'none'} />
       <path d="M12 11.15V20.5" />
     </svg>
   )

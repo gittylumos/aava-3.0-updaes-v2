@@ -76,7 +76,7 @@ function NavRow({
         onClick={onClick}
         aria-label={label}
         aria-current={active ? 'true' : undefined}
-        className="press hit-pad-sm relative flex w-full items-center gap-2 rounded-[11px] pr-2.5 text-left hover:bg-[var(--wash-3)] hover:text-[var(--text-dim)]"
+        className="press hit-pad-sm relative flex w-full items-center gap-2 rounded-[11px] pr-2.5 text-left transition-[width,padding-right] duration-200 ease-[var(--ease-out)] hover:bg-[var(--wash-3)] hover:text-[var(--text-dim)]"
         style={{
           color: active ? 'var(--text)' : 'var(--muted)',
           background: active ? 'var(--wash-4)' : 'transparent',
@@ -84,7 +84,10 @@ function NavRow({
              width (so nothing reflows as it expands) but only the icon is
              ever painted — clamp the box itself to the icon so a tooltip
              anchored to this button lands on the visible icon, not out past
-             the clipped edge of the rail. */
+             the clipped edge of the rail. Transitioned rather than snapped:
+             the active row's own fill is this box's width, so animating it is
+             what makes the highlight visibly shrink to the icon on collapse
+             instead of just vanishing. */
           width: open ? undefined : 'var(--hit)',
           paddingRight: open ? undefined : 0,
         }}
@@ -157,18 +160,20 @@ function ThreadRow({
       </button>
 
       {/* Pin lives on hover, the way chat apps do it — always-on pins would add
-          a column of noise to every row. Focus-visible keeps it keyboard-reachable. */}
+          a column of noise to every row. Once pinned it stays lit and filled so
+          the row reads as pinned at a glance. Focus-visible keeps it
+          keyboard-reachable. */}
       <Tooltip label={pinned ? 'Unpin' : 'Pin'} side="top">
         <button
           onClick={() => onTogglePin(thread.id)}
           aria-label={pinned ? `Unpin ${thread.title}` : `Pin ${thread.title}`}
           aria-pressed={pinned}
-          className={`press absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-[7px] transition-opacity hover:bg-[var(--glass-strong)] focus-visible:opacity-100 ${
+          className={`press absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-[7px] transition-[opacity,background-color,transform] duration-150 hover:bg-[var(--glass-strong)] active:scale-90 focus-visible:opacity-100 ${
             pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
-          style={{ color: pinned ? 'var(--brand)' : 'var(--muted-deep)' }}
+          style={pinned ? { color: 'var(--brand)', background: 'color-mix(in srgb, var(--brand) 12%, transparent)' } : { color: 'var(--muted-deep)' }}
         >
-          <IconPinned size={14} />
+          <IconPinned size={14} filled={pinned} />
         </button>
       </Tooltip>
     </div>
@@ -314,7 +319,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
             setPos({ left: Math.min(r.right + 8, window.innerWidth - 232), bottom: window.innerHeight - r.bottom })
             setMenu(true)
           }}
-          className="press flex w-full items-center gap-2.5 rounded-[11px] pr-2.5 text-left"
+          className="press flex w-full items-center gap-2.5 rounded-[11px] pr-2.5 text-left transition-[width,padding-right] duration-200 ease-[var(--ease-out)]"
           style={{ width: open ? undefined : 'var(--hit)', paddingRight: open ? undefined : 0 }}
         >
           <span
@@ -522,8 +527,14 @@ export function Sidebar({
           @keyframes sb-up   { from { height: var(--radix-collapsible-content-height) } to { height: 0 } }
         `}</style>
 
-        {/* Fixed inner width so nothing reflows mid-transition — the nav clips it. */}
-        <div className="flex h-full w-[var(--sidebar-w)] flex-col px-[15px] py-4">
+        {/* Full width while expanded — a manual drag on the Panel separator (it
+            allows 220–420px, not just the default 268) has to actually reach
+            the content, or dragging wider just opens dead space and dragging
+            narrower clips text instead of truncating it. Only while collapsing
+            to the rail does this pin back to the fixed design width, so that
+            transition still reads as "the nav clips it" rather than the row
+            labels visibly reflowing while they slide out of view. */}
+        <div className={`flex h-full flex-col px-[15px] py-4 ${open ? 'w-full' : 'w-[var(--sidebar-w)]'}`}>
           <div className="mb-3 flex items-center gap-2">
             <Tip label="AAVA home" muted={open}>
               {/* No tile behind the mark: the logo is already a disc, and a rounded
@@ -537,36 +548,21 @@ export function Sidebar({
               </button>
             </Tip>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             {onToggle && (
             <Tooltip label="Collapse sidebar" side="bottom" align="end">
+              {/* The one control on the whole rail whose entire job is "notice
+                  me before you click me" — .press already fades the background
+                  in on hover; the glyph itself also lifts slightly, so
+                  hovering it feels like an answer before the click lands. */}
               <button
                 onClick={onToggle}
                 aria-label="Collapse sidebar"
                 aria-expanded={open}
                 tabIndex={open ? 0 : -1}
-                className="press hit-pad-md ml-auto grid h-7 w-7 place-items-center rounded-[7px] transition-opacity duration-200 hover:bg-[var(--glass)]"
+                className="group press hit-pad-md ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-[var(--wash-4)] hover:text-[var(--text-dim)]"
                 style={{ color: 'var(--muted)', opacity: open ? 1 : 0 }}
               >
-                <IconPanel size={16} />
+                <IconPanel size={16} className="transition-transform duration-200 ease-[var(--ease-out)] group-hover:scale-110" />
               </button>
             </Tooltip>
             )}

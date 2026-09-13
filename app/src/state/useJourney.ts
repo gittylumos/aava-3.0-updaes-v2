@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { PRD_SEED_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, isReportIntent } from '../prd/data'
@@ -67,13 +67,18 @@ export function replyNewTopic(question: string): string[] {
 export function useJourney() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const timers = useRef<number[]>([])
+  /* True while a beat is still playing out on the clock — drives the composer's
+     Send → Stop swap so an in-flight run is always interruptible. */
+  const [busy, setBusy] = useState(false)
 
   /* Leaving a thread cancels what it had scheduled. A beat is a chain of
      timeouts, and without this the task you just walked away from keeps speaking
-     — into whichever thread you opened next. */
+     — into whichever thread you opened next. Stopping also ends the busy state,
+     so the composer drops straight back to Send. */
   const cancel = useCallback(() => {
     timers.current.forEach(clearTimeout)
     timers.current = []
+    setBusy(false)
   }, [])
 
   useEffect(() => cancel, [cancel])
@@ -121,6 +126,7 @@ export function useJourney() {
    * Uniform pacing is what makes a prototype read as scripted. */
   const play = useCallback((effects: Effect[]) => {
     let elapsed = 0
+    if (effects.length) setBusy(true)
 
     for (const effect of effects) {
       if (effect.type === 'wait') { elapsed += effect.ms; continue }
@@ -161,6 +167,10 @@ export function useJourney() {
       const at = elapsed
       after(at, () => dispatch({ type: 'APPLY', effect }))
     }
+
+    // Drop out of the busy state once the whole beat has finished playing — the
+    // clear rides the same timer list, so cancel() (Stop, or leaving) kills it.
+    if (effects.length) after(elapsed, () => setBusy(false))
   }, [after])
 
   const runBeat = useCallback((name: string) => {
@@ -423,6 +433,8 @@ export function useJourney() {
     searchHits: searchHits(state.tasks, state.threads),
     readNotification: (taskId: string) => dispatch({ type: 'READ_NOTIFICATION', taskId }),
     send,
+    busy,
+    stop: cancel,
     openTask,
     runBeat,
     openThread,
