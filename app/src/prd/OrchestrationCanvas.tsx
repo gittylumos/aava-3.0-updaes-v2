@@ -276,7 +276,7 @@ function SectionTabs({ value, onChange, analyticsReady }: { value: Section; onCh
         <button key={t.id} onClick={() => !t.disabled && onChange(t.id)} disabled={t.disabled} aria-pressed={value === t.id}
           title={t.disabled ? 'Available once a run has finished' : undefined}
           className="press rounded-[7px] px-3 py-1 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-          style={value === t.id ? { background: 'var(--brand)', color: '#fff' } : { color: 'var(--muted)' }}>
+          style={value === t.id ? { background: 'var(--brand)', color: 'var(--on-text)' } : { color: 'var(--muted)' }}>
           {t.label}
         </button>
       ))}

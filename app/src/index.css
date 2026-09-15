@@ -130,18 +130,18 @@
   }
   .btn-primary:hover:not(:disabled) { filter: brightness(0.9); box-shadow: 0 2px 10px rgba(0, 0, 0, .16); }
   .btn-primary:active:not(:disabled) { filter: brightness(0.84); transform: scale(0.96); box-shadow: none; }
-  /* A neutral secondary needs a border that actually reads — `--glass-line-soft`
-     sat almost on top of the surface, so the outlined pair looked borderless
-     next to the filled primary. `--glass-line` plus a faint wash gives it a
-     visible stroke and a hint of fill without competing with the primary. */
+  /* A neutral secondary needs a border that actually reads in BOTH themes —
+     `--glass-line` was fine in dark but nearly invisible on white in light. A
+     theme-scaling neutral (a share of --text) gives it a clear stroke and
+     accessible text in either mode without competing with the filled primary. */
   .btn-secondary {
     background: var(--wash-1);
-    color: var(--text-dim);
-    border: 1px solid var(--glass-line);
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
     transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
       border-color var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
   }
-  .btn-secondary:hover:not(:disabled) { background: var(--wash-3); color: var(--text); border-color: var(--glass-line-strong, var(--muted-deep)); }
+  .btn-secondary:hover:not(:disabled) { background: var(--wash-3); border-color: color-mix(in srgb, var(--text) 40%, transparent); }
   .btn-secondary:active:not(:disabled) { background: var(--wash-4); transform: scale(0.96); }
   .btn-primary:disabled, .btn-secondary:disabled { opacity: .45; cursor: default; }
   @media (prefers-reduced-motion: reduce) {

@@ -405,6 +405,18 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
               style={{ color: 'var(--done)' }}>
               {l.label}
             </button>
+          ) : /\bPR\s?#/i.test(l.label) ? (
+            /* A raised PR reads as a real link — the repo → PR reference, a
+               GitHub mark and an open-in-new affordance — not a flat pill. */
+            <button key={l.label} onClick={() => onToast?.(`Opening ${l.label} on GitHub`)}
+              className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
+              style={{ color: 'var(--done)' }}>
+              <GitHubMark />
+              {l.label}
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+              </svg>
+            </button>
           ) : (
             <span key={l.label} className="mono rounded-full px-3 py-1.5 text-[12px]"
               style={{ background: 'rgba(91,157,255,.14)', color: 'var(--done)' }}>{l.label}</span>
@@ -432,7 +444,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
             style={{ borderTop: i ? '1px solid var(--glass-line-soft)' : undefined }}>
             <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]"
               style={s.added
-                ? { background: 'var(--brand)', color: '#fff' }
+                ? { background: 'var(--brand)', color: 'var(--on-text)' }
                 : { background: 'var(--wash-3)', color: 'var(--muted)' }}>{i + 1}</span>
             <span className="min-w-0 flex-1 text-[13px]" style={{ color: 'var(--text)', fontWeight: s.added ? 600 : 400 }}>{s.label}</span>
             {s.added && (
@@ -983,6 +995,14 @@ function PlanGlyph() {
 /* The Jira mark — three stacked chevrons in Jira blue. A clean recreation,
    used on the "Push to Jira" card and its action button, and on the inline
    source pill (InlineSource.tsx) wherever a Jira ticket is cited. */
+function GitHubMark({ size = 13 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden style={{ color: 'currentColor' }}>
+      <path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.6-4-1.6-.6-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2 0 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.6 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z" />
+    </svg>
+  )
+}
+
 export function JiraLogo({ size = 18 }: { size?: number }) {
   const el = 'h10 a2 2 0 0 1 2 2 v10 l-6 -6 h-4 a2 2 0 0 1 -2 -2 z'
   return (

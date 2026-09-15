@@ -1,12 +1,11 @@
 import { motion } from 'motion/react'
 import type { Task } from '../../state/types'
 import { TAG_META } from '../../state/reducer'
-import { AuroraRing } from './AuroraRing'
 
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const tag = TAG_META[task.tag]
 
-  const body = (
+  return (
     /* No layoutId. It had no partner to morph into — the start view is swapped
        out wholesale when a task opens — so all it did was turn every reflow into
        a layout animation, which is why collapsing the nav sent the cards swinging
@@ -37,6 +36,4 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
       </div>
     </motion.button>
   )
-
-  return task.recommended ? <AuroraRing>{body}</AuroraRing> : body
 }

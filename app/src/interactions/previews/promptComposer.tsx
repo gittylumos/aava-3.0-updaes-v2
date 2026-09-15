@@ -73,7 +73,7 @@ const CONNECTORS0: Conn[] = [
 function Toggle({ on }: { on: boolean }) {
   return (
     <span className="ml-auto flex h-[18px] w-[30px] shrink-0 items-center rounded-full px-[2px] transition-colors" style={{ background: on ? 'var(--brand)' : 'var(--wash-4)' }} aria-hidden>
-      <span className="h-[14px] w-[14px] rounded-full bg-white transition-transform" style={{ transform: on ? 'translateX(12px)' : 'none' }} />
+      <span className="h-[14px] w-[14px] rounded-full transition-transform" style={{ background: on ? 'var(--on-text)' : 'var(--text-dim)', transform: on ? 'translateX(12px)' : 'none' }} />
     </span>
   )
 }

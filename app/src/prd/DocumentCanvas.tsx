@@ -138,7 +138,7 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
           return (
             <span key={i} aria-hidden
               className="pointer-events-none absolute grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-semibold shadow"
-              style={{ top: r.top - box.top - 9, left: r.left - box.left - 9, background: 'var(--brand)', color: '#fff', zIndex: 5 }}>
+              style={{ top: r.top - box.top - 9, left: r.left - box.left - 9, background: 'var(--brand)', color: 'var(--on-text)', zIndex: 5 }}>
               {i + 1}
             </span>
           )
@@ -358,7 +358,7 @@ function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void 
               transition={{ type: 'spring', stiffness: 520, damping: 40 }}
               className="press flex items-center gap-1.5 rounded-[8px] text-[12.5px] font-medium focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
               style={active
-                ? { background: 'var(--brand)', color: '#fff', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }
+                ? { background: 'var(--brand)', color: 'var(--on-text)', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }
                 : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}
             >
               <Ico />

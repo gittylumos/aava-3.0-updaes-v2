@@ -375,6 +375,10 @@ export const t7: Scenario = {
       ] },
       { type: 'say', lines: [
         'Applied across payments-api, ledger-service and refund-worker, all behind the refunds_v2 flag — both failing checks pass now, and rolling back is a flag flip.',
+      ], citations: [
+        { kind: 'github', label: '9 files · 3 repos', title: 'Working diff · feat/PAY-3120-refund-v2',
+          meta: 'GitHub · refunds migration', description: 'The v2 mapper and schema across payments-api (6), ledger-service (2) and refund-worker (1), all behind the refunds_v2 flag.',
+          date: 'Uncommitted' },
       ] },
       // Step 6 — regression + contracts. prepAt 5 moves the run on (step 5 done,
       // step 6 blue) before this second block of work runs.

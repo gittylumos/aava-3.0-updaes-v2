@@ -81,8 +81,8 @@ export function NotificationBell({ size = 17, count = 0 }: { size?: number; coun
             aria-hidden="true"
             initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
             transition={reduced ? { duration: 0.12 } : { type: 'spring', stiffness: 600, damping: 20 }}
-            className="mono absolute -right-[8px] -top-[7px] grid h-[17px] min-w-[17px] place-items-center rounded-full px-[4px] text-[10px] font-bold leading-none"
-            style={{ background: 'var(--danger)', color: 'var(--on-text)', boxShadow: '0 0 0 2px var(--ground)' }}
+            className="mono absolute -right-[6px] -top-[5px] grid h-[14px] min-w-[14px] place-items-center rounded-full px-[3px] text-[8.5px] font-bold leading-none"
+            style={{ background: 'var(--danger)', color: 'var(--on-text)', boxShadow: '0 0 0 1.5px var(--ground)' }}
           >
             {total > 9 ? '9+' : total}
           </motion.span>

@@ -198,6 +198,10 @@ export const t1: Scenario = {
       ] },
       { type: 'say', stream: false, lines: [
         'The endpoint was already live, so no contract change. I generated the Angular page, wired it to POST /api/v1/feedback and registered the route — seven files in all.',
+      ], citations: [
+        { kind: 'github', label: '7 files', title: 'Working diff · feat/MOB-2841-feedback-form',
+          meta: 'GitHub · aava/mobile', description: 'The generated screen and its wiring — 7 files, +214 −0. Two PLAY components staged for a separate PR into the library.',
+          date: 'Uncommitted' },
       ] },
       { type: 'tools', title: 'Tests & checks', steps: [
         { label: 'Running unit tests', source: 'Runner', result: '11 passed · 87%', ms: 0 },

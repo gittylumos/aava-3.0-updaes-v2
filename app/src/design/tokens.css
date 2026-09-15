@@ -23,10 +23,13 @@
      painted frame are dark too; the light theme below opts back out. */
   color-scheme: dark;
 
-  /* -- 01 Primary Brand — Deep Indigo ---------------------------------- */
-  --brand: #6366F1;          /* brand.primary  — CTAs, active nav, key links   */
-  --brand-hover: #818CF8;    /* brand.hover                                    */
-  --brand-pressed: #4F46E5;  /* brand.pressed  — selected tabs, pressed state  */
+  /* -- 01 Primary Brand — neutralised for now -------------------------------
+     The primary accent reads as a neutral rather than indigo: white in dark,
+     black in light — the same value as `--text`, so every CTA, active-nav
+     mark and key link matches the neutral primary buttons (.btn-primary). */
+  --brand: #F1F5F9;          /* brand.primary  — neutral (= --text)            */
+  --brand-hover: #FFFFFF;    /* brand.hover                                    */
+  --brand-pressed: #CBD5E1;  /* brand.pressed  — selected tabs, pressed state  */
 
   /* -- 2.1 Surfaces & backgrounds -------------------------------------- */
   --ground: #0F1117;         /* dark.bg.primary   — page canvas                */
@@ -163,9 +166,9 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --brand: #4F46E5;          /* light brand.primary — 6.29:1 on white, AA */
-  --brand-hover: #6366F1;
-  --brand-pressed: #3730A3;
+  --brand: #111827;          /* light brand.primary — neutral black (= --text) */
+  --brand-hover: #000000;
+  --brand-pressed: #374151;
 
   /* Surface ramp — a designed light mode, not an inverted dark one. The canvas
      is a soft off-white "desk"; every panel and card is pure white and lifts off
