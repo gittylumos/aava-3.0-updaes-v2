@@ -244,6 +244,15 @@ export const PATTERNS: PatternMeta[] = [
     mechanism: 'The swap rides the View Transition API: a blur-out / blur-in keyframe pair is applied to the root old/new snapshots so the whole page crossfades through a soft blur in one pass. Falls back to a transition-suppressed instant swap where the API is absent or motion is reduced.',
   },
   {
+    id: 'sidebar-nav',
+    group: 'Chrome & navigation',
+    label: 'Sidebar',
+    blurb: 'The primary nav collapses to a rail and expands back — the column springs its width while the row labels fade, so the icons never move.',
+    principles: ['P3', 'P6'],
+    file: 'src/components/chrome/Sidebar.tsx',
+    mechanism: 'A spring drives the column width between the full nav and the rail; each row\'s label fades independently so the icons hold their place and nothing else reflows. New Session, My Tasks and Search sit above Pinned and Recents, with the profile pinned to the foot.',
+  },
+  {
     id: 'session-pin',
     group: 'Chrome & navigation',
     label: 'Session pin',

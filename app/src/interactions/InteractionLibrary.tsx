@@ -24,6 +24,7 @@ import { ChipsPreview, ToastPreview, TooltipPreview } from './previews/feedbackA
 import { PromptComposerPreview } from './previews/promptComposer'
 import { ThemeTransitionPreview } from './previews/themeTransition'
 import { SessionPinPreview } from './previews/sessionPin'
+import { SidebarNavPreview } from './previews/sidebarNav'
 
 const PREVIEWS: Record<string, React.ComponentType> = {
   'thinking-dots': ThinkingDotsPreview,
@@ -49,6 +50,7 @@ const PREVIEWS: Record<string, React.ComponentType> = {
   'tooltip': TooltipPreview,
   'prompt-composer': PromptComposerPreview,
   'theme-transition': ThemeTransitionPreview,
+  'sidebar-nav': SidebarNavPreview,
   'session-pin': SessionPinPreview,
 }
 

@@ -820,14 +820,13 @@ function Capability({ block }: { block: Extract<BlockSpec, { kind: 'capability' 
   // Pre-filled runs already matched their capability — show it as a subtle,
   // collapsed one-liner the user can open, rather than a full card up front.
   if (block.collapsed) {
-    return <SubtleRecord icon={<GateGlyphSparkle />} title="Capabilities matched" badge={block.badge}>{body}</SubtleRecord>
+    return <SubtleRecord icon={<GateGlyphSparkle />} title="Capabilities matched">{body}</SubtleRecord>
   }
   return (
     <div className="mt-3 rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
       <div className="flex items-center gap-2">
         <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: 'var(--brand)' }}><GateGlyphSparkle /></span>
         <h4 className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">Capabilities matched</h4>
-        {block.badge && <span className="mono shrink-0 text-[11px]" style={{ color: 'var(--muted-deep)' }}>{block.badge}</span>}
       </div>
       {body}
     </div>
