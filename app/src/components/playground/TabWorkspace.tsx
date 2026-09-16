@@ -6,7 +6,6 @@ import type { ActiveObject, PlaygroundState, Scenario, WatchEntry } from '../../
 import { openableTabs, prdTab, saveTaskLayout, taskLayout, workspaceTabFor, type WorkspaceTab } from '../../state/workspace'
 import { useDismiss } from '../../state/useDismiss'
 import { TabContentRegistry } from './TabContentRegistry'
-import { WatchBar } from '../../zones/WatchBar'
 import { Tooltip } from '../chrome/Tooltip'
 import '../../design/flexlayout-theme.css'
 
@@ -90,7 +89,7 @@ interface Props {
 }
 
 export function TabWorkspace({
-  pg, scenario, taskId, prdObject, watch, theme, active, onCollapse, onToast, onFile, onEdit,
+  pg, scenario, taskId, prdObject, watch: _watch, theme, active, onCollapse, onToast, onFile, onEdit,
 }: Props) {
   const isPrd = !!prdObject
   /* PRD workspaces key their layout on a constant id, not a task id, so the
@@ -158,8 +157,8 @@ export function TabWorkspace({
   return (
     <section aria-label="Task workspace" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       <div
-        className="relative m-[12px] mb-0 min-h-0 flex-1 overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}
+        className="relative m-[12px] min-h-0 flex-1 overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}
       >
         <Layout
           model={model}
@@ -189,10 +188,6 @@ export function TabWorkspace({
         />
       </div>
       {/* The Watch zone — a thin bar at the foot of every workspace. */}
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]"
-        style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
-      </div>
     </section>
   )
 }

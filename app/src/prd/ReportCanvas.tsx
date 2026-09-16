@@ -5,7 +5,6 @@
  * recommendations report) opens as a named-file tab, with a trailing "+".
  * The .html tab renders the reused analytics dashboards under browser chrome;
  * the .pdf tabs render a report-styled document. */
-import { WatchBar } from '../zones/WatchBar'
 import { Tooltip } from '../components/chrome/Tooltip'
 import type { ActiveObject, WatchEntry } from '../state/types'
 import { FunnelView, FeedbackView, ImpactView } from './InsightCanvas'
@@ -24,7 +23,7 @@ interface Props {
   onToast: (text: string) => void
 }
 
-export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, onToast }: Props) {
+export function ReportCanvas({ object, tabs, watch: _watch, onCollapse, onSelectReport, onToast }: Props) {
   const openTabs = REPORT_ORDER.filter((v) => tabs.includes(v))
   const active: ReportView = object.activeReport && openTabs.includes(object.activeReport)
     ? object.activeReport
@@ -33,8 +32,8 @@ export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, 
 
   return (
     <section aria-label="Canvas — report" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="relative m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
+      <div className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
 
         {/* Tab strip — named-file tabs + a trailing "+", Deepak-canvas style. */}
         <div className="relative flex items-center gap-1.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
@@ -62,12 +61,7 @@ export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, 
             </Tooltip>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            {/* Same toolset and glyphs as the document canvas — Share, Download, Close. */}
-            <Tooltip label="Share" side="bottom">
-              <button onClick={() => onToast('Share link copied')} aria-label="Share" className="icon-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
-              </button>
-            </Tooltip>
+            {/* Same toolset and glyphs as the document canvas — Download, Close. */}
             <Tooltip label="Download" side="bottom">
               <button onClick={() => onToast(`Downloaded ${asset.file}`)} aria-label="Download" className="icon-btn">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
@@ -88,10 +82,6 @@ export function ReportCanvas({ object, tabs, watch, onCollapse, onSelectReport, 
             ? <HtmlAsset file={asset.file} />
             : <PdfAsset file={asset.file} view={active} />}
         </div>
-      </div>
-
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
       </div>
     </section>
   )

@@ -2,7 +2,7 @@
  *
  * This is what the Canvas becomes when the object it holds is a document (a
  * PRD). The layout follows the pattern the generative tools converged on: a
- * Preview/Code switch on the left of the toolbar, and object actions — Share,
+ * Preview/Source switch on the left of the toolbar, and object actions —
  * Expand to full screen, Download in a chosen format, and version History — on
  * the right, with a Close that folds the panel away. Manus's history drawer is
  * the model for the version list: timestamped entries, each offering Preview or
@@ -11,7 +11,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useDismiss } from '../state/useDismiss'
-import { WatchBar } from '../zones/WatchBar'
 import { Tooltip } from '../components/chrome/Tooltip'
 import { Markdown } from '../components/playground/Markdown'
 import { SelectionActions } from './SelectionActions'
@@ -41,7 +40,7 @@ interface Props {
   changes?: { quote: string; note: string; range?: Range }[]
 }
 
-export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [], onSelectDoc, onAddChange, changes = [] }: Props) {
+export function DocumentCanvas({ object, watch: _watch, onToast, onCollapse, files = [], onSelectDoc, onAddChange, changes = [] }: Props) {
   const isBacklog = object.kind === 'backlog'
   const doc = object.activeDoc ?? 'intake'
   const md = useMemo(
@@ -50,6 +49,12 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
   )
   const file = isBacklog ? BACKLOG_FILE[doc] : `${prdFileName(object.subject)}.md`
   const [view, setView] = useState<View>('preview')
+  /* The Source view is a plain text editor — typing here edits this session's
+     copy of the file, per filename, seeded from the scripted markdown the first
+     time it is opened. Preview keeps rendering the original; this is scratch
+     space for the user, not fed back into the render. */
+  const [sourceEdits, setSourceEdits] = useState<Record<string, string>>({})
+  const source = sourceEdits[file] ?? md
   const [expanded, setExpanded] = useState(false)
   const [menu, setMenu] = useState<'none' | 'download' | 'history' | 'files'>('none')
   const bar = useRef<HTMLDivElement>(null)
@@ -126,7 +131,17 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
       <div ref={contentRef} className="relative">
         {view === 'preview'
           ? <Markdown source={md} />
-          : <pre className="mono max-w-full overflow-x-auto whitespace-pre-wrap text-[12.5px] leading-[1.65]" style={{ color: 'var(--text-dim)' }}>{md}</pre>}
+          : <textarea value={source} onChange={(e) => setSourceEdits((s) => ({ ...s, [file]: e.target.value }))} spellCheck={false}
+              /* `rows` sized to the content, not `minHeight: 100%` — a percentage
+                 height only resolves against an ancestor with a DEFINITE height,
+                 and this textarea's immediate parent is auto-height, so the
+                 textarea fell back to its intrinsic ~2-row default and clipped
+                 everything after the first line. Sizing rows from the text itself
+                 makes the box exactly as tall as its content; the outer panel's
+                 own scroll (already `overflow-auto`) handles anything past that. */
+              rows={Math.max(10, source.split('\n').length + 1)}
+              className="mono w-full resize-none whitespace-pre-wrap bg-transparent text-[12.5px] leading-[1.65] focus-visible:outline-none"
+              style={{ color: 'var(--text-dim)' }} />}
         {/* Numbered markers on each highlighted passage — the same numbers as the
             changes tray above the composer. Position is content-relative, so they
             stay glued to the text as the doc scrolls. */}
@@ -152,17 +167,14 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
   if (!object.docReady) {
     return (
       <section aria-label="Canvas — drafting" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="m-[12px] mb-0 grid min-h-0 flex-1 place-items-center overflow-hidden rounded-t-[var(--r-md)]"
-          style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
+        <div className="m-[12px] grid min-h-0 flex-1 place-items-center overflow-hidden rounded-[var(--r-md)]"
+          style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
           <div className="max-w-[280px] px-8 text-center">
             <div className="mb-3 flex justify-center"><LoadingState label="Drafting the document" /></div>
             <p className="text-[12px] leading-[1.5]" style={{ color: 'var(--muted-deep)' }}>
               The PRD will appear here once it is ready to review.
             </p>
           </div>
-        </div>
-        <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-          <WatchBar entries={watch} />
         </div>
       </section>
     )
@@ -172,8 +184,8 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
     <section aria-label="Canvas — document" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       <div
         ref={cardRef}
-        className="relative m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}
+        className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}
       >
         {/* Toolbar — the Preview/Code switch on the left, object actions right. */}
         <div ref={bar} className="relative flex items-center gap-2.5 px-2.5 py-2" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
@@ -189,14 +201,13 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
 
           <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]"
             style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            <ToolBtn label="Share" onClick={() => onToast('Share link copied')}><Icon.Share /></ToolBtn>
+            <ToolBtn label="Expand" onClick={() => setExpanded(true)}><Icon.Expand /></ToolBtn>
             {/* Inline commenting is a preview‑only affordance — there is nothing to
                 annotate in the raw source view. */}
             {view === 'preview' && (
               <ToolBtn label={commenting ? 'Done commenting' : 'Comment on the doc'} active={commenting}
                 onClick={() => { setCommenting((c) => !c); setPin(null) }}><Icon.Comment /></ToolBtn>
             )}
-            <ToolBtn label="Expand" onClick={() => setExpanded(true)}><Icon.Expand /></ToolBtn>
             <ToolBtn label="Download" active={menu === 'download'} onClick={() => setMenu(menu === 'download' ? 'none' : 'download')}><Icon.Download /></ToolBtn>
             <ToolBtn label="Version history" active={menu === 'history'} onClick={() => setMenu(menu === 'history' ? 'none' : 'history')}><Icon.History /></ToolBtn>
             <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
@@ -237,10 +248,6 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
         )}
       </div>
 
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
-      </div>
-
       {/* Full-screen document view. */}
       {expanded && (
         <div className="fixed inset-0 z-[90] flex flex-col" style={{ background: 'var(--ground)' }}>
@@ -255,7 +262,10 @@ export function DocumentCanvas({ object, watch, onToast, onCollapse, files = [],
           <div className="mx-auto min-h-0 w-full max-w-[860px] flex-1 overflow-auto px-8 py-8">
             {view === 'preview'
               ? <Markdown source={md} />
-              : <pre className="mono whitespace-pre-wrap text-[13px] leading-[1.7]" style={{ color: 'var(--text-dim)' }}>{md}</pre>}
+              : <textarea value={source} onChange={(e) => setSourceEdits((s) => ({ ...s, [file]: e.target.value }))} spellCheck={false}
+                  rows={Math.max(20, source.split('\n').length + 1)}
+                  className="mono w-full resize-none whitespace-pre-wrap bg-transparent text-[13px] leading-[1.7] focus-visible:outline-none"
+                  style={{ color: 'var(--text-dim)' }} />}
           </div>
         </div>
       )}
@@ -338,13 +348,15 @@ function FileSwitcher({ files, activeName, onPick }: {
   )
 }
 
-/* The Preview/Code switch — one segmented control. The active tab is a filled
+/* The Preview/Source switch — one segmented control. The active tab is a filled
    pill showing icon + label; the inactive one collapses to its icon alone and
-   the label glides away, the way lovable's editor does it. */
+   the label glides away, the way lovable's editor does it. Source is the plain
+   markdown, editable in place — the internal id stays 'code' (nothing else
+   depends on the label), only what's shown changes. */
 function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   const tabs: { id: View; label: string; icon: () => React.JSX.Element }[] = [
     { id: 'preview', label: 'Preview', icon: Icon.Preview },
-    { id: 'code', label: 'Code', icon: Icon.Code },
+    { id: 'code', label: 'Source', icon: Icon.Code },
   ]
   return (
     <div className="flex items-center gap-0.5 rounded-[11px] p-[3px]"

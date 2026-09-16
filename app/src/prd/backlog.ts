@@ -12,6 +12,11 @@ export type BacklogDoc =
   /* The user's own tabular format — adopted for the docs but off the Jira-publish
      path, since it does not match the team's defined structure. */
   | 'epics-custom' | 'features-custom'
+  /* The downstream (Meera) half: the drafted allocation of the 58 stories across
+     the scrum team, grouped by role. */
+  | 'team-allocation'
+  /* The result of revising the epics gate after release: 9 epics (was 7). */
+  | 'epics-revised'
 
 export const BACKLOG_FILE: Record<BacklogDoc, string> = {
   intake: 'intake-summary.md',
@@ -24,6 +29,8 @@ export const BACKLOG_FILE: Record<BacklogDoc, string> = {
   sprint: 'sprint-plan.md',
   'epics-custom': 'epics-custom.md',
   'features-custom': 'features-custom.md',
+  'team-allocation': 'team_allocation.md',
+  'epics-revised': 'epics.md',
 }
 
 const INTAKE = `# Intake summary — WireFrame Studio v1.0
@@ -333,9 +340,77 @@ const FEATURES_CUSTOM = `# Features — WireFrame Studio (custom format)
 `
 
 /** The markdown for a given phase document (some phases have a variant view). */
+/* The drafted team allocation — the artefact Meera reviews. Grouped by role, with
+   per-person story keys, point totals and a capacity read; the two over-capacity
+   members are called out so the review has an obvious focus. Names/keys are
+   illustrative. */
+const TEAM_ALLOCATION = `# Team allocation — WireFrame Studio · Sprint 35
+
+Drafted from **58 stories · 142 story points**, balanced against component ownership, historical velocity and the current PTO calendar across **10 team members**.
+
+> Two members are over capacity for this sprint: **Arjun (Lead Frontend) at 138%** and **Farhan (UI/UX) at 120%**. The other 8 are within a healthy band.
+
+## Design — 12 stories · 34 pts
+
+| Member | Role | Stories | Sample keys | Pts | Capacity |
+| --- | --- | --- | --- | --- | --- |
+| Farhan | UI/UX | 5 | ST-002, ST-014, ST-021, ST-047 | 16 | **120% ⚠** |
+| Priya | Visual Design | 4 | ST-006, ST-018, ST-029, ST-041 | 11 | 88% |
+| Neha | Interaction | 3 | ST-009, ST-025, ST-052 | 7 | 72% |
+
+## Frontend — 26 stories · 66 pts
+
+| Member | Role | Stories | Sample keys | Pts | Capacity |
+| --- | --- | --- | --- | --- | --- |
+| Arjun | Lead Frontend | 9 | ST-001, ST-003, ST-011, ST-034 | 25 | **138% ⚠** |
+| Kavya | Frontend | 7 | ST-005, ST-016, ST-027, ST-038 | 16 | 92% |
+| Dev | Frontend | 5 | ST-007, ST-019, ST-031 | 12 | 84% |
+| Rohan | Frontend | 5 | ST-012, ST-024, ST-036 | 13 | 60% · PTO Thu–Fri |
+
+## Backend — 20 stories · 42 pts
+
+| Member | Role | Stories | Sample keys | Pts | Capacity |
+| --- | --- | --- | --- | --- | --- |
+| Vikram | Lead Backend | 7 | ST-004, ST-015, ST-026, ST-048 | 16 | 90% |
+| Ananya | Backend | 7 | ST-008, ST-020, ST-032, ST-050 | 15 | 94% |
+| Karthik | Backend | 6 | ST-010, ST-022, ST-044 | 11 | 78% |
+
+---
+
+**Totals** — 58 stories · 142 pts · 8 members balanced · 2 over capacity. Rebalancing Arjun and Farhan would move ~7 pts to Rohan and Neha, bringing every member under 100%.`
+
+/* The revised epics — 9, after the user changed the answer on the already-executed
+   epics gate. Two epics are carved out of the originals; the other seven keep their
+   scope. The two new ones are flagged so the diff from v1 is obvious. */
+const EPICS_REVISED = `# Epics — WireFrame Studio (revised · v2)
+
+Regenerated from your change: **9 epics** (was 7). Two were carved out of the originals so each epic stays single-purpose; the other seven are unchanged in scope.
+
+## What changed
+- **Epic 08 — Responsive & Multi-Device Preview · P0**  *(new — split from Epic 01)* — device-frame preview (mobile / tablet / desktop), breakpoint editing, per-device overrides. Epic 01 now covers canvas editing only.
+- **Epic 09 — Text-to-Wireframe Generation · P1**  *(new — promoted from Epic 03)* — natural-language → layout generation, prompt history, editable AI drafts. Epic 03 now covers contextual assistance only.
+
+## All 9 epics
+
+| # | Epic | Priority | Note |
+| --- | --- | --- | --- |
+| 01 | Intelligent Canvas Editor | P0 | scope narrowed — preview moved to E08 |
+| 02 | Component & Template Library | P0 | unchanged |
+| 03 | AI-Powered Design Assistant | P1 | scope narrowed — generation moved to E09 |
+| 04 | Real-Time Collaboration | P0 | unchanged |
+| 05 | Design System Integration | P1 | unchanged |
+| 06 | Prototyping & Export | P1 | unchanged |
+| 07 | User Onboarding & Education | P2 | unchanged |
+| 08 | Responsive & Multi-Device Preview | P0 | **new** |
+| 09 | Text-to-Wireframe Generation | P1 | **new** |
+
+**Priority mix** — 4× P0 · 4× P1 · 1× P2. Downstream: 29 features · 72 stories once regenerated.`
+
 export function backlogMarkdown(doc: BacklogDoc): string {
   switch (doc) {
     case 'intake': return INTAKE
+    case 'team-allocation': return TEAM_ALLOCATION
+    case 'epics-revised': return EPICS_REVISED
     case 'epics': return epicsMd(false, false)
     case 'epics-fields': return epicsMd(true, true)
     case 'features': return featuresMd(false)

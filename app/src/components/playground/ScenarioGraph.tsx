@@ -8,7 +8,6 @@
  * The toolbar carries the session heading — the capability name and badge.
  */
 import { useMemo } from 'react'
-import { WatchBar } from '../../zones/WatchBar'
 import { Tooltip } from '../chrome/Tooltip'
 import type { PrepStep, WatchEntry } from '../../state/types'
 
@@ -53,7 +52,7 @@ function layout(steps: PrepStep[]): NodeDef[] {
   })
 }
 
-export function ScenarioGraph({ steps, at, waiting, heading, watch, onCollapse }: {
+export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch, onCollapse }: {
   steps: PrepStep[]
   at: number
   /** True when the current step is a gate genuinely awaiting the user. */
@@ -70,8 +69,8 @@ export function ScenarioGraph({ steps, at, waiting, heading, watch, onCollapse }
 
   return (
     <section aria-label="Canvas — execution activity" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
+      <div className="m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
         <style>{`
           .sg-flow { stroke-dasharray: 7 7; animation: sgMarch .7s linear infinite; }
           @keyframes sgMarch { to { stroke-dashoffset: -28; } }
@@ -130,10 +129,6 @@ export function ScenarioGraph({ steps, at, waiting, heading, watch, onCollapse }
             {nodes.map((n, i) => <Card key={n.id} node={n} state={stateOf(i)} />)}
           </svg>
         </div>
-      </div>
-
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
       </div>
     </section>
   )

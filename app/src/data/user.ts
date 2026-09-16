@@ -13,16 +13,19 @@ export interface Profile {
   initials: string
 }
 
-export type ProfileId = 'deepak' | 'raman' | 'ajay'
+export type ProfileId = 'deepak' | 'raman' | 'ajay' | 'meera'
 
 export const PROFILES: Record<ProfileId, Profile> = {
   deepak: { id: 'deepak', name: 'Deepak', role: 'Admin', org: 'HP', initials: 'D' },
   raman: { id: 'raman', name: 'Raman', role: 'Product Manager', org: 'HP', initials: 'R' },
   ajay: { id: 'ajay', name: 'Ajay', role: 'Agent Designer', org: 'HP', initials: 'A' },
+  /* User B in the cross-persona handoff — she picks up the backlog Raman
+     publishes and allocates the stories across her scrum team. */
+  meera: { id: 'meera', name: 'Meera', role: 'Product Manager', org: 'HP', initials: 'M' },
 }
 
 /** The order the account switch cycles through. */
-export const PROFILE_ORDER: ProfileId[] = ['deepak', 'raman', 'ajay']
+export const PROFILE_ORDER: ProfileId[] = ['deepak', 'raman', 'ajay', 'meera']
 
 /** The profile the demo opens on. */
 export const DEFAULT_PROFILE: ProfileId = 'deepak'

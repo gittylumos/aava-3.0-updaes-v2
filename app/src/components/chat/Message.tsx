@@ -5,6 +5,7 @@ import { TypingDots } from './TypingDots'
 import { StreamedText } from './StreamedText'
 import { Block } from './Blocks'
 import { CitationPills } from './InlineSource'
+import { Fragment } from 'react'
 import { fadeUp } from '../../design/motion'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
@@ -22,11 +23,17 @@ interface Props {
   onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
   onToast?: (text: string) => void
+  /** Rewind an executed gate — open the confirm modal, the id of the gate being
+      edited in place, and the send/cancel of that edit. */
+  onRevise?: (messageId: string) => void
+  revisingId?: string | null
+  onReviseSend?: (messageId: string, note: string) => void
+  onReviseCancel?: () => void
   /** This message's block is pinned to the composer slot — skip it inline. */
   pinned?: boolean
 }
 
-export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, pinned }: Props) {
+export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, onRevise, revisingId, onReviseSend, onReviseCancel, pinned }: Props) {
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -53,7 +60,7 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
             ? <StreamingLines msg={msg} onToast={onToast} />
             : msg.lines.map((line, i) => (
                 <Line key={i}>
-                  {line}
+                  {highlight(line)}
                   {i === msg.lines.length - 1 && msg.citations && (
                     <CitationPills sources={msg.citations} onOpen={onToast ? (s) => onToast(`Opening ${s.title}`) : undefined} />
                   )}
@@ -63,12 +70,36 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
             <Block block={msg.block} live={msg.live !== false} preview={preview}
               onAccept={onAccept} onDismiss={() => onDismiss(msg.id)} onOpenFile={onOpenFile}
               onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
-              onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} onToast={onToast} answer={msg.answer} />
+              onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} onToast={onToast} answer={msg.answer}
+              revising={msg.id === revisingId}
+              onRevise={onRevise ? () => onRevise(msg.id) : undefined}
+              onReviseSend={onReviseSend ? (note) => onReviseSend(msg.id, note) : undefined}
+              onReviseCancel={onReviseCancel} />
           )}
         </>
       )}
     </motion.div>
   )
+}
+
+/* Inline **highlight** for a non-streamed line — the emphasised phrase reads a
+   shade brighter and heavier, so a skimming reader catches the key figures
+   without reading the whole paragraph. Only applied to settled (non-streaming)
+   lines, where the whole line is known up front. */
+function highlight(text: string): React.ReactNode {
+  if (!text.includes('**')) return text
+  const out: React.ReactNode[] = []
+  const re = /\*\*([^*]+)\*\*/g
+  let last = 0
+  let m: RegExpExecArray | null
+  let i = 0
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(<Fragment key={i++}>{text.slice(last, m.index)}</Fragment>)
+    out.push(<strong key={i++} style={{ color: 'var(--text)', fontWeight: 600 }}>{m[1]}</strong>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push(<Fragment key={i++}>{text.slice(last)}</Fragment>)
+  return out
 }
 
 /* One line at a time. Mounting every line at once streamed them in parallel,

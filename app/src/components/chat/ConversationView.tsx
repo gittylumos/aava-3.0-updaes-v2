@@ -34,6 +34,10 @@ interface Props {
   onOpenAgentArtifact?: (id: string) => void
   onOpenAgentDoc?: () => void
   onRecordAnswer?: (messageId: string, text: string) => void
+  onRevise?: (messageId: string) => void
+  revisingId?: string | null
+  onReviseSend?: (messageId: string, note: string) => void
+  onReviseCancel?: () => void
   /** A tool step's cited source pill was opened (e.g. "Opening MOB-2841 in Jira"). */
   onToast?: (text: string) => void
   onToggleContext?: () => void
@@ -59,7 +63,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
@@ -75,9 +79,14 @@ export function ConversationView({
      decision or confirm block. The plan is a conversation record (with its own
      Proceed when it has one), so it stays in the thread and the prompt bar
      stays put beneath it, exactly as the PRD flow behaves. */
-  const pinnedGate = [...state.messages].reverse().find(
-    (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
-  )
+  /* A gate being revised takes the exact same pinned spot — the instant a rewind
+     is confirmed it jumps out of the scrolling thread and into the composer's
+     place, in edit mode, the same way it did the first time it was ever live. */
+  const pinnedGate = state.revisingId
+    ? state.messages.find((m) => m.id === state.revisingId)
+    : [...state.messages].reverse().find(
+        (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
+      )
 
   /* The run-progress bar for the backlog flow — pinned below the session header,
      shown only once the run is underway (after Proceed). */
@@ -278,6 +287,7 @@ export function ConversationView({
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
               onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc} onRecordAnswer={onRecordAnswer}
+              onRevise={onRevise} revisingId={revisingId} onReviseSend={onReviseSend} onReviseCancel={onReviseCancel}
               onToast={onToast} pinnedId={pinnedGate?.id} />
           </div>
         </div>
@@ -302,10 +312,14 @@ export function ConversationView({
                  gate scroll internally — otherwise on a short viewport the gate's
                  action buttons could clip below the fold with no way to reach them. */
               <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
-                <Block block={pinnedGate.block} live preview={preview}
+                <Block block={pinnedGate.block} live={pinnedGate.live !== false} preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
                   onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
-                  onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer} />
+                  onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer}
+                  revising={pinnedGate.id === revisingId}
+                  onRevise={onRevise ? () => onRevise(pinnedGate.id) : undefined}
+                  onReviseSend={onReviseSend ? (note) => onReviseSend(pinnedGate.id, note) : undefined}
+                  onReviseCancel={onReviseCancel} />
               </div>
             ) : composer}
           </div>

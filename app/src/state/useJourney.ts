@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { PRD_SEED_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
+import { PRD_SEED_ID, MEERA_ASSIGN_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, isReportIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
 import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
+import { storyAssignmentOpening, ASSIGN_BEATS } from '../prd/assignFlow'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
 import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
 import { isArtifactIntent, agentOpening, agentRouter, AGENT_BEATS } from '../prd/agentFlow'
@@ -183,7 +184,9 @@ export function useJourney() {
       if (name === 'pushStoriesFinal') { play(backlogStoriesPublish(state.messages)); return }
       /* Skipping the stories names what is on Jira and what is still left. */
       if (name === 'storiesSkipped') { play(backlogStoriesSkipped(state.messages)); return }
-      const beat = BACKLOG_BEATS[name]
+      /* Meera's Story Assignment run rides the same backlog object, so its beats
+         sit alongside the backlog ones. */
+      const beat = BACKLOG_BEATS[name] ?? ASSIGN_BEATS[name]
       if (beat) play(beat)
       return
     }
@@ -281,6 +284,11 @@ export function useJourney() {
        drive their own beats. Anything else is a light acknowledgement that folds
        the comment into the current draft; the phase gates advance via buttons. */
     if (state.activeObject?.kind === 'backlog') {
+      /* The two closing pills after a successful publish — quick moves, not
+         conversation turns, so neither adds a user bubble (matching how the old
+         gate's buttons fired straight through without one). */
+      if (/^go to my tasks$/i.test(text)) { dispatch({ type: 'SHOW_TASKS' }); return }
+      if (/^review current task status$/i.test(text)) { play([{ type: 'setCanvasView', view: 'graph' }]); return }
       dispatch({ type: 'USER_SAY', text })
       play(backlogRouter(text) ?? backlogReply())
       return
@@ -398,6 +406,16 @@ export function useJourney() {
       play(backlogTaskOpening())
       return
     }
+    /* Meera's story-assignment card opens the downstream half of the handoff —
+       the same backlog object, playing the Story Assignment opening that lands on
+       the allocation-review gate. */
+    if (taskId === MEERA_ASSIGN_ID) {
+      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'Story Assignment · WireFrame Studio',
+        subject: 'WireFrame Studio', said: 'Task assigned from AAVA — “Assign Stories to scrum team members”', taskId })
+      dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
+      play(storyAssignmentOpening())
+      return
+    }
     const sc = getScenario(taskId)
     dispatch({ type: 'OPEN_TASK', taskId, scenario: sc })
     if (sc) { play(withGate(sc, sc.beats.prep, prepStart(sc.prep))); return }
@@ -461,6 +479,32 @@ export function useJourney() {
     openAgentDoc: () => dispatch({ type: 'SET_AGENT_DOC' }),
     /* A gate's inline note — record it on the gate before its beat fires. */
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
+    /* Rewind: open the platform-level confirm modal for a gate, listing the
+       downstream artefacts that will be marked invalid — filtered to what has
+       actually been generated after it. */
+    openReviseModal: (messageId: string) => {
+      const at = state.messages.findIndex((m) => m.id === messageId)
+      const gate = at === -1 ? undefined : state.messages[at]?.block
+      const authored = gate?.kind === 'decision' ? (gate.impact ?? []) : []
+      const after = at === -1 ? [] : state.messages.slice(at + 1)
+      const present = authored.filter((it) =>
+        after.some((m) => m.block?.kind === 'document' && m.block.doc?.startsWith(it.doc.split('-')[0])),
+      )
+      dispatch({ type: 'OPEN_REVISE_MODAL', messageId, items: present.length ? present : authored })
+    },
+    closeReviseModal: () => dispatch({ type: 'CLOSE_REVISE_MODAL' }),
+    confirmReviseModal: () => dispatch({ type: 'CONFIRM_REVISE_MODAL' }),
+    cancelReviseEdit: () => dispatch({ type: 'CANCEL_REVISE_EDIT' }),
+    /* Send the edit: record the new answer, invalidate downstream, then re-run the
+       SAME downstream process from this step with the changed value. */
+    reviseSend: (messageId: string, note: string) => {
+      cancel()
+      const m = state.messages.find((x) => x.id === messageId)
+      const beat = m?.block?.kind === 'decision' ? m.block.reviseBeat : undefined
+      dispatch({ type: 'REVISE_GATE', messageId, note })
+      const b = (beat && (BACKLOG_BEATS[beat] ?? ASSIGN_BEATS[beat])) || BACKLOG_BEATS.reviseGeneric
+      if (b) play(b)
+    },
     /* Apply the pending inline comments — they land in the conversation as a turn
        (coming from the doc), with a progress checklist and an acknowledgement, so
        an inline comment reads like any other request in the thread. */

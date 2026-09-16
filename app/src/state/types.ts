@@ -196,8 +196,21 @@ export type BlockSpec =
           record what you type" action — clicking it opens an inline text box
           rather than firing straight away; Send records the note and fires the
           beat. */
-      options: { label: string; beat: string; primary?: boolean; sub?: string; collect?: boolean }[]
-      summary?: { label: string; detail?: string }[] }
+      options: { label: string; beat: string; primary?: boolean; sub?: string; collect?: boolean
+        /** A small neutral pill trailing the option label (e.g. "Recommended"). */
+        tag?: string }[]
+      summary?: { label: string; detail?: string }[]
+      /** Makes an ANSWERED gate revisable — an executed step you can rewind to. A
+          "Revise" control (top-right of the card) opens the platform-level rewind
+          modal → in-place edit of the answer → the same downstream process re-runs
+          with the changed value. */
+      revisable?: boolean
+      /** The beat that re-runs the downstream process when this gate is revised
+          (defaults to a generic replay). */
+      reviseBeat?: string
+      /** The downstream artefacts that get marked invalid when this step is
+          rewound — shown as links in the rewind-confirm modal. */
+      impact?: { label: string; doc: BacklogDoc }[] }
   /** The proposed capability/step list in the agent-designer flow — shown as a
       clean ordered list in the conversation (not the dock-linked plan card), so
       the user can refine it by typing before matching artifacts. `added` flags a
@@ -262,6 +275,9 @@ export interface Message {
   /** What the user typed into a gate's inline textarea before answering — shown
       back inside the retired gate card as their recorded note. */
   answer?: string
+  /** Invalidated downstream of a revised step — kept, not deleted (the "v1"
+      record), rendered collapsed with a "superseded" tag. */
+  superseded?: boolean
   /** Sources backing this message's last line — shown as trailing pills once
       that line finishes revealing. */
   citations?: Citation[]
@@ -310,6 +326,17 @@ export type Effect =
   | { type: 'connectState'; state: ConnectState }
   /** Move the open PRD object to a new phase — swaps what the Canvas renders. */
   | { type: 'prdPhase'; phase: PrdPhase }
+  /** Switch the right canvas between the document, the Execution-activity graph,
+      and the session files — beat-driven, so a run can open onto its process map
+      and later swap to the artefact it produces. Opens the panel too. */
+  | { type: 'setCanvasView'; view: 'doc' | 'graph' | 'files' }
+  /** Retire the board card bound to the open object — move it to Completed with an
+      optional closing note. Used when a run finishes (Raman's backlog publish). */
+  | { type: 'taskDone'; note?: string }
+  /** Cross-persona handoff: Raman's backlog was published to Jira, so the WFS
+      story-assignment work is now ready in Meera's queue. Survives a profile
+      switch, so switching to Meera after the publish shows her the new card. */
+  | { type: 'backlogReady' }
   | { type: 'wait'; ms: number }
 
 export interface PrepStep {
@@ -432,6 +459,11 @@ export interface PlaygroundState {
    *  tab works even after the user closed it. Incidental re-renders do not bump,
    *  which is what keeps a closed tab closed. */
   openRequest: number
+  /** Which right-canvas view a beat last asked for (document / graph / files), and
+   *  a nonce bumped on every such request so App can mirror it into canvasMode even
+   *  when the same view is asked for twice in a row. */
+  canvasView: 'doc' | 'graph' | 'files'
+  canvasReq: number
 }
 
 /** Everything that makes a thread itself, parked while you work in another one. */
@@ -483,6 +515,17 @@ export interface AppState {
   stashed: Record<string, ThreadSnapshot>
   /** An off-topic question waiting on "yes, start a new thread". */
   pendingTopic: string | null
+  /** Set once Raman's backlog is published to Jira — the cross-persona handoff
+      that surfaces the story-assignment card in Meera's queue. Persists across a
+      profile switch, so it is what tells Meera's home the backlog is ready. */
+  backlogReady: boolean
+  /** The rewind-confirm modal (platform-level, not inside a gate). Set when a
+      gate's Revise button is pressed; carries the gate id and the downstream
+      artefacts that will be invalidated. */
+  reviseModal: { messageId: string; items: { label: string; doc: BacklogDoc }[] } | null
+  /** The gate currently open for in-place editing (its "your input" is an editable
+      textarea) after the rewind was confirmed. */
+  revisingId: string | null
 }
 
 export type Action =
@@ -536,3 +579,14 @@ export type Action =
   /** Record what the user typed into a gate's inline textarea, and retire the
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }
+  /** Open the platform-level rewind-confirm modal for a gate. */
+  | { type: 'OPEN_REVISE_MODAL'; messageId: string; items: { label: string; doc: BacklogDoc }[] }
+  | { type: 'CLOSE_REVISE_MODAL' }
+  /** Confirmed the rewind modal — open the gate for in-place editing. */
+  | { type: 'CONFIRM_REVISE_MODAL' }
+  /** Cancel the in-place edit without submitting. */
+  | { type: 'CANCEL_REVISE_EDIT' }
+  /** Revise an already-executed gate: record the new answer on it and invalidate
+      everything generated after it (mark superseded, keep as the v1 record). The
+      caller then plays the gate's re-run beat to rebuild downstream. */
+  | { type: 'REVISE_GATE'; messageId: string; note: string }

@@ -9,7 +9,7 @@
  * It maps to the "Epics and Features Generator" agentic process; the words follow
  * that script.
  */
-import type { BlockSpec, Effect, Message, PrepStep, ToolStep } from '../state/types'
+import type { BlockSpec, Chip, Effect, Message, PrepStep, ToolStep } from '../state/types'
 import type { BacklogDoc } from './backlog'
 import { T } from '../state/timing'
 
@@ -21,6 +21,8 @@ export const DOC_PHASE: Record<BacklogDoc, string> = {
   features: 'features', 'features-gaps': 'features', 'features-custom': 'features',
   stories: 'stories', 'stories-flags': 'stories',
   sprint: 'sprint',
+  'team-allocation': 'assign',
+  'epics-revised': 'epics',
 }
 
 /* The run-progress steps for the backlog flow. Sprint planning is handed off to
@@ -47,6 +49,9 @@ export function backlogProgress(messages: Message[]): { steps: PrepStep[]; at: n
   let running = false
   let started = false
   for (const m of messages) {
+    /* Superseded messages belong to a rewound branch — the progress bar falls back
+       past them, then re-advances as the re-run regenerates. */
+    if (m.superseded) continue
     const b = m.block
     if (b?.kind === 'document' && b.doc) {
       const p = PHASE_INDEX[DOC_PHASE[b.doc]]
@@ -96,13 +101,16 @@ function artifact(name: string, doc: BacklogDoc): Effect {
    "reveal a textarea, record what you type, then fire the beat" action. */
 type Opt = [label: string, beat: string, primary?: boolean, collect?: boolean]
 
-/** A gate — the golden "waiting on you" decision card. */
-function gate(step: number, title: string, question: string, options: Opt[], summary?: { label: string; detail?: string }[]): BlockSpec {
+/** A gate — the golden "waiting on you" decision card. `revise` makes the answered
+    gate revisable: `beat` re-runs the downstream process, `impact` lists the
+    artefacts marked invalid in the rewind-confirm modal. */
+function gate(step: number, title: string, question: string, options: Opt[], summary?: { label: string; detail?: string }[], revise?: { beat?: string; impact: { label: string; doc: BacklogDoc }[] }): BlockSpec {
   return {
     kind: 'decision', step, title, question,
     placeholder: 'Please describe here…',
     options: options.map(([label, beat, primary, collect]) => ({ label, beat, primary, collect })),
     summary,
+    ...(revise ? { revisable: true, reviseBeat: revise.beat ?? 'reviseGeneric', impact: revise.impact } : {}),
   }
 }
 
@@ -231,7 +239,8 @@ export function backlogTaskOpening(): Effect[] {
       block: gate(1, 'Confirm the intake summary', 'Does this match your PRD?', [
         ['Yes, this is accurate', 'startEpics', true],
         ['No, something is off', 'refineIntake', false, true],
-      ]),
+      ], undefined,
+        { beat: 'reviseIntake', impact: [{ label: 'Epics', doc: 'epics' }, { label: 'Features', doc: 'features' }, { label: 'Stories', doc: 'stories' }] }),
     },
   ]
 }
@@ -240,6 +249,34 @@ export function backlogTaskOpening(): Effect[] {
    the push confirmation in front of the same phase the "proceed" branch runs. ── */
 
 /* Phase 3 · Features — decompose, then surface the fields I could not infer. */
+/* Phase 2 · Epics — extracted so `reviseIntake` can re-enter this same body
+   after re-reading the PRD, instead of duplicating it. */
+const BUILD_EPICS: Effect[] = [
+  status([
+    ['Clustering 28 requirements by theme', 'done', T.repo],
+    ['Drafting Epic 1 · Intelligent Canvas Editor', 'P0'],
+    ['Drafting Epic 2 · Component & Template Library', 'P0'],
+    ['Drafting Epic 3 · AI-Powered Design Assistant', 'P1'],
+    ['Drafting Epic 4 · Real-Time Collaboration', 'P0'],
+    ['Drafting Epic 5 · Design System Integration', 'P1'],
+    ['Drafting Epic 6 · Prototyping & Export', 'P1'],
+    ['Drafting Epic 7 · User Onboarding & Education', 'P2'],
+    ['Applying epic template', '7 epics'],
+  ], 'Epics · clustering & drafting'),
+  { type: 'watch', text: '7 epics drafted', tone: 'ok' },
+  { type: 'say', lines: [
+    '7 epics drafted, open in the canvas — each on the same template: Background, Details, Benefits, Assumptions, Priority. Comment on any line, the way you would on code; I will fold every note back in before locking these.',
+  ] },
+  artifact('epics.md', 'epics'),
+  { type: 'say', lines: [],
+    block: gate(3, 'Confirm the epics', 'Are these 7 epics right?', [
+      ['Yes, break them into features', 'reviewEpics', true],
+      ['Refine the epics', 'refineEpics', false, true],
+    ], [{ label: '7 epics', detail: '3× P0 · 3× P1 · 1× P2' }],
+      { beat: 'reviseEpics', impact: [{ label: '23 Features', doc: 'features' }, { label: '58 Stories', doc: 'stories' }] }),
+  },
+]
+
 const BUILD_FEATURES: Effect[] = [
   status([
     ['Reading confirmed epics', 'done'],
@@ -267,7 +304,8 @@ const BUILD_FEATURES: Effect[] = [
     block: gate(4, 'Fill the missing fields', 'Add target start date, end date and priority for the 3 flagged features?', [
       ['Add the missing info', 'fillFeatureFields', true, true],
       ['Proceed without this info', 'featuresNoInfo'],
-    ], [{ label: '3 features flagged', detail: '1.3 · 5.3 · 7.2' }]),
+    ], [{ label: '3 features flagged', detail: '1.3 · 5.3 · 7.2' }],
+      { impact: [{ label: '58 Stories', doc: 'stories' }] }),
   },
 ]
 
@@ -296,6 +334,51 @@ const BUILD_STORIES: Effect[] = [
   },
 ]
 
+/* ── The 9-epic re-run bodies. Identical structure to the originals above — same
+   accordion → say → artefact → gate → push offer — only the numbers change, so a
+   rewound run reads as the very same process executed again with the new value. ── */
+const BUILD_FEATURES9: Effect[] = [
+  status([
+    ['Reading the 9 confirmed epics', 'done'],
+    ['Decomposing all 9 epics', '29 features'],
+    ['Decomposing Epic 08 · Responsive Preview', '3 features'],
+    ['Decomposing Epic 09 · Text-to-Wireframe', '3 features'],
+    ['Checking each feature against required fields', 'complete'],
+  ], 'Features · decomposing 9 epics'),
+  { type: 'watch', text: '29 features drafted (was 23)', tone: 'ok' },
+  { type: 'say', lines: [
+    '29 features across the 9 epics — the 6 new ones come from Epic 08 (Responsive Preview) and Epic 09 (Text-to-Wireframe). Open in the canvas.',
+  ] },
+  artifact('features.md', 'features'),
+  { type: 'say', lines: [],
+    block: gate(4, 'Confirm the features', 'Do these 29 features cover it?', [
+      ['Yes, decompose into stories', 'reviewFeatures9', true],
+      ['Refine the features', 'refineFeatures', false, true],
+    ], [{ label: '29 features', detail: 'under 9 epics' }],
+      { impact: [{ label: '72 Stories', doc: 'stories' }] }),
+  },
+]
+
+const BUILD_STORIES9: Effect[] = [
+  status([
+    ['Reading the 29 confirmed features', 'done'],
+    ['Decomposing 29 features into stories', '72 stories', T.repo],
+    ['Writing acceptance criteria for each story', 'done'],
+    ['Linking stories to their parent features', 'done'],
+  ], 'Stories · decomposing 29 features'),
+  { type: 'watch', text: '72 stories drafted (was 58)', tone: 'ok' },
+  { type: 'say', lines: [
+    '72 stories decomposed from the 29 confirmed features, each with acceptance criteria and linked to its parent — all open in the canvas.',
+  ] },
+  artifact('stories.md', 'stories'),
+  { type: 'say', lines: ['Want me to push them to Jira now?'],
+    block: {
+      kind: 'sync', title: 'Push the 72 stories to Jira', detail: '72 stories · under 29 features · WFS',
+      beat: 'pushStories9Final', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
+    },
+  },
+]
+
 /* The links shown after a successful publish. */
 const JIRA_LINKS: BlockSpec = {
   kind: 'links', links: [
@@ -313,9 +396,35 @@ function storiesPublishBase(): Effect[] {
     { type: 'wait', ms: T.prCreate },
     { type: 'watch', text: '58 stories created · Jira', tone: 'ok' },
     { type: 'say',
-      lines: ['Successfully created the stories on Jira. As part of this process, the next step involves sprint planning and is assigned to the scrum master. No more actions on you for now.'],
+      lines: ["Done — all the epics, features and stories are created on Jira now. The scrum master will be notified of the stories and will need to start the 'Story Assignment' step in the process."],
       block: JIRA_LINKS,
     },
+  ]
+}
+
+/* The close of Raman's run — it always comes LAST (after any "push what you
+   skipped" offer): his card retires to Completed (so it leaves his home), the
+   handoff flag flips so Meera's queue lights up. Not a HITL gate — nothing is
+   being asked of him — so the two exits are plain suggestion pills (the same
+   "Review code changes" pattern from the feedback-form scenario), derived by
+   backlogChips below rather than a decision block. */
+function storiesPublishClose(): Effect[] {
+  return [
+    { type: 'taskDone', note: 'All epics, features & stories on Jira · workflow complete' },
+    { type: 'backlogReady' },
+  ]
+}
+
+/** The two closing suggestion pills, shown once the run's last message is a
+    successful-publish links card — "Review current task status" (opens the
+    Execution-activity graph) and "Go to My Tasks" (the board). Not a gate: there
+    is nothing to answer, just two quick next moves. */
+export function backlogChips(messages: Message[]): Chip[] {
+  const last = messages.at(-1)
+  if (!last || last.from !== 'aava' || last.block?.kind !== 'links') return []
+  return [
+    { label: 'Review current task status', sends: 'Review current task status' },
+    { label: 'Go to My Tasks', sends: 'Go to My Tasks' },
   ]
 }
 
@@ -366,7 +475,7 @@ export function backlogStoriesSkipped(messages: Message[]): Effect[] {
 export function backlogStoriesPublish(messages: Message[]): Effect[] {
   const skipped = skippedLevels(messages)
   const base = storiesPublishBase()
-  if (!skipped.length) return base
+  if (!skipped.length) return [...base, ...storiesPublishClose()]
   const parts = skipped.map((s) => (s === 'epics' ? '7 epics' : '23 features'))
   const list = parts.join(' & ')
   return [
@@ -378,6 +487,7 @@ export function backlogStoriesPublish(messages: Message[]): Effect[] {
         beat: 'pushSkipped', secondaryLabel: 'Skip', secondaryBeat: 'wrapUpSkipped',
       },
     },
+    ...storiesPublishClose(),
   ]
 }
 
@@ -404,7 +514,8 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(1, 'Confirm the intake summary', 'Does this match your PRD?', [
         ['Yes, this is accurate', 'startEpics', true],
         ['No, something is off', 'refineIntake', false, true],
-      ]),
+      ], undefined,
+        { beat: 'reviseIntake', impact: [{ label: 'Epics', doc: 'epics' }, { label: 'Features', doc: 'features' }, { label: 'Stories', doc: 'stories' }] }),
     },
   ],
 
@@ -421,35 +532,29 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(1, 'Confirm the intake summary', 'Does this match your PRD now?', [
         ['Yes, this is accurate', 'startEpics', true],
         ['Still something off', 'refineIntake', false, true],
-      ]),
+      ], undefined,
+        { beat: 'reviseIntake', impact: [{ label: 'Epics', doc: 'epics' }, { label: 'Features', doc: 'features' }, { label: 'Stories', doc: 'stories' }] }),
     },
   ],
 
-  /* Phase 2 · Epics. Gate → Jira push offer → features. */
-  startEpics: [
+  /* Rewinding the intake gate — everything after it (epics/features/stories) was
+     already cleared (superseded) when the rewind was confirmed. Re-read the PRD
+     against the new note, then the SAME process re-runs from epics onward. */
+  reviseIntake: [
+    { type: 'watch', text: 'Re-reading the PRD against your change', tone: 'info' },
     status([
-      ['Clustering 28 requirements by theme', 'done', T.repo],
-      ['Drafting Epic 1 · Intelligent Canvas Editor', 'P0'],
-      ['Drafting Epic 2 · Component & Template Library', 'P0'],
-      ['Drafting Epic 3 · AI-Powered Design Assistant', 'P1'],
-      ['Drafting Epic 4 · Real-Time Collaboration', 'P0'],
-      ['Drafting Epic 5 · Design System Integration', 'P1'],
-      ['Drafting Epic 6 · Prototyping & Export', 'P1'],
-      ['Drafting Epic 7 · User Onboarding & Education', 'P2'],
-      ['Applying epic template', '7 epics'],
-    ], 'Epics · clustering & drafting'),
-    { type: 'watch', text: '7 epics drafted', tone: 'ok' },
-    { type: 'say', lines: [
-      '7 epics drafted, open in the canvas — each on the same template: Background, Details, Benefits, Assumptions, Priority. Comment on any line, the way you would on code; I will fold every note back in before locking these.',
-    ] },
-    artifact('epics.md', 'epics'),
-    { type: 'say', lines: [],
-      block: gate(3, 'Confirm the epics', 'Are these 7 epics right?', [
-        ['Yes, break them into features', 'reviewEpics', true],
-        ['Refine the epics', 'refineEpics', false, true],
-      ], [{ label: '7 epics', detail: '3× P0 · 3× P1 · 1× P2' }]),
-    },
+      ['Re-reading the PRD against your note', 'done'],
+      ['Updating the intake summary', 'done'],
+    ], 'Intake · applying your revision'),
+    { type: 'say', lines: ['Updated the intake summary from your note — moving on to epics.'] },
+    artifact('intake.md', 'intake'),
+    { type: 'setDoc', doc: 'intake' },
+    { type: 'setCanvasView', view: 'doc' },
+    ...BUILD_EPICS,
   ],
+
+  /* Phase 2 · Epics. Gate → Jira push offer → features. */
+  startEpics: BUILD_EPICS,
 
   refineEpics: [
     status([
@@ -467,7 +572,8 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(3, 'Confirm the epics', 'Ready to break these into features?', [
         ['Yes, break them into features', 'reviewEpics', true],
         ['Keep refining', 'refineEpics', false, true],
-      ]),
+      ], undefined,
+        { beat: 'reviseEpics', impact: [{ label: '23 Features', doc: 'features' }, { label: '58 Stories', doc: 'stories' }] }),
     },
   ],
 
@@ -497,7 +603,8 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(4, 'Confirm the features', 'Do these 23 features cover it?', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Refine the features', 'refineFeatures', false, true],
-      ], [{ label: '23 features', detail: 'under 7 epics · all fields set' }]),
+      ], [{ label: '23 features', detail: 'under 7 epics · all fields set' }],
+        { impact: [{ label: '58 Stories', doc: 'stories' }] }),
     },
   ],
 
@@ -510,7 +617,8 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(4, 'Confirm the features', 'Ready for stories? (3 features stay flagged)', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Refine the features', 'refineFeatures', false, true],
-      ], [{ label: '23 features', detail: '20 complete · 3 flagged' }]),
+      ], [{ label: '23 features', detail: '20 complete · 3 flagged' }],
+        { impact: [{ label: '58 Stories', doc: 'stories' }] }),
     },
   ],
 
@@ -526,7 +634,8 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
       block: gate(4, 'Confirm the features', 'Ready for stories?', [
         ['Yes, decompose into stories', 'reviewFeatures', true],
         ['Keep refining', 'refineFeatures', false, true],
-      ]),
+      ], undefined,
+        { impact: [{ label: '58 Stories', doc: 'stories' }] }),
     },
   ],
 
@@ -541,7 +650,7 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
   /* Stories publish. `pushStoriesFinal` is dispatched dynamically from useJourney
      (it needs the run's messages to know what was skipped); the static base here
      is a safety fallback. */
-  pushStoriesFinal: storiesPublishBase(),
+  pushStoriesFinal: [...storiesPublishBase(), ...storiesPublishClose()],
 
   /* The user skipped the stories push. Dispatched dynamically from useJourney
      (it names what is already on Jira); this static line is a safety fallback. */
@@ -562,6 +671,69 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
 
   wrapUpSkipped: [
     { type: 'say', lines: ['Understood — I left those unpublished. The stories are on Jira and the rest stays saved as editable docs. Let me know if anything changes.'] },
+  ],
+
+  /* ── Rewinding the executed epics gate (7 → 9). The downstream is already cleared
+     (superseded) by REVISE_GATE; from here the SAME process simply re-runs with the
+     changed value — regenerate 9 epics, then the identical epics-push → features →
+     features-gate → features-push → stories → publish flow, only the numbers change.
+     No new one-off "apply" step: the process itself is unchanged. ── */
+  reviseEpics: [
+    { type: 'watch', text: 'Re-clustering 28 requirements into 9 epics', tone: 'info' },
+    status([
+      ['Re-reading the 28 requirements against your change', 'done', T.repo],
+      ['Splitting Epic 01 → Canvas Editor + Responsive Preview', 'Epic 08'],
+      ['Promoting text-to-wireframe to its own epic', 'Epic 09'],
+      ['Re-validating all 9 epics against required fields', '9 epics'],
+    ], 'Epics · re-clustering into 9'),
+    { type: 'watch', text: '9 epics drafted (was 7)', tone: 'ok' },
+    { type: 'say', stream: false, lines: [
+      'Epics regenerated to **9 epics** — I split the Canvas Editor into a dedicated Responsive & Multi-Device Preview epic (E08), and promoted text-to-wireframe generation to its own epic (E09). The other seven keep their scope.',
+    ] },
+    artifact('epics.md (v2)', 'epics-revised'),
+    { type: 'setDoc', doc: 'epics-revised' },
+    { type: 'setCanvasView', view: 'doc' },
+    /* Straight back into the normal flow — the same Jira-push offer, now for 9. */
+    pushOffer('9 epics', '9 epics · project WFS', 'pushEpics9', 'buildFeatures9', 'proceed for features creation'),
+  ],
+  pushEpics9: [...pushConfirm('9 epics'), ...BUILD_FEATURES9],
+  buildFeatures9: BUILD_FEATURES9,
+  reviewFeatures9: [
+    { type: 'watch', text: 'Features confirmed', tone: 'ok' },
+    pushOffer('29 features', '29 features · under 9 epics', 'pushFeatures9', 'buildStories9', 'proceed for stories creation'),
+  ],
+  pushFeatures9: [...pushConfirm('29 features'), ...BUILD_STORIES9],
+  buildStories9: BUILD_STORIES9,
+  pushStories9Final: [
+    { type: 'watch', text: 'Pushing 72 stories to Jira · WFS', tone: 'info' },
+    { type: 'wait', ms: T.prCreate },
+    { type: 'watch', text: '72 stories created · Jira', tone: 'ok' },
+    { type: 'say',
+      lines: ["Done — the backlog now reflects 9 epics: 29 features and 72 stories, all created on Jira. The previous 7-epic version is kept as the superseded record above."],
+      block: JIRA_LINKS,
+    },
+    ...storiesPublishClose(),
+  ],
+
+  /* The generic re-run — a gate that opts in without a bespoke chain (e.g. the
+     features gate, whose only downstream is the stories). Same shape: regenerate
+     the downstream and offer the Jira push again. */
+  reviseGeneric: [
+    { type: 'watch', text: 'Regenerating the user stories from your change', tone: 'info' },
+    status([
+      ['Reading your revised features', 'done'],
+      ['Regenerating the user stories', '58 stories', T.repo],
+      ['Re-linking every story to its parent', 'done'],
+    ], 'Stories · regenerating'),
+    { type: 'watch', text: 'Stories regenerated', tone: 'ok' },
+    { type: 'say', lines: ['Regenerated the 58 user stories from your revised features — the previous set is kept as the superseded record above.'] },
+    artifact('stories.md', 'stories'),
+    { type: 'say', lines: ['Want me to push them to Jira now?'],
+      block: {
+        kind: 'sync', title: 'Push the 58 stories to Jira', detail: '58 stories · WFS',
+        beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
+      },
+    },
   ],
 
   /* Scenario · the user provides their own epic/feature format. */

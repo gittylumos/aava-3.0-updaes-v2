@@ -274,6 +274,70 @@ export const RAMAN_TASKS: Task[] = [
   },
 ]
 
+/* Meera (User B) is the downstream half of the cross-persona handoff. Her home
+   carries two standing cards before anything happens; once Raman publishes the
+   WFS backlog to Jira (backlogReady), the story-assignment card is prepended to
+   the top of her queue and its notification fires. */
+export const MEERA_ASSIGN_ID = 'WFS-ASSIGN'
+
+/* The story-assignment card — appears at the TOP of Meera's queue the moment
+   Raman's backlog lands on Jira. Clicking it opens the Story Assignment run
+   (Execution Activity + the allocation review gate). */
+export const MEERA_ASSIGN_TASK: Task = {
+  id: MEERA_ASSIGN_ID, title: 'Assign Stories to scrum team members',
+  status: 'clarify', tag: 'input', est: '—', dep: 'WFS backlog', recommended: true,
+  note: '58 stories from WireFrame Studio backlog ready for team assignment',
+  updated: 'Just now',
+  opening: [],
+  context: {
+    ticket: 'WFS-SPRINT-35', ticketSource: 'AAVA · Jira Backlog',
+    ticketUrl: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1/backlog',
+    description:
+      'Allocate the 58 stories (142 story points) from the WireFrame Studio backlog across the ' +
+      'scrum team for the upcoming sprint, balancing capacity, component ownership and PTO before publishing to Jira.',
+    criteria: [],
+    capabilities: [
+      'Backlog ingestion & story-point rollup',
+      'Component-ownership & velocity analysis',
+      'Capacity & PTO balancing',
+      'Allocation optimisation',
+    ],
+    run: { agent: 'Sprint Allocation Planner', golden: true, certified: '2026-08-02', accepts: 9 },
+  },
+}
+
+export const MEERA_TASKS: Task[] = [
+  {
+    id: 'MEERA-STATUS', title: 'Create weekly status report',
+    status: 'clarify', tag: 'input', est: '—', dep: 'Leadership sync',
+    note: 'Weekly sync with leadership scheduled for tomorrow 10 AM', updated: '20 min ago',
+    opening: [],
+    context: {
+      ticket: 'PM-STATUS-12', ticketSource: 'AAVA · Cadence',
+      description: 'Compile the weekly product status report for the leadership sync.',
+      criteria: [],
+      run: { agent: 'Status Report Composer', golden: false },
+    },
+  },
+  {
+    id: 'MEERA-SPRINT', title: 'Prepare Sprint Plan',
+    status: 'wip', tag: 'working', est: '—', dep: 'Backlog',
+    note: 'Waiting on backlog definition from Product', updated: '1 hr ago',
+    opening: [],
+    context: {
+      ticket: 'PM-SPRINT-09', ticketSource: 'AAVA · Cadence',
+      description: 'Prepare the sprint plan once the backlog is defined and ready for allocation.',
+      criteria: [],
+      run: { agent: 'Sprint Planner', golden: false },
+    },
+  },
+]
+
+/* Meera's board, given whether Raman has published the backlog yet. */
+export function meeraBoard(backlogReady: boolean): Task[] {
+  return backlogReady ? [MEERA_ASSIGN_TASK, ...MEERA_TASKS] : MEERA_TASKS
+}
+
 /* The five card states. `status` decides which board column a task lands in
    (whose turn is it); TAG says precisely why. Three tasks can all be waiting on
    you for three entirely different reasons, and the tag is what distinguishes
@@ -315,6 +379,8 @@ const emptyPlayground: PlaygroundState = {
   contextOpen: false,
   panelOpen: true,
   openRequest: 0,
+  canvasView: 'doc',
+  canvasReq: 0,
 }
 
 export const initialState: AppState = {
@@ -341,6 +407,9 @@ export const initialState: AppState = {
   activeThreadId: null,
   stashed: {},
   pendingTopic: null,
+  backlogReady: false,
+  reviseModal: null,
+  revisingId: null,
 }
 
 /* The board is somewhere you look, not somewhere a thread lives. Whether you
@@ -618,6 +687,34 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
           ? updatePrdTask(state, { tag: 'done', status: 'done', note: 'Exported to Jira · workflow complete' })
           : updatePrdTask(state, { note: 'Working through the run…' }),
       }
+
+    /* A beat asked the right canvas to show a particular view — mirror it into a
+       bumped request so App can flip canvasMode, and open the panel to reveal it. */
+    case 'setCanvasView':
+      return {
+        ...state,
+        playground: {
+          ...pg, panelOpen: true,
+          canvasView: effect.view, canvasReq: pg.canvasReq + 1,
+        },
+      }
+
+    /* A run finished — retire the card bound to the open object into Completed.
+       Raman's "PRD to Stories" card takes this path when the backlog publishes. */
+    case 'taskDone':
+      return {
+        ...state,
+        tasks: updatePrdTask(state, {
+          tag: 'done', status: 'done',
+          note: effect.note ?? 'Workflow complete',
+        }),
+      }
+
+    /* The cross-persona handoff fired: Raman's backlog is on Jira, so Meera's
+       story-assignment work is now ready. The flag persists through the profile
+       switch that follows. */
+    case 'backlogReady':
+      return { ...state, backlogReady: true }
   }
 }
 
@@ -636,8 +733,12 @@ export function applyEffects(state: AppState, effects: Effect[]): AppState {
    his parked run (his seeded "PRD to Stories" card first, then whatever it
    became); Ajay's home is intentionally empty — he builds agents from intent. */
 function profileReset(to: ProfileId, state: AppState): AppState {
+  /* The handoff flag outlives a profile switch — that is the whole point: Raman
+     publishes, switches to Meera, and her queue already shows the new work. */
+  const backlogReady = state.backlogReady
   const tasks = to === 'deepak' ? TASKS
     : to === 'raman' ? (state.profileId === 'ajay' ? RAMAN_TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS)
+    : to === 'meera' ? meeraBoard(backlogReady)
     : []
   return {
     ...initialState,
@@ -645,6 +746,10 @@ function profileReset(to: ProfileId, state: AppState): AppState {
     tasks,
     parkedTasks: state.profileId === 'raman' ? state.tasks : state.parkedTasks,
     sidebarOpen: state.sidebarOpen,
+    backlogReady,
+    /* Meera's two standing cards read as already-seen; only the freshly-ingested
+       story-assignment card stays unread, so the bell shows exactly (1). */
+    readNotifications: to === 'meera' ? MEERA_TASKS.map((t) => t.id) : initialState.readNotifications,
   }
 }
 
@@ -673,6 +778,7 @@ export function reducer(state: AppState, action: Action): AppState {
         pinnedThreadIds: state.pinnedThreadIds,
         sidebarOpen: state.sidebarOpen,
         readNotifications: state.readNotifications,
+        backlogReady: state.backlogReady,
         stashed: state.activeThreadId
           ? { ...state.stashed, [state.activeThreadId]: snapshot(state) }
           : state.stashed,
@@ -827,6 +933,63 @@ export function reducer(state: AppState, action: Action): AppState {
           m.id === action.messageId ? { ...m, answer: action.text, live: false } : m,
         ),
       }
+
+    /* The rewind-confirm modal lifecycle. */
+    case 'OPEN_REVISE_MODAL':
+      return { ...state, reviseModal: { messageId: action.messageId, items: action.items } }
+    case 'CLOSE_REVISE_MODAL':
+      return { ...state, reviseModal: null }
+
+    /* Confirm: the popup closes and the conversation clears in one snap — every
+       message after the gate is marked superseded immediately (not on Send), and
+       the gate itself moves into the composer-pinned slot (the same position a
+       live gate occupies) to edit in place. */
+    case 'CONFIRM_REVISE_MODAL': {
+      if (!state.reviseModal) return state
+      const { messageId } = state.reviseModal
+      const at = state.messages.findIndex((m) => m.id === messageId)
+      if (at === -1) return { ...state, reviseModal: null }
+      return {
+        ...state,
+        revisingId: messageId,
+        reviseModal: null,
+        messages: state.messages.map((m, i) => (i > at ? { ...m, superseded: true, live: false } : m)),
+      }
+    }
+
+    /* Cancelling the in-place edit undoes the snap-supersede — nothing was
+       actually revised, so the downstream work is restored exactly as it was.
+       Only the message that was live before the edit opened (if any — the tail
+       of the transcript) goes back to live; every other superseded message was
+       already retired on its own before the rewind, so it simply un-supersedes. */
+    case 'CANCEL_REVISE_EDIT': {
+      if (!state.revisingId) return state
+      const at = state.messages.findIndex((m) => m.id === state.revisingId)
+      const lastIdx = state.messages.length - 1
+      return {
+        ...state,
+        revisingId: null,
+        messages: at === -1 ? state.messages : state.messages.map((m, i) => (
+          i <= at ? m : { ...m, superseded: false, live: i === lastIdx ? true : m.live }
+        )),
+      }
+    }
+
+    /* Revise an executed step — the downstream was already marked superseded when
+       the rewind was confirmed; this just records the new answer on the gate and
+       closes the edit. The caller plays the re-run beat next, whose fresh messages
+       land after the superseded tail. */
+    case 'REVISE_GATE': {
+      const at = state.messages.findIndex((m) => m.id === action.messageId)
+      if (at === -1) return state
+      return {
+        ...state,
+        revisingId: null,
+        messages: state.messages.map((m) =>
+          m.id === action.messageId ? { ...m, answer: action.note, live: false } : m,
+        ),
+      }
+    }
 
     /* An artefact card's Open — reveal that backlog document in the canvas. */
     case 'SET_OBJECT_DOC':

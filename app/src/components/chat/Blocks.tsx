@@ -4,8 +4,46 @@ import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
 import type { ReportView } from '../../prd/report'
 import { ToolSteps } from './ToolSteps'
+import { Tooltip } from '../chrome/Tooltip'
 
 type DecisionSpec = Extract<BlockSpec, { kind: 'decision' }>
+
+/* The rewind control — top-right of a revisable answered gate. Deliberately
+   quiet: no border, no fill, small icon + label — a secondary affordance you
+   notice when you look for it, not one competing with the gate's own content. */
+function ReviseButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Tooltip label="Undo changes up to this point" side="bottom" align="end">
+      <button onClick={onClick} aria-label="Revise this step"
+        className="press inline-flex shrink-0 items-center gap-1 rounded-[6px] px-1.5 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--wash-3)] hover:text-[var(--muted)]"
+        style={{ color: 'var(--muted-deep)' }}>
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M9 15 3 9l6-6" /><path d="M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+        Revise
+      </button>
+    </Tooltip>
+  )
+}
+
+/* The in-place editor shown on a gate whose rewind was confirmed — the answer area
+   becomes a textarea (the same "describe here" affordance as a collect option). */
+function ReviseEditor({ onSend, onCancel }: { onSend: (note: string) => void; onCancel: () => void }) {
+  const [note, setNote] = useState('')
+  return (
+    <div className="mt-2.5">
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Your input</span>
+      <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)}
+        placeholder="Please describe here…"
+        className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+        style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
+      <div className="mt-2 flex flex-wrap justify-end gap-2">
+        <button onClick={onCancel} className="btn-secondary">Cancel</button>
+        <button onClick={() => { const t = note.trim(); if (t) onSend(t) }} disabled={!note.trim()} className="btn-primary">Send</button>
+      </div>
+    </div>
+  )
+}
 
 /* Artifact-type tone — reuses the orchestration canvas colour semantics:
    Process = indigo (brand), Workflow = blue, Agent = green. */
@@ -181,9 +219,16 @@ interface Props {
   answer?: string
   /** A tool step's cited source pill was opened. */
   onToast?: (text: string) => void
+  /** Rewind on an executed gate. `revising` = this gate is in in-place edit mode;
+      the handlers open the confirm modal, send the edit, and cancel. Bound to this
+      gate's message id by the caller. */
+  revising?: boolean
+  onRevise?: () => void
+  onReviseSend?: (note: string) => void
+  onReviseCancel?: () => void
 }
 
-export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, answer }: Props) {
+export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, answer, revising, onRevise, onReviseSend, onReviseCancel }: Props) {
   if (block.kind === 'tools') {
     return (
       <ToolSteps steps={block.steps} done={block.done} title={block.title}
@@ -484,7 +529,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
   /* A human-in-the-loop gate. Three variants share the golden "waiting on you"
      treatment while live; how they ask differs. */
   if (block.kind === 'decision') {
-    return <Decision block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} onRecordAnswer={onRecordAnswer} answer={answer} />
+    return <Decision block={block} live={live} onAccept={onAccept} onDismiss={onDismiss} onRecordAnswer={onRecordAnswer} answer={answer} revising={revising} onRevise={onRevise} onReviseSend={onReviseSend} onReviseCancel={onReviseCancel} />
   }
 
   // confirm
@@ -557,11 +602,13 @@ const gateShell = (live: boolean) => ({
   background: 'var(--glass)', border: `1px solid ${live ? 'var(--warn)' : 'var(--glass-line)'}`,
 })
 
-function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: {
+function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer, revising, onRevise, onReviseSend, onReviseCancel }: {
   block: DecisionSpec; live: boolean; onAccept: (beat: string) => void; onDismiss: () => void
   onRecordAnswer?: (text: string) => void; answer?: string
+  revising?: boolean; onRevise?: () => void; onReviseSend?: (note: string) => void; onReviseCancel?: () => void
 }) {
   const fire = (beat: string) => { onDismiss(); onAccept(beat) }
+  const reviseProps = { revising, onRevise, onReviseSend, onReviseCancel }
 
   if (block.variant === 'action') {
     const opt = block.options[0]
@@ -585,7 +632,7 @@ function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: 
     )
   }
 
-  if (block.variant === 'clarify') return <ClarifyGate block={block} live={live} onFire={fire} />
+  if (block.variant === 'clarify') return <ClarifyGate block={block} live={live} onFire={fire} {...reviseProps} />
 
   if (block.variant === 'approve') {
     return (
@@ -619,15 +666,16 @@ function Decision({ block, live, onAccept, onDismiss, onRecordAnswer, answer }: 
   }
 
   // buttons (default)
-  return <ButtonsGate block={block} live={live} fire={fire} onRecordAnswer={onRecordAnswer} answer={answer} />
+  return <ButtonsGate block={block} live={live} fire={fire} onRecordAnswer={onRecordAnswer} answer={answer} {...reviseProps} />
 }
 
 /* The phase gate — a pill per branch. A `collect` option does not fire straight
    away: it reveals an inline textarea, and Send records the note (shown back in
    the answered card) before the beat runs. */
-function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
+function ButtonsGate({ block, live, fire, onRecordAnswer, answer, revising, onRevise, onReviseSend, onReviseCancel }: {
   block: DecisionSpec; live: boolean; fire: (beat: string) => void
   onRecordAnswer?: (text: string) => void; answer?: string
+  revising?: boolean; onRevise?: () => void; onReviseSend?: (note: string) => void; onReviseCancel?: () => void
 }) {
   /* Which option opened its textarea, and what has been typed into it. */
   const [collecting, setCollecting] = useState<number | null>(null)
@@ -648,17 +696,26 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
     fire(beat)               // then runs the branch
   }
 
+  /* Being revised reads exactly like a fresh live gate — amber border, "Waiting
+     on you" — since it IS waiting on you again, just with the old answer showing
+     as an editable draft instead of blank. */
+  const waiting = live || !!revising
   return (
-    <div className="mt-3 rounded-[var(--r-md)] p-3" style={gateShell(live)}>
-      <div className="mb-2.5">
-        <span className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[.13em]"
-          style={{ color: live ? 'var(--warn)' : 'var(--muted-deep)' }}>
-          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-            <circle cx="12" cy="8" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" />
-          </svg>
-          {live ? 'Waiting on you' : 'Answered'}{block.step ? ` · Gate ${block.step}` : ''}
-        </span>
-        {block.title && <h4 className="mt-1.5 text-[13.5px] font-semibold">{block.title}</h4>}
+    <div className="mt-3 rounded-[var(--r-md)] p-3" style={gateShell(waiting)}>
+      <div className="mb-2.5 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[.13em]"
+            style={{ color: waiting ? 'var(--warn)' : 'var(--muted-deep)' }}>
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.4" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" />
+            </svg>
+            {waiting ? 'Waiting on you' : 'Answered'}{block.step ? ` · Gate ${block.step}` : ''}
+          </span>
+          {block.title && <h4 className="mt-1.5 text-[13.5px] font-semibold">{block.title}</h4>}
+        </div>
+        {/* Rewind control — top-right, aligned to the heading. Only on an answered,
+            revisable gate that is not already being edited. */}
+        {!live && block.revisable && onRevise && !revising && <ReviseButton onClick={onRevise} />}
       </div>
       {block.summary && block.summary.length > 0 && (
         <div className="mb-2.5 grid gap-1">
@@ -672,9 +729,14 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
       )}
       <p className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{block.question}</p>
 
+      {/* Rewound: the answer area becomes an editable "Your input" textarea. */}
+      {!live && revising && onReviseSend && onReviseCancel && (
+        <ReviseEditor onSend={onReviseSend} onCancel={onReviseCancel} />
+      )}
+
       {/* The recorded response, shown back once the gate is answered — the action
           the user picked ("Your input") or the note they typed ("Your note"). */}
-      {!live && answer && (
+      {!live && !revising && answer && (
         <div className="mt-2.5 rounded-[8px] px-3 py-2 text-[12.5px]"
           style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }}>
           <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>
@@ -721,8 +783,9 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer }: {
 
 /* The lettered clarification panel — pick a choice (or type your own) and
    Continue. The chosen option's beat fires; "Other…" carries the typed answer. */
-function ClarifyGate({ block, live, onFire }: {
+function ClarifyGate({ block, live, onFire, revising, onRevise, onReviseSend, onReviseCancel }: {
   block: DecisionSpec; live: boolean; onFire: (beat: string) => void
+  revising?: boolean; onRevise?: () => void; onReviseSend?: (note: string) => void; onReviseCancel?: () => void
 }) {
   const [pick, setPick] = useState<number | null>(null)
   const [other, setOther] = useState('')
@@ -733,10 +796,30 @@ function ClarifyGate({ block, live, onFire }: {
     onFire(block.options[pick].beat)
   }
 
+  /* Being revised reads exactly like a fresh live gate — amber border, the same
+     "waiting" treatment — since it IS waiting on you again. */
+  const waiting = live || !!revising
   return (
-    <div className="mt-3 overflow-hidden rounded-[var(--r-md)]" style={gateShell(live)}>
+    <div className="mt-3 overflow-hidden rounded-[var(--r-md)]" style={gateShell(waiting)}>
       <div className="px-3.5 pb-3 pt-3.5">
-        <GateHeader block={block} live={live} />
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1"><GateHeader block={block} live={waiting} /></div>
+          {!live && block.revisable && onRevise && !revising && <ReviseButton onClick={onRevise} />}
+        </div>
+        {!live && revising && onReviseSend && onReviseCancel ? (
+          <ReviseEditor onSend={onReviseSend} onCancel={onReviseCancel} />
+        ) : (<>
+        {block.summary && block.summary.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {block.summary.map((s) => (
+              <span key={s.label} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
+                style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }}>
+                <span style={{ color: 'var(--text)' }}>{s.label}</span>
+                {s.detail && <span style={{ color: 'var(--muted)' }}>· {s.detail}</span>}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="mt-2.5 text-[13px] font-medium" style={{ color: 'var(--text)' }}>{block.question}</p>
         <div className="mt-2.5 grid gap-1.5">
           {block.options.map((opt, i) => {
@@ -744,38 +827,49 @@ function ClarifyGate({ block, live, onFire }: {
             const isOther = opt.beat === 'other' || /^other/i.test(opt.label)
             return (
               <button key={opt.label} type="button" disabled={!live} onClick={() => setPick(i)}
-                className="press flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left"
+                className="press flex w-full items-start gap-2.5 rounded-[9px] px-2.5 py-2.5 text-left"
                 style={{ border: `1px solid ${active ? 'var(--brand)' : 'var(--glass-line-soft)'}`, background: active ? 'var(--wash-3)' : 'transparent' }}>
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[6px] text-[10px] font-semibold"
-                  style={{ background: active ? 'var(--brand)' : 'var(--wash-3)', color: active ? '#fff' : 'var(--muted)' }}>
+                <span className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded-[6px] text-[10px] font-semibold"
+                  style={{ background: active ? 'var(--brand)' : 'var(--wash-3)', color: active ? 'var(--on-text)' : 'var(--muted)' }}>
                   {letters[i]}
                 </span>
                 {isOther && active ? (
                   <input autoFocus value={other} onChange={(e) => setOther(e.target.value)}
                     placeholder={block.placeholder ?? 'Add your answer…'}
-                    className="min-w-0 flex-1 bg-transparent text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-[13px] placeholder:text-[var(--muted-deep)] focus-visible:outline-none"
                     style={{ color: 'var(--text-dim)' }} />
                 ) : (
-                  <span className="min-w-0 flex-1 truncate text-[12.5px]"
-                    style={{ color: isOther ? 'var(--muted-deep)' : active ? 'var(--text)' : 'var(--text-dim)' }}>
-                    {opt.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="text-[13px] font-medium" style={{ color: isOther ? 'var(--muted-deep)' : active ? 'var(--text)' : 'var(--text-dim)' }}>
+                        {opt.label}
+                      </span>
+                      {opt.tag && (
+                        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[.06em]"
+                          style={{ background: 'var(--wash-3)', color: 'var(--muted)' }}>{opt.tag}</span>
+                      )}
+                    </span>
+                    {opt.sub && <span className="mt-0.5 block text-[12px] leading-[1.5]" style={{ color: 'var(--muted)' }}>{opt.sub}</span>}
                   </span>
                 )}
               </button>
             )
           })}
         </div>
+        </>)}
       </div>
-      <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
-        <span className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>AAVA will continue after your input</span>
-        {live ? (
-          <button onClick={submit} disabled={pick === null} className="btn-primary">
-            Continue
-          </button>
-        ) : (
-          <span className="text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Answered</span>
-        )}
-      </div>
+      {!(!live && revising) && (
+        <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--muted-deep)' }}>AAVA will continue after your input</span>
+          {live ? (
+            <button onClick={submit} disabled={pick === null} className="btn-primary">
+              Continue
+            </button>
+          ) : (
+            <span className="text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>Answered</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

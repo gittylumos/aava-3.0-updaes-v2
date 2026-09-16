@@ -197,4 +197,35 @@
   @media (prefers-reduced-motion: reduce) {
     .aava-tooltip[data-state] { animation: none !important; }
   }
+
+  /* Streamed-word reveal (StreamedText). No `filter: blur()` — a blurred inline
+     text run mid-animation is a documented Chromium/Safari compositing glitch:
+     the browser can flash stale, illegible pixels for a frame before the layer
+     settles, which reads as "generating random text and correcting it". Opacity
+     + a 1px rise reads as the same "settling into place" without touching a
+     filter on live text. Defined once, globally — each StreamedText mount used
+     to inject its own duplicate <style> tag with this same rule.
+     Spacing is `margin-right`, not a `' '` text character inside the box — a
+     trailing space character at the edge of an inline-block collapses, which is
+     what made streamed words run together until the line finished. */
+  .word-resolve {
+    display: inline-block;
+    margin-right: 0.28em;
+    animation: aava-word-resolve 150ms var(--ease-out) both;
+  }
+  @keyframes aava-word-resolve {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .word-resolve { animation: none; }
+  }
+
+  /* Marching-ants edge on an active (running/waiting) process-graph connector —
+     Execution activity and the Agent-Designer builder both use it. */
+  .edge-flow { stroke-dasharray: 5 5; animation: aava-edge-flow .7s linear infinite; }
+  @keyframes aava-edge-flow { to { stroke-dashoffset: -20; } }
+  @media (prefers-reduced-motion: reduce) {
+    .edge-flow { animation: none; }
+  }
 }

@@ -5,11 +5,10 @@
  * Selecting one opens it in the workspace editor. The Watch zone docks beneath,
  * so it reads as part of the canvas, not a modal over it.
  */
-import { WatchBar } from '../../zones/WatchBar'
 import { Tooltip } from '../chrome/Tooltip'
 import type { WatchEntry } from '../../state/types'
 
-export function ScenarioFiles({ files, root, watch, activeFile, onOpen, onCollapse }: {
+export function ScenarioFiles({ files, root, watch: _watch, activeFile, onOpen, onCollapse }: {
   files: string[]
   root?: string
   watch: WatchEntry[]
@@ -20,8 +19,8 @@ export function ScenarioFiles({ files, root, watch, activeFile, onOpen, onCollap
   const ext = (n: string) => n.split('.').pop()?.toUpperCase() ?? 'FILE'
   return (
     <section aria-label="Canvas — session files" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
+      <div className="m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
         {/* Toolbar */}
         <div className="flex items-center gap-2.5 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
           <span className="grid h-6 w-6 place-items-center rounded-[7px]" style={{ background: 'var(--brand)', color: 'var(--on-text)' }}>
@@ -74,10 +73,6 @@ export function ScenarioFiles({ files, root, watch, activeFile, onOpen, onCollap
             </>
           )}
         </div>
-      </div>
-
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
       </div>
     </section>
   )

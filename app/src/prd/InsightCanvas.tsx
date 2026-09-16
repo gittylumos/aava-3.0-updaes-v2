@@ -7,7 +7,6 @@
  * audit, impact, PRD), switched from the toolbar or advanced by the run itself.
  * The content is data in ./insight; this file only lays it out. */
 import { useState } from 'react'
-import { WatchBar } from '../zones/WatchBar'
 import { Tooltip } from '../components/chrome/Tooltip'
 import type { ActiveObject, WatchEntry } from '../state/types'
 import {
@@ -50,15 +49,15 @@ const BAR: Record<'blue' | 'danger' | 'ok', string> = {
   blue: 'var(--zone-canvas-accent)', danger: 'var(--danger)', ok: 'var(--ok)',
 }
 
-export function InsightCanvas({ object, watch, onCollapse, onSelectView, onToast }: Props) {
+export function InsightCanvas({ object, watch: _watch, onCollapse, onSelectView, onToast: _onToast }: Props) {
   const view: InsightView = object.activeInsight ?? 'funnel'
   const head = VIEW_TITLE[view]
   const file = INSIGHT_FILE[view]
 
   return (
     <section aria-label="Canvas — analytics" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="relative m-[12px] mb-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', borderBottom: 'none' }}>
+      <div className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
+        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
 
         {/* Toolbar — the five views on the left, the filename and Close on the right. */}
         <div className="relative flex items-center gap-2 px-2.5 py-2" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
@@ -78,11 +77,6 @@ export function InsightCanvas({ object, watch, onCollapse, onSelectView, onToast
           </div>
           <span className="mono ml-1 hidden truncate text-[11.5px] sm:block" style={{ color: 'var(--muted-deep)' }}>{file}</span>
           <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            <Tooltip label="Share" side="bottom">
-              <button onClick={() => onToast('Share link copied')} aria-label="Share" className="icon-btn">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" /></svg>
-              </button>
-            </Tooltip>
             <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
             <Tooltip label="Close" side="bottom" align="end">
               <button onClick={onCollapse} aria-label="Close" className="icon-btn">
@@ -115,10 +109,6 @@ export function InsightCanvas({ object, watch, onCollapse, onSelectView, onToast
           {view === 'impact' && <ImpactView />}
           {view === 'prd' && <PrdView />}
         </div>
-      </div>
-
-      <div className="mx-[12px] mb-[12px] overflow-hidden rounded-b-[var(--r-md)]" style={{ border: '1px solid var(--glass-line-soft)', borderTop: 'none' }}>
-        <WatchBar entries={watch} />
       </div>
     </section>
   )

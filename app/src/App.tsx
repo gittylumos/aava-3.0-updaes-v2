@@ -14,6 +14,7 @@ import { TabWorkspace } from './components/playground/TabWorkspace'
 import { DocumentCanvas } from './prd/DocumentCanvas'
 import { InsightCanvas } from './prd/InsightCanvas'
 import { insightChips } from './prd/insightFlow'
+import { backlogChips } from './prd/backlogFlow'
 import type { InsightView } from './prd/insight'
 import { ReportCanvas } from './prd/ReportCanvas'
 import { OrchestrationCanvas } from './prd/OrchestrationCanvas'
@@ -29,6 +30,7 @@ import { TasksView } from './components/tasks/TasksView'
 import { Notifications } from './components/overlays/Notifications'
 import { Search } from './components/overlays/Search'
 import { Toast } from './components/overlays/Toast'
+import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
 import { useTheme } from './state/useTheme'
 import { PROFILES, PROFILE_ORDER } from './data/user'
@@ -59,7 +61,9 @@ export default function App() {
       : 'What would you like to work on?'
     : j.state.profileId === 'raman'
       ? "Here's what's waiting on your input."
-      : 'I have worked on a couple of your tasks. Would you like to review these?'
+      : j.state.profileId === 'meera'
+        ? "Here's what's waiting on your input."
+        : 'I have worked on a couple of your tasks. Would you like to review these?'
   /* The draft lives here, above the arrangements. The composer renders inside
      whichever column it belongs to, so it remounts when the arrangement
      changes — holding the text here makes that remount invisible. */
@@ -111,6 +115,13 @@ export default function App() {
   /* A fresh session starts on its default canvas — the workspace/document — not
      whatever graph/files view the last session was left on. */
   useEffect(() => { setCanvasMode('doc'); setAgentExpanded(false) }, [j.state.activeTaskId, j.state.activeObject?.taskId])
+
+  /* A beat asked the canvas to change view (open onto the Execution-activity graph,
+     then swap to the artefact it produced). The nonce re-fires even when the same
+     view is requested twice. */
+  useEffect(() => {
+    if (j.state.playground.canvasReq > 0) setCanvasMode(j.state.playground.canvasView)
+  }, [j.state.playground.canvasReq, j.state.playground.canvasView])
 
   /* Prompt-bar settings live here, above the composer, so they survive the
      composer's remount when the arrangement changes — the same reason the draft
@@ -183,7 +194,11 @@ export default function App() {
      question pre-filled — derived from how far the investigation has got. */
   const objectChips = j.state.activeObject?.kind === 'insight'
     ? insightChips(j.state.messages)
-    : []
+    /* Raman's backlog run offers its two closing moves as plain pills once the
+       run ends in a successful publish — not a HITL gate, nothing to answer. */
+    : j.state.activeObject?.kind === 'backlog'
+      ? backlogChips(j.state.messages)
+      : []
 
   /* Which report assets have been generated — their tabs are open in the canvas.
      Derived from the asset cards in the thread, in the order they appeared. */
@@ -344,6 +359,10 @@ export default function App() {
                     onOpenAgentArtifact={(id) => { setCanvasMode('doc'); j.openObjectAgent(id) }}
                     onOpenAgentDoc={j.openAgentDoc}
                     onRecordAnswer={j.recordAnswer}
+                    onRevise={j.openReviseModal}
+                    revisingId={j.state.revisingId}
+                    onReviseSend={j.reviseSend}
+                    onReviseCancel={j.cancelReviseEdit}
                     onToast={j.toast}
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
@@ -464,6 +483,8 @@ export default function App() {
               <AgentGraph
                 messages={j.state.messages}
                 watch={j.state.watchLog}
+                assignActive={j.state.backlogReady}
+                upstreamDone={j.state.profileId === 'meera'}
                 onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
               />
             )
@@ -519,6 +540,14 @@ export default function App() {
           else if (hit.thread) j.openThread(hit.thread)
         }}
       />
+      {j.state.reviseModal && (
+        <ReviseModal
+          items={j.state.reviseModal.items}
+          onOpenDoc={(doc) => openDoc(doc)}
+          onConfirm={j.confirmReviseModal}
+          onCancel={j.closeReviseModal}
+        />
+      )}
       {/* The orchestration builder, expanded to the whole window. Run from here
           drops back into the docked panel and shows the Playground there. */}
       {agentExpanded && j.state.activeObject?.kind === 'agent' && (
