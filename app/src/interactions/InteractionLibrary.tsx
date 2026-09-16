@@ -9,8 +9,9 @@
  * and this lives entirely outside that law as its own small page. */
 import { useMemo, useState } from 'react'
 import { GROUPS, PATTERNS } from './data'
-import { ImplementationNote } from './shared'
+import { ImplementationNote, ThemeToggle } from './shared'
 import { InteractionLanding } from './Landing'
+import { useTheme } from '../state/useTheme'
 import {
   ThinkingDotsPreview, StreamedTextPreview, ToolStepsPreview, CapabilityShimmerPreview, ExecutionGraphPreview,
 } from './previews/agentPresence'
@@ -59,6 +60,12 @@ export function InteractionLibrary() {
   const [activeId, setActiveId] = useState(PATTERNS[0].id)
   const [query, setQuery] = useState('')
   const [railOpen, setRailOpen] = useState(false)
+  /* This page is a second, standalone React root (see interaction-main.tsx) —
+     it never runs through App.tsx, so it has to set up its own theme instead of
+     inheriting one. Same hook, same tokens.css branch, same persisted choice
+     under the same localStorage key — a light/dark pick here and in the product
+     agree with each other. */
+  const { theme, toggle: toggleTheme } = useTheme()
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -73,7 +80,7 @@ export function InteractionLibrary() {
 
   // The library opens on its front door; View Library reveals the catalogue.
   // (After every hook above, so hook order stays stable across the switch.)
-  if (!entered) return <InteractionLanding onEnter={() => setEntered(true)} />
+  if (!entered) return <InteractionLanding onEnter={() => setEntered(true)} theme={theme} onToggleTheme={toggleTheme} />
 
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: 'var(--ground)' }}>
@@ -81,25 +88,30 @@ export function InteractionLibrary() {
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[264px] shrink-0 flex-col overflow-hidden transition-transform duration-200 md:static md:translate-x-0
           ${railOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: 'var(--slab)', borderRight: '1px solid var(--glass-line-soft)' }}>
-        {/* The brand doubles as the way home — back to the landing page. */}
-        <button type="button" onClick={() => setEntered(false)} aria-label="Back to overview"
-          className="press group mx-2 mt-3 flex items-center gap-2 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-[var(--wash-2)]">
-          <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[8px]" style={{ background: 'var(--wash-3)' }}>
-            {/* Sparkle by default; a back-arrow surfaces on hover. */}
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--brand)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden
-              className="transition-opacity group-hover:opacity-0">
-              <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-            </svg>
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
-              className="absolute opacity-0 transition-opacity group-hover:opacity-100">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-[13.5px] font-semibold" style={{ color: 'var(--text)' }}>AAVA</div>
-            <div className="truncate text-[10.5px] uppercase tracking-[.1em]" style={{ color: 'var(--muted)' }}>Interaction Library</div>
-          </div>
-        </button>
+        {/* The brand doubles as the way home — back to the landing page. The
+            theme toggle sits beside it rather than buried in a menu, since it's
+            the one control every pattern's look depends on. */}
+        <div className="mx-2 mt-3 flex items-center gap-1">
+          <button type="button" onClick={() => setEntered(false)} aria-label="Back to overview"
+            className="press group flex min-w-0 flex-1 items-center gap-2 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-[var(--wash-2)]">
+            <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[8px]" style={{ background: 'var(--wash-3)' }}>
+              {/* Sparkle by default; a back-arrow surfaces on hover. */}
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--brand)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                className="transition-opacity group-hover:opacity-0">
+                <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+              </svg>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                className="absolute opacity-0 transition-opacity group-hover:opacity-100">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-[13.5px] font-semibold" style={{ color: 'var(--text)' }}>AAVA</div>
+              <div className="truncate text-[10.5px] uppercase tracking-[.1em]" style={{ color: 'var(--muted)' }}>Interaction Library</div>
+            </div>
+          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
 
         <div className="px-3 pb-3">
           <div className="flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
@@ -142,7 +154,8 @@ export function InteractionLibrary() {
           <button onClick={() => setRailOpen(true)} className="icon-btn" aria-label="Open pattern list">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <span className="text-[13px] font-medium" style={{ color: 'var(--text-dim)' }}>{active.label}</span>
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: 'var(--text-dim)' }}>{active.label}</span>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
 
         <div className="mx-auto max-w-[720px] px-6 py-10 md:px-10">

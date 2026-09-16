@@ -2,6 +2,8 @@
  * page that says what this collection is for and why it exists — the design
  * philosophy, the four families of pattern — with one way in: View Library. */
 import { motion } from 'motion/react'
+import type { Theme } from '../state/useTheme'
+import { ThemeToggle } from './shared'
 
 const SPARKLE = <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
 
@@ -39,12 +41,20 @@ function Card({ item, tint }: { item: Item; tint: string }) {
   )
 }
 
-export function InteractionLanding({ onEnter }: { onEnter: () => void }) {
+export function InteractionLanding({ onEnter, theme, onToggleTheme }: {
+  onEnter: () => void
+  theme: Theme
+  onToggleTheme: () => void
+}) {
   return (
     <div className="h-screen w-full overflow-y-auto" style={{ background: 'var(--ground)' }}>
       {/* Soft brand wash behind the hero. */}
       <div className="pointer-events-none fixed inset-x-0 top-0 h-[420px]" aria-hidden
         style={{ background: 'radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%)' }} />
+
+      <div className="fixed right-5 top-5 z-10">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
 
       <div className="relative mx-auto max-w-[880px] px-6 py-14 md:px-10 md:py-20">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
