@@ -4,6 +4,25 @@
  * they read as a plausible slice of AAVA rather than an isolated widget. */
 import { useState } from 'react'
 import type { PatternMeta } from './data'
+import type { Theme } from '../state/useTheme'
+import { IconMoon, IconSun } from '../components/chrome/icons'
+
+/* The same corner toggle App.tsx uses for the real product — reused here so the
+   library's own light/dark switch reads as the product's, not a one-off control
+   invented for this page. Shows what you'll GET, not what you're in. */
+export function ThemeToggle({ theme, onToggle, className = '' }: { theme: Theme; onToggle: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      onClick={onToggle}
+      className={`press grid h-8 w-8 shrink-0 place-items-center rounded-[9px] transition-colors hover:bg-[var(--wash-4)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)] ${className}`}
+      style={{ color: 'var(--muted)', background: 'var(--glass)', border: '1px solid var(--glass-line)' }}
+    >
+      {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+    </button>
+  )
+}
 
 /* The preview stage — a lifted card with a faint dot-grid ground (the same
    texture the orchestration canvas uses), so it reads as "this is a demo
@@ -106,8 +125,12 @@ export function MockComposer() {
   return (
     <div className="flex items-center gap-2 rounded-[var(--r-md)] px-3.5 py-3" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
       <span className="text-[13px]" style={{ color: 'var(--muted-deep)' }}>Ask AAVA anything…</span>
-      <span className="ml-auto grid h-7 w-7 place-items-center rounded-full" style={{ background: 'var(--brand)' }}>
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+      {/* var(--text)/var(--on-text) — the same pair the real send button uses
+          (Composer.tsx) — so this stays legible in both themes; --brand is a
+          neutral token that equals --text per theme, which a fixed white stroke
+          would wash out against in dark mode and invert wrong in light mode. */}
+      <span className="ml-auto grid h-7 w-7 place-items-center rounded-full" style={{ background: 'var(--text)' }}>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--on-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       </span>
     </div>
   )

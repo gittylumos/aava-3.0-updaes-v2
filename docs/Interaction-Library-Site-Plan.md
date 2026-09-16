@@ -114,9 +114,15 @@ not like beautifui.dev's own neutral shell. Every value below is quoted from
   `--dur`/`--spring-fast`/`--spring-slow` — every animation in every preview
   reuses these tokens, not new ad-hoc timings, so a thinking-dots stagger here
   matches the real one in the app exactly.
-- **Theme** — dark only, matching the product ("dark is the product's look,
-  whatever the OS is set to" — tokens.css header comment). No light-mode
-  branch needed for v1; noted as a deliberate scope cut in §8.
+- **Theme** — light and dark, matching the product. The library is a second,
+  standalone React root (`interaction-main.tsx`) that never runs through
+  `App.tsx`, so it calls `useTheme()` itself and sets `data-theme` the same
+  way — same tokens.css branch, same persisted `localStorage` choice, so a
+  pick here and in the product agree. A `ThemeToggle` (the same sun/moon
+  corner control as the app) sits on the landing page and in the catalogue's
+  rail/header. Every preview already read exclusively from `var(--token)`
+  values, so both themes fell out of the existing components with no preview
+  rewrites — see §8 for the one contrast bug the switch surfaced and fixed.
 
 ---
 
@@ -254,7 +260,6 @@ copy decided at build time, this fixes the *kind* of content):
 
 ## 8. Explicit scope cuts for v1 (not forgotten, just not blocking)
 
-- No light-mode variant (matches the product's own dark-only stance today).
 - No "copy code" button per preview.
 - No live props/theme editor.
 - No auto-sync mechanism that re-generates entries when a source file
