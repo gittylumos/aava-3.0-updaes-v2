@@ -260,7 +260,7 @@ export const RAMAN_TASKS: Task[] = [
       ticket: 'WFS', ticketSource: 'AAVA · PRD',
       ticketUrl: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1',
       description:
-        'Parse the WireFrame Studio PRD, decompose it into epics, features and user stories, ' +
+        'Parse the WireFrame Generation PRD, decompose it into epics, features and user stories, ' +
         'and publish the confirmed backlog to Jira. Human review after every level, starting with the intake summary.',
       criteria: [],
       capabilities: [
@@ -286,14 +286,14 @@ export const MEERA_ASSIGN_ID = 'WFS-ASSIGN'
 export const MEERA_ASSIGN_TASK: Task = {
   id: MEERA_ASSIGN_ID, title: 'Assign Stories to scrum team members',
   status: 'clarify', tag: 'input', est: '—', dep: 'WFS backlog', recommended: true,
-  note: '58 stories from WireFrame Studio backlog ready for team assignment',
+  note: '58 stories from WireFrame Generation backlog ready for team assignment',
   updated: 'Just now',
   opening: [],
   context: {
     ticket: 'WFS-SPRINT-35', ticketSource: 'AAVA · Jira Backlog',
     ticketUrl: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1/backlog',
     description:
-      'Allocate the 58 stories (142 story points) from the WireFrame Studio backlog across the ' +
+      'Allocate the 58 stories (142 story points) from the WireFrame Generation backlog across the ' +
       'scrum team for the upcoming sprint, balancing capacity, component ownership and PTO before publishing to Jira.',
     criteria: [],
     capabilities: [
@@ -336,6 +336,26 @@ export const MEERA_TASKS: Task[] = [
 /* Meera's board, given whether Raman has published the backlog yet. */
 export function meeraBoard(backlogReady: boolean): Task[] {
   return backlogReady ? [MEERA_ASSIGN_TASK, ...MEERA_TASKS] : MEERA_TASKS
+}
+
+/* Raman's board, patched for the reverse handoff. The PRD-to-Stories card is
+   normally either still "in progress" (fresh RAMAN_TASKS) or "done" (parked
+   after his publish) — a plain array either way, computed by whichever path
+   found it. Once Meera sends DoR-not-met stories back, that card needs to read
+   as "Needs your input" again regardless of which of those two states produced
+   it, and needs to exist even if it isn't in the base array at all (defensive:
+   the same parked-thread reset that already affects this app's older flows
+   could in principle drop it). */
+function ramanBoard(base: Task[], refinementRequested: boolean): Task[] {
+  if (!refinementRequested) return base
+  const patch: Partial<Task> = {
+    tag: 'input', status: 'clarify',
+    note: '2 stories need to be refined', updated: 'Just now',
+  }
+  const has = base.some((t) => t.id === PRD_SEED_ID)
+  return has
+    ? base.map((t) => (t.id === PRD_SEED_ID ? { ...t, ...patch } : t))
+    : [{ ...RAMAN_TASKS[0], ...patch }, ...base]
 }
 
 /* The five card states. `status` decides which board column a task lands in
@@ -408,6 +428,7 @@ export const initialState: AppState = {
   stashed: {},
   pendingTopic: null,
   backlogReady: false,
+  refinementRequested: false,
   reviseModal: null,
   revisingId: null,
 }
@@ -715,6 +736,11 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
        switch that follows. */
     case 'backlogReady':
       return { ...state, backlogReady: true }
+
+    /* The reverse handoff: Meera sent DoR-not-met stories back to Raman. Persists
+       through the profile switch, same as `backlogReady`. */
+    case 'refinementRequested':
+      return { ...state, refinementRequested: true }
   }
 }
 
@@ -733,11 +759,14 @@ export function applyEffects(state: AppState, effects: Effect[]): AppState {
    his parked run (his seeded "PRD to Stories" card first, then whatever it
    became); Ajay's home is intentionally empty — he builds agents from intent. */
 function profileReset(to: ProfileId, state: AppState): AppState {
-  /* The handoff flag outlives a profile switch — that is the whole point: Raman
-     publishes, switches to Meera, and her queue already shows the new work. */
+  /* Both handoff flags outlive a profile switch — that is the whole point: Raman
+     publishes, switches to Meera, and her queue already shows the new work; Meera
+     sends stories back, switches away, and Raman's card is waiting when he's next
+     active, however his board was last computed (parked or reseeded). */
   const backlogReady = state.backlogReady
+  const refinementRequested = state.refinementRequested
   const tasks = to === 'deepak' ? TASKS
-    : to === 'raman' ? (state.profileId === 'ajay' ? RAMAN_TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS)
+    : to === 'raman' ? ramanBoard(state.profileId === 'ajay' ? RAMAN_TASKS : state.parkedTasks.length ? state.parkedTasks : RAMAN_TASKS, refinementRequested)
     : to === 'meera' ? meeraBoard(backlogReady)
     : []
   return {
@@ -747,6 +776,7 @@ function profileReset(to: ProfileId, state: AppState): AppState {
     parkedTasks: state.profileId === 'raman' ? state.tasks : state.parkedTasks,
     sidebarOpen: state.sidebarOpen,
     backlogReady,
+    refinementRequested,
     /* Meera's two standing cards read as already-seen; only the freshly-ingested
        story-assignment card stays unread, so the bell shows exactly (1). */
     readNotifications: to === 'meera' ? MEERA_TASKS.map((t) => t.id) : initialState.readNotifications,
@@ -779,6 +809,7 @@ export function reducer(state: AppState, action: Action): AppState {
         sidebarOpen: state.sidebarOpen,
         readNotifications: state.readNotifications,
         backlogReady: state.backlogReady,
+        refinementRequested: state.refinementRequested,
         stashed: state.activeThreadId
           ? { ...state.stashed, [state.activeThreadId]: snapshot(state) }
           : state.stashed,
@@ -953,6 +984,19 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         revisingId: messageId,
         reviseModal: null,
+        messages: state.messages.map((m, i) => (i > at ? { ...m, superseded: true, live: false } : m)),
+      }
+    }
+
+    /* Skip the modal entirely — nothing downstream exists yet to warn about, so
+       the gate goes straight into in-place editing, same end state as a
+       confirmed modal minus the popup. */
+    case 'REVISE_DIRECT': {
+      const at = state.messages.findIndex((m) => m.id === action.messageId)
+      if (at === -1) return state
+      return {
+        ...state,
+        revisingId: action.messageId,
         messages: state.messages.map((m, i) => (i > at ? { ...m, superseded: true, live: false } : m)),
       }
     }

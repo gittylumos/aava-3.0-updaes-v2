@@ -36,7 +36,7 @@ interface Props {
   onRecordAnswer?: (messageId: string, text: string) => void
   onRevise?: (messageId: string) => void
   revisingId?: string | null
-  onReviseSend?: (messageId: string, note: string) => void
+  onReviseSend?: (messageId: string, note: string, beat?: string) => void
   onReviseCancel?: () => void
   /** A tool step's cited source pill was opened (e.g. "Opening MOB-2841 in Jira"). */
   onToast?: (text: string) => void
@@ -318,7 +318,7 @@ export function ConversationView({
                   onRecordAnswer={(text) => onRecordAnswer?.(pinnedGate.id, text)} answer={pinnedGate.answer}
                   revising={pinnedGate.id === revisingId}
                   onRevise={onRevise ? () => onRevise(pinnedGate.id) : undefined}
-                  onReviseSend={onReviseSend ? (note) => onReviseSend(pinnedGate.id, note) : undefined}
+                  onReviseSend={onReviseSend ? (note, beat) => onReviseSend(pinnedGate.id, note, beat) : undefined}
                   onReviseCancel={onReviseCancel} />
               </div>
             ) : composer}

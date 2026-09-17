@@ -23,6 +23,7 @@ export const DOC_PHASE: Record<BacklogDoc, string> = {
   sprint: 'sprint',
   'team-allocation': 'assign',
   'epics-revised': 'epics',
+  'dor-analysis': 'intake',
 }
 
 /* The run-progress steps for the backlog flow. Sprint planning is handed off to
@@ -133,7 +134,7 @@ function pushOffer(count: string, detail: string, pushBeat: string, nextBeat: st
     lines: [`${count} confirmed. Want me to push them to Jira now, or ${next} and publish later?`],
     block: {
       kind: 'sync', title: `Push the ${count} to Jira`, detail,
-      beat: pushBeat, secondaryLabel: 'Skip', secondaryBeat: nextBeat,
+      beat: pushBeat, secondaryLabel: 'Skip', secondaryBeat: nextBeat, revisable: true,
     },
   }
 }
@@ -216,9 +217,9 @@ export function backlogTaskOpening(): Effect[] {
     /* The intake ran before Raman arrived, so the accordion lands already complete
        (ms 0) and the summary is stated whole, with no typing indicator — a record
        of what ran, not steps ticking through in front of him. */
-    { type: 'watch', text: 'Reading PRD · WireFrame Studio v1.0', tone: 'info' },
+    { type: 'watch', text: 'Reading PRD · WireFrame Generation v1.0', tone: 'info' },
     status([
-      ['Reading PRD', 'WireFrame Studio v1.0', 0],
+      ['Reading PRD', 'WireFrame Generation v1.0', 0],
       ['Parsing document structure and headers', 'done', 0],
       ['Extracting objectives', '5 found', 0],
       ['Extracting user roles', '6 found', 0],
@@ -228,7 +229,7 @@ export function backlogTaskOpening(): Effect[] {
     ], 'Intake · reading the PRD'),
     { type: 'watch', text: 'Intake summary ready', tone: 'ok' },
     { type: 'say', stream: false, lines: [
-      'PRD received — WireFrame Studio, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas. Before I build anything, here is what I understood.',
+      'PRD received — WireFrame Generation, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas. Before I build anything, here is what I understood.',
     ] },
     artifact('intake.md', 'intake'),
     /* Open the intake summary in the canvas straight away — like a task opening onto
@@ -242,6 +243,30 @@ export function backlogTaskOpening(): Effect[] {
       ], undefined,
         { beat: 'reviseIntake', impact: [{ label: 'Epics', doc: 'epics' }, { label: 'Features', doc: 'features' }, { label: 'Stories', doc: 'stories' }] }),
     },
+  ]
+}
+
+/* The reverse handoff: Meera sent 2 DoR-not-met stories back to Raman for
+   refinement (Decision 1 → Option 1A). His "PRD to Stories" card reopens onto
+   this short, self-contained ask instead of the original intake run — reads
+   like a normal turn, with the two tickets as hyperlinks and the doc mention
+   itself opening the canvas artifact. */
+export function backlogRefinementOpening(): Effect[] {
+  return [
+    { type: 'say', stream: false, lines: [], block: {
+      kind: 'callout',
+      lines: [
+        'Scrum Master HITL has sent these **2 stories** to you for further refinement.',
+        'The details of the missing information are provided in this document (dor_analysis.md). Review and provide the details for each of the stories.',
+      ],
+      links: [
+        { label: 'ST-043', href: 'https://aava-demo.atlassian.net/browse/WFS-43' },
+        { label: 'ST-058', href: 'https://aava-demo.atlassian.net/browse/WFS-58' },
+      ],
+      docLink: { text: 'dor_analysis.md', doc: 'dor-analysis' },
+    } },
+    artifact('dor_analysis.md', 'dor-analysis'),
+    { type: 'setDoc', doc: 'dor-analysis' },
   ]
 }
 
@@ -329,7 +354,7 @@ const BUILD_STORIES: Effect[] = [
     lines: ['Want me to push them to Jira now?'],
     block: {
       kind: 'sync', title: 'Push the 58 stories to Jira', detail: '58 stories · under 23 features · WFS',
-      beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
+      beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped', revisable: true,
     },
   },
 ]
@@ -374,7 +399,7 @@ const BUILD_STORIES9: Effect[] = [
   { type: 'say', lines: ['Want me to push them to Jira now?'],
     block: {
       kind: 'sync', title: 'Push the 72 stories to Jira', detail: '72 stories · under 29 features · WFS',
-      beat: 'pushStories9Final', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
+      beat: 'pushStories9Final', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped', revisable: true,
     },
   },
 ]
@@ -382,7 +407,7 @@ const BUILD_STORIES9: Effect[] = [
 /* The links shown after a successful publish. */
 const JIRA_LINKS: BlockSpec = {
   kind: 'links', links: [
-    { label: 'WFS board · WireFrame Studio', href: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1' },
+    { label: 'WFS board · WireFrame Generation', href: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1' },
     { label: 'WFS backlog', href: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1/backlog' },
   ],
 }
@@ -484,7 +509,7 @@ export function backlogStoriesPublish(messages: Message[]): Effect[] {
       lines: [`One thing before you go — you skipped publishing the ${list} earlier. Want me to push ${skipped.length > 1 ? 'them' : 'it'} to Jira now?`],
       block: {
         kind: 'sync', title: `Push the ${list} to Jira`, detail: `${parts.join(' · ')} · project WFS`,
-        beat: 'pushSkipped', secondaryLabel: 'Skip', secondaryBeat: 'wrapUpSkipped',
+        beat: 'pushSkipped', secondaryLabel: 'Skip', secondaryBeat: 'wrapUpSkipped', revisable: true,
       },
     },
     ...storiesPublishClose(),
@@ -494,9 +519,9 @@ export function backlogStoriesPublish(messages: Message[]): Effect[] {
 export const BACKLOG_BEATS: Record<string, Effect[]> = {
   /* Phase 1 · Intake. The canvas opens only when the artefact is opened. */
   startIntake: [
-    { type: 'watch', text: 'Reading PRD · WireFrame Studio v1.0', tone: 'info' },
+    { type: 'watch', text: 'Reading PRD · WireFrame Generation v1.0', tone: 'info' },
     status([
-      ['Reading PRD', 'WireFrame Studio v1.0', T.repo],
+      ['Reading PRD', 'WireFrame Generation v1.0', T.repo],
       ['Parsing document structure and headers', 'done'],
       ['Extracting objectives', '5 found'],
       ['Extracting user roles', '6 found'],
@@ -506,7 +531,7 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
     ], 'Intake · reading the PRD'),
     { type: 'watch', text: 'Intake summary ready', tone: 'ok' },
     { type: 'say', lines: [
-      'PRD received — WireFrame Studio, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas. Before I build anything, here is what I understood.',
+      'PRD received — WireFrame Generation, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas. Before I build anything, here is what I understood.',
     ] },
     artifact('intake.md', 'intake'),
     { type: 'say',
@@ -731,7 +756,7 @@ export const BACKLOG_BEATS: Record<string, Effect[]> = {
     { type: 'say', lines: ['Want me to push them to Jira now?'],
       block: {
         kind: 'sync', title: 'Push the 58 stories to Jira', detail: '58 stories · WFS',
-        beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped',
+        beat: 'pushStoriesFinal', secondaryLabel: 'Skip', secondaryBeat: 'storiesSkipped', revisable: true,
       },
     },
   ],

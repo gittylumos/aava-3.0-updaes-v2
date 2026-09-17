@@ -27,7 +27,7 @@ interface Props {
       edited in place, and the send/cancel of that edit. */
   onRevise?: (messageId: string) => void
   revisingId?: string | null
-  onReviseSend?: (messageId: string, note: string) => void
+  onReviseSend?: (messageId: string, note: string, beat?: string) => void
   onReviseCancel?: () => void
   /** This message's block is pinned to the composer slot — skip it inline. */
   pinned?: boolean
@@ -73,7 +73,7 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
               onRecordAnswer={(text) => onRecordAnswer?.(msg.id, text)} onToast={onToast} answer={msg.answer}
               revising={msg.id === revisingId}
               onRevise={onRevise ? () => onRevise(msg.id) : undefined}
-              onReviseSend={onReviseSend ? (note) => onReviseSend(msg.id, note) : undefined}
+              onReviseSend={onReviseSend ? (note, beat) => onReviseSend(msg.id, note, beat) : undefined}
               onReviseCancel={onReviseCancel} />
           )}
         </>

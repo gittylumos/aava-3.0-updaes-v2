@@ -133,6 +133,13 @@ export type BlockSpec =
       `href` makes it an external link (a raised ticket in Jira, say), rendered
       as a blue hyperlink. Without either the link is a flat reference. */
   | { kind: 'links'; links: { label: string; file?: string; href?: string }[] }
+  /** A handoff note — reads exactly like normal conversation copy (no special
+      panel), with **bold** support and one filename mention (`docLink`) wired
+      to open its canvas artifact inline, the way `links` opens a raised
+      ticket. `links` (e.g. raised Jira tickets) render below it in the same
+      underlined hyperlink style `links` uses elsewhere. */
+  | { kind: 'callout'; lines: string[]; links?: { label: string; href: string }[]
+      docLink?: { text: string; doc: BacklogDoc } }
   /** `title` groups the steps into a collapsible accordion — while running it is
       open and animating; once every step is done it folds to the title with a
       count, the way agent tools summarise a finished run. */
@@ -169,7 +176,11 @@ export type BlockSpec =
   | { kind: 'sync'; title: string; detail: string; beat: string
       /** Overrides the default "Publish" primary-button verb (e.g. "Raise ticket"). */
       primaryLabel?: string
-      secondaryLabel?: string; secondaryBeat?: string }
+      secondaryLabel?: string; secondaryBeat?: string
+      /** Makes an ANSWERED card revisable — reopens the same Publish/Skip choice;
+          picking again re-fires that option's own beat, same "choosing again"
+          pattern as a clarify gate's revise. */
+      revisable?: boolean }
   /** A connector card — searching for a service integration, offering to connect
       it, and the connecting/connected states. Drives the Azure DevOps push:
       shimmer while searching, a Connect button once "not found", a spinner while
@@ -337,6 +348,11 @@ export type Effect =
       story-assignment work is now ready in Meera's queue. Survives a profile
       switch, so switching to Meera after the publish shows her the new card. */
   | { type: 'backlogReady' }
+  /** The reverse handoff: Meera sent DoR-not-met stories back to Raman for
+      refinement. His "PRD to Stories" card reopens (Needs your input) and, next
+      time he opens it, shows the refinement request instead of the original
+      intake flow. Survives a profile switch, same as `backlogReady`. */
+  | { type: 'refinementRequested' }
   | { type: 'wait'; ms: number }
 
 export interface PrepStep {
@@ -519,6 +535,10 @@ export interface AppState {
       that surfaces the story-assignment card in Meera's queue. Persists across a
       profile switch, so it is what tells Meera's home the backlog is ready. */
   backlogReady: boolean
+  /** Set once Meera sends DoR-not-met stories back to Raman. Persists across a
+      profile switch, same as `backlogReady`; it's what reopens Raman's "PRD to
+      Stories" card and swaps what it opens onto. */
+  refinementRequested: boolean
   /** The rewind-confirm modal (platform-level, not inside a gate). Set when a
       gate's Revise button is pressed; carries the gate id and the downstream
       artefacts that will be invalidated. */
@@ -584,6 +604,10 @@ export type Action =
   | { type: 'CLOSE_REVISE_MODAL' }
   /** Confirmed the rewind modal — open the gate for in-place editing. */
   | { type: 'CONFIRM_REVISE_MODAL' }
+  /** Skip the confirm modal and go straight to in-place editing — nothing has
+      actually been generated downstream of this gate yet, so there is nothing
+      to warn about invalidating. */
+  | { type: 'REVISE_DIRECT'; messageId: string }
   /** Cancel the in-place edit without submitting. */
   | { type: 'CANCEL_REVISE_EDIT' }
   /** Revise an already-executed gate: record the new answer on it and invalidate

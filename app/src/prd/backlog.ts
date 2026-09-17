@@ -2,7 +2,7 @@
  *
  * One artefact per phase — intake summary, epics, features, stories, sprint plan
  * — each shown in the document canvas (Preview/Code) as the run advances. The
- * content follows the WireFrame Studio script; the box-drawing tables of the
+ * content follows the WireFrame Generation script; the box-drawing tables of the
  * source are rendered as headings, bold labels and lists so the small markdown
  * renderer can display them.
  */
@@ -17,6 +17,9 @@ export type BacklogDoc =
   | 'team-allocation'
   /* The result of revising the epics gate after release: 9 epics (was 7). */
   | 'epics-revised'
+  /* The reverse handoff: the 2 P1 stories Meera sent back to Raman for missing
+     DoR detail — what's missing and what to add, per story. */
+  | 'dor-analysis'
 
 export const BACKLOG_FILE: Record<BacklogDoc, string> = {
   intake: 'intake-summary.md',
@@ -31,9 +34,10 @@ export const BACKLOG_FILE: Record<BacklogDoc, string> = {
   'features-custom': 'features-custom.md',
   'team-allocation': 'team_allocation.md',
   'epics-revised': 'epics.md',
+  'dor-analysis': 'dor_analysis.md',
 }
 
-const INTAKE = `# Intake summary — WireFrame Studio v1.0
+const INTAKE = `# Intake summary — WireFrame Generation v1.0
 
 Parsed the PRD and built the picture below. Flag anything I've misread — I won't move on until you confirm.
 
@@ -76,7 +80,7 @@ Parsed the PRD and built the picture below. Flag anything I've misread — I won
 - **Phase 4 · Post-launch** (Months 10–12) — mobile + enterprise
 `
 
-const epicsMd = (patched: boolean, fields: boolean) => `# Epics — WireFrame Studio
+const epicsMd = (patched: boolean, fields: boolean) => `# Epics — WireFrame Generation
 
 Seven epics, each on the same template: Background, Details, Benefits, Assumptions, Priority.
 
@@ -137,7 +141,7 @@ ${fields ? '**Start date** — Month 7  ·  **End date** — Month 9\n' : ''}**P
 **Priority** — ${fields ? 'P2 — runs continuously from Month 4' : 'P2 — Phase 2–3 (phase month to confirm)'}
 `
 
-const featuresMd = (gaps: boolean) => `# Features — WireFrame Studio
+const featuresMd = (gaps: boolean) => `# Features — WireFrame Generation
 
 23 features across the 7 epics. Template per feature: Requirement, Acceptance criteria, Priority. Grouped under the parent epic.
 ${gaps ? `
@@ -227,7 +231,7 @@ Annotated specs with measurements, spacing, colours and names. *Acceptance:* spe
 In-context AI tooltips explaining features. *Acceptance:* appear on hover for unfamiliar UI; globally dismissible; frequency reduces over time.${gaps ? '\n> ⚠ **Missing:** target start date · end date · priority' : '\n*Target:* start Month 4 · end Month 6 (Epic 07 · onboarding from Month 4).'}
 `
 
-const storiesMd = (flags: boolean) => `# User stories — WireFrame Studio
+const storiesMd = (flags: boolean) => `# User stories — WireFrame Generation
 
 58 stories decomposed from the confirmed features. Each is checked against Definition of Ready.
 
@@ -262,7 +266,7 @@ ${flags ? `
 - **ST-057 — Onboarding tutorial** — 1 open · tutorial-overlay mockup missing
 ` : ''}`
 
-const SPRINT = `# Sprint plan — WireFrame Studio · MVP
+const SPRINT = `# Sprint plan — WireFrame Generation · MVP
 
 4 sprints × 2 weeks, filtered to MVP scope: Epics 01, 02 and 04 (basic collaboration). 32 stories eligible.
 
@@ -291,7 +295,7 @@ const SPRINT = `# Sprint plan — WireFrame Studio · MVP
 /* The user's own tabular format — a compact one-row-per-item table. Adopted for
    the docs on request, but flagged off-standard: it does not carry every field
    the team's Jira-publish template requires, so it stays off that path. */
-const EPICS_CUSTOM = `# Epics — WireFrame Studio (custom format)
+const EPICS_CUSTOM = `# Epics — WireFrame Generation (custom format)
 
 > ⚠ **Off-standard layout.** Generated in your requested tabular format. This does
 > not match the team's defined epic structure, so it is **not published to Jira**.
@@ -307,7 +311,7 @@ const EPICS_CUSTOM = `# Epics — WireFrame Studio (custom format)
 | E07 | User Onboarding & Education | P2 | Phase 2–3 | Growth team |
 `
 
-const FEATURES_CUSTOM = `# Features — WireFrame Studio (custom format)
+const FEATURES_CUSTOM = `# Features — WireFrame Generation (custom format)
 
 > ⚠ **Off-standard layout.** Generated in your requested tabular format. This does
 > not match the team's defined feature structure, so it is **not published to Jira**.
@@ -339,50 +343,73 @@ const FEATURES_CUSTOM = `# Features — WireFrame Studio (custom format)
 | F7.2 | Contextual AI Tooltips | E07 | P2 |
 `
 
+/** A 5-segment capacity bar — colour is the same green/amber/red band the
+    document's legend calls out (<90% green, 90–100% amber, >100% red), so the
+    read is visual first and the percentage second, not the other way round. */
+function capBar(pct: number, note?: string): string {
+  const filled = Math.min(5, Math.floor(pct / 20))
+  const dot = pct > 100 ? '🟥' : pct >= 90 ? '🟨' : '🟩'
+  const bar = dot.repeat(filled) + '⬜'.repeat(5 - filled)
+  return `${bar} ${pct}%${pct > 100 ? ' ⚠' : ''}${note ? ' · ' + note : ''}`
+}
+
 /** The markdown for a given phase document (some phases have a variant view). */
 /* The drafted team allocation — the artefact Meera reviews. Grouped by role, with
    per-person story keys, point totals and a capacity read; the two over-capacity
    members are called out so the review has an obvious focus. Names/keys are
-   illustrative. */
-const TEAM_ALLOCATION = `# Team allocation — WireFrame Studio · Sprint 35
+   illustrative. Only the 53 DoR-ready stories are allocated here — the 5 not-met
+   ones sit out of this draft until Decision Gate 1 resolves them. */
+const TEAM_ALLOCATION = `# Team allocation — WireFrame Generation · Sprint 35
 
-Drafted from **58 stories · 142 story points**, balanced against component ownership, historical velocity and the current PTO calendar across **10 team members**.
+Drafted from the **53 DoR-ready stories** (of 58 ingested · 142 pts total — 5 held back pending Definition of Ready), balanced against component ownership, historical velocity and the current PTO calendar across **10 team members**.
 
-> Two members are over capacity for this sprint: **Arjun (Lead Frontend) at 138%** and **Farhan (UI/UX) at 120%**. The other 8 are within a healthy band.
+> Two members are over capacity for this sprint: **Arjun (Lead Frontend) at 138%** and **Farhan (UI/UX) at 120%**. The other 8 are within a healthy band. Capacity key: 🟩 under 90% · 🟨 90–100% · 🟥 over 100%.
 
 ## Design — 12 stories · 34 pts
 
 | Member | Role | Stories | Sample keys | Pts | Capacity |
 | --- | --- | --- | --- | --- | --- |
-| Farhan | UI/UX | 5 | ST-002, ST-014, ST-021, ST-047 | 16 | **120% ⚠** |
-| Priya | Visual Design | 4 | ST-006, ST-018, ST-029, ST-041 | 11 | 88% |
-| Neha | Interaction | 3 | ST-009, ST-025, ST-052 | 7 | 72% |
+| Farhan | UI/UX | 5 | ST-002, ST-014, ST-021, ST-047 | 16 | ${capBar(120)} |
+| Priya | Visual Design | 4 | ST-006, ST-018, ST-029, ST-041 | 11 | ${capBar(88)} |
+| Neha | Interaction | 3 | ST-009, ST-025, ST-052 | 7 | ${capBar(72)} |
 
-## Frontend — 26 stories · 66 pts
+## Frontend — 21 stories · 55 pts
 
 | Member | Role | Stories | Sample keys | Pts | Capacity |
 | --- | --- | --- | --- | --- | --- |
-| Arjun | Lead Frontend | 9 | ST-001, ST-003, ST-011, ST-034 | 25 | **138% ⚠** |
-| Kavya | Frontend | 7 | ST-005, ST-016, ST-027, ST-038 | 16 | 92% |
-| Dev | Frontend | 5 | ST-007, ST-019, ST-031 | 12 | 84% |
-| Rohan | Frontend | 5 | ST-012, ST-024, ST-036 | 13 | 60% · PTO Thu–Fri |
+| Arjun | Lead Frontend | 9 | ST-001, ST-003, ST-011, ST-034 | 25 | ${capBar(138)} |
+| Kavya | Frontend | 4 | ST-005, ST-016, ST-027 | 10 | ${capBar(92)} |
+| Dev | Frontend | 4 | ST-007, ST-019, ST-031 | 9 | ${capBar(84)} |
+| Rohan | Frontend | 4 | ST-012, ST-024, ST-036 | 11 | ${capBar(60, 'PTO Thu–Fri')} |
 
 ## Backend — 20 stories · 42 pts
 
 | Member | Role | Stories | Sample keys | Pts | Capacity |
 | --- | --- | --- | --- | --- | --- |
-| Vikram | Lead Backend | 7 | ST-004, ST-015, ST-026, ST-048 | 16 | 90% |
-| Ananya | Backend | 7 | ST-008, ST-020, ST-032, ST-050 | 15 | 94% |
-| Karthik | Backend | 6 | ST-010, ST-022, ST-044 | 11 | 78% |
+| Vikram | Lead Backend | 7 | ST-004, ST-015, ST-026, ST-048 | 16 | ${capBar(90)} |
+| Ananya | Backend | 7 | ST-008, ST-020, ST-032, ST-050 | 15 | ${capBar(94)} |
+| Karthik | Backend | 6 | ST-010, ST-022, ST-044 | 11 | ${capBar(78)} |
 
 ---
 
-**Totals** — 58 stories · 142 pts · 8 members balanced · 2 over capacity. Rebalancing Arjun and Farhan would move ~7 pts to Rohan and Neha, bringing every member under 100%.`
+**Totals** — 53 stories · 131 pts · 8 members balanced · 2 over capacity. Rebalancing Arjun and Farhan would move ~7 pts to Rohan and Neha, bringing every member under 100%.`
+
+/* The reverse handoff — what Meera sent back to Raman. The 2 P1 stories that
+   don't meet Definition of Ready, what's specifically missing from the PRD, and
+   what he needs to resolve before they can re-enter a sprint. */
+const DOR_ANALYSIS = `# DoR analysis — 2 stories held for refinement
+
+Sent back from Sprint 35 allocation — these 2 P1 stories do not meet Definition of Ready. Resolve the open PRD threads below and they will be picked up for the next allocation pass.
+
+| Story ID | User Story | DoR Criteria Not Met | Details / Action Needed |
+| --- | --- | --- | --- |
+| ST-043 | As a designer, I get contextual layout suggestions while editing | Open Questions in the PRD | PRD contains unresolved comments on suggestion triggers (automatic debounced popup vs. manual user toggle) and inference latency limits. **Action Needed:** Product Manager to resolve open PRD threads and finalize explicit acceptance criteria for trigger rules and offline/fallback states. |
+| ST-058 | As a new user, I see contextual tooltips explaining features on hover | Open Questions in the PRD & Missing Acceptance Criteria | PRD contains unresolved comments. **Action Needed:** Product Manager to resolve open PRD threads and finalize explicit acceptance criteria for negative scenarios. |`
 
 /* The revised epics — 9, after the user changed the answer on the already-executed
    epics gate. Two epics are carved out of the originals; the other seven keep their
    scope. The two new ones are flagged so the diff from v1 is obvious. */
-const EPICS_REVISED = `# Epics — WireFrame Studio (revised · v2)
+const EPICS_REVISED = `# Epics — WireFrame Generation (revised · v2)
 
 Regenerated from your change: **9 epics** (was 7). Two were carved out of the originals so each epic stays single-purpose; the other seven are unchanged in scope.
 
@@ -410,6 +437,7 @@ export function backlogMarkdown(doc: BacklogDoc): string {
   switch (doc) {
     case 'intake': return INTAKE
     case 'team-allocation': return TEAM_ALLOCATION
+    case 'dor-analysis': return DOR_ANALYSIS
     case 'epics-revised': return EPICS_REVISED
     case 'epics': return epicsMd(false, false)
     case 'epics-fields': return epicsMd(true, true)

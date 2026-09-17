@@ -22,7 +22,7 @@ interface Props {
   onToast?: (text: string) => void
   onRevise?: (messageId: string) => void
   revisingId?: string | null
-  onReviseSend?: (messageId: string, note: string) => void
+  onReviseSend?: (messageId: string, note: string, beat?: string) => void
   onReviseCancel?: () => void
   /** The message whose block is pinned to the composer slot — its block is
       skipped inline while it waits there. */

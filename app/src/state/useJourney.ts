@@ -3,7 +3,7 @@ import { PRD_SEED_ID, MEERA_ASSIGN_ID, TASKS, initialState, prepStart, reducer, 
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, isReportIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
-import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
+import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, backlogRefinementOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { storyAssignmentOpening, ASSIGN_BEATS } from '../prd/assignFlow'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
 import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
@@ -261,7 +261,7 @@ export function useJourney() {
 
     if (!state.activeTaskId && !state.activeObject && !pending && isBacklogIntent(text)) {
       cancel()
-      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'Backlog · WireFrame Studio', subject: 'WireFrame Studio', said: text })
+      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'Backlog · WireFrame Generation', subject: 'WireFrame Generation', said: text })
       dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
       play(backlogOpening())
       return
@@ -398,20 +398,24 @@ export function useJourney() {
     /* Raman's seeded "PRD to Stories" card launches the PRD-to-Stories run as a
        task: it opens the backlog object bound to this same card, then plays the
        prepared opening that lands already parked on the intake gate. Everything
-       downstream is the existing backlog flow. */
+       downstream is the existing backlog flow. Once Meera has sent DoR-not-met
+       stories back (refinementRequested), the SAME card instead opens onto the
+       reverse-handoff request — his own parked conversation from before was
+       thrown away by the profile switch, same as it always is for this card, so
+       there is no "resume where he left off" to preserve here either way. */
     if (taskId === PRD_SEED_ID) {
       dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'PRD to Stories',
-        subject: 'WireFrame Studio', said: 'Task assigned from AAVA — “PRD to Stories”', taskId })
+        subject: 'WireFrame Generation', said: 'Task assigned from AAVA — “PRD to Stories”', taskId })
       dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
-      play(backlogTaskOpening())
+      play(state.refinementRequested ? backlogRefinementOpening() : backlogTaskOpening())
       return
     }
     /* Meera's story-assignment card opens the downstream half of the handoff —
        the same backlog object, playing the Story Assignment opening that lands on
        the allocation-review gate. */
     if (taskId === MEERA_ASSIGN_ID) {
-      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'Story Assignment · WireFrame Studio',
-        subject: 'WireFrame Studio', said: 'Task assigned from AAVA — “Assign Stories to scrum team members”', taskId })
+      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'Story Assignment · WireFrame Generation',
+        subject: 'WireFrame Generation', said: 'Task assigned from AAVA — “Assign Stories to scrum team members”', taskId })
       dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
       play(storyAssignmentOpening())
       return
@@ -423,7 +427,7 @@ export function useJourney() {
     // AAVA speaks to where the work actually stands, from the task's own copy.
     const task = TASKS.find((t) => t.id === taskId)
     if (task) play([{ type: 'say', lines: task.opening }])
-  }, [state.activeThreadId, state.stashed, play, cancel, withGate])
+  }, [state.activeThreadId, state.stashed, state.refinementRequested, play, cancel, withGate])
 
   /* One way into a thread, whatever the sidebar shows it as. A parked thread
      comes back whole; a task thread that was never parked (a seeded one, or one
@@ -481,7 +485,10 @@ export function useJourney() {
     recordAnswer: (messageId: string, text: string) => dispatch({ type: 'RECORD_ANSWER', messageId, text }),
     /* Rewind: open the platform-level confirm modal for a gate, listing the
        downstream artefacts that will be marked invalid — filtered to what has
-       actually been generated after it. */
+       actually been generated after it. If nothing has actually been generated
+       downstream yet (e.g. revising "Confirm the epics" while still sitting on
+       its Jira-push offer, before features exist), there is nothing to warn
+       about — skip the modal and go straight to in-place editing. */
     openReviseModal: (messageId: string) => {
       const at = state.messages.findIndex((m) => m.id === messageId)
       const gate = at === -1 ? undefined : state.messages[at]?.block
@@ -490,17 +497,20 @@ export function useJourney() {
       const present = authored.filter((it) =>
         after.some((m) => m.block?.kind === 'document' && m.block.doc?.startsWith(it.doc.split('-')[0])),
       )
-      dispatch({ type: 'OPEN_REVISE_MODAL', messageId, items: present.length ? present : authored })
+      if (present.length) dispatch({ type: 'OPEN_REVISE_MODAL', messageId, items: present })
+      else dispatch({ type: 'REVISE_DIRECT', messageId })
     },
     closeReviseModal: () => dispatch({ type: 'CLOSE_REVISE_MODAL' }),
     confirmReviseModal: () => dispatch({ type: 'CONFIRM_REVISE_MODAL' }),
     cancelReviseEdit: () => dispatch({ type: 'CANCEL_REVISE_EDIT' }),
     /* Send the edit: record the new answer, invalidate downstream, then re-run the
-       SAME downstream process from this step with the changed value. */
-    reviseSend: (messageId: string, note: string) => {
+       SAME downstream process from this step with the changed value. `beatOverride`
+       is set by a clarify gate's revise flow — reopening the lettered options and
+       picking a NEW one fires THAT option's own beat, not a fixed reviseBeat. */
+    reviseSend: (messageId: string, note: string, beatOverride?: string) => {
       cancel()
       const m = state.messages.find((x) => x.id === messageId)
-      const beat = m?.block?.kind === 'decision' ? m.block.reviseBeat : undefined
+      const beat = beatOverride ?? (m?.block?.kind === 'decision' ? m.block.reviseBeat : undefined)
       dispatch({ type: 'REVISE_GATE', messageId, note })
       const b = (beat && (BACKLOG_BEATS[beat] ?? ASSIGN_BEATS[beat])) || BACKLOG_BEATS.reviseGeneric
       if (b) play(b)
