@@ -250,7 +250,7 @@ function compensatingGate(step: number, question: string, beat: string): Effect 
   return { type: 'say', lines: ['Before I touch what is already live on Jira, here is exactly what this compensating update will do.'],
     block: {
       kind: 'decision', variant: 'action', step, icon: 'shield',
-      title: 'Update the released Jira backlog?', question,
+      title: 'Updates on the published features', question,
       options: [{ label: 'Apply to Jira', beat, primary: true }],
     },
   }
