@@ -250,6 +250,13 @@ export const TASKS: Task[] = [
    this same card rather than minting a duplicate. */
 export const PRD_SEED_ID = 'PRD-WFS'
 
+/* A second, parallel PRD-to-Stories demo — same PRD, same intake/epics/
+   features, but its epics gate demos the pre-rewind "compensating update"
+   experience (see prd/backlogFlowV2.ts) instead of the shipped rewind
+   mechanism. Kept as its own card/id so the main "PRD to Stories" card and
+   flow are never touched by it. */
+export const PRD_V2_SEED_ID = 'PRD-WFS-V2'
+
 export const RAMAN_TASKS: Task[] = [
   {
     id: PRD_SEED_ID, title: 'PRD to Stories',
@@ -268,6 +275,26 @@ export const RAMAN_TASKS: Task[] = [
         'Backlog decomposition (epics → features → stories)',
         'Definition-of-Ready checks',
         'Sprint planning & story mapping',
+      ],
+      run: { agent: 'Epics & Features Generator', golden: true, certified: '2026-07-20', accepts: 12 },
+    },
+  },
+  {
+    id: PRD_V2_SEED_ID, title: 'PRD to Stories V2',
+    status: 'clarify', tag: 'input', est: '—', dep: 'PRD', recommended: false,
+    note: 'Confirm the intake summary', updated: '6 min ago',
+    opening: [],
+    context: {
+      ticket: 'WFS', ticketSource: 'AAVA · PRD',
+      ticketUrl: 'https://aava-demo.atlassian.net/jira/software/projects/WFS/boards/1',
+      description:
+        'Same PRD-to-backlog run, with the compensating-update experience for an already-executed step: ' +
+        'a scope gap is caught after publish and patched directly — no rewind, no re-run.',
+      criteria: [],
+      capabilities: [
+        'PRD parsing & requirement extraction',
+        'Backlog decomposition (epics → features → stories)',
+        'Compensating updates for already-published scope',
       ],
       run: { agent: 'Epics & Features Generator', golden: true, certified: '2026-07-20', accepts: 12 },
     },

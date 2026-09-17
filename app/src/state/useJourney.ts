@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { PRD_SEED_ID, MEERA_ASSIGN_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
+import { PRD_SEED_ID, PRD_V2_SEED_ID, MEERA_ASSIGN_ID, TASKS, initialState, prepStart, reducer, threadIdForTask } from './reducer'
 import { getScenario, routeBeat } from '../scenarios'
 import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, isReportIntent } from '../prd/data'
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
 import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, backlogRefinementOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { storyAssignmentOpening, ASSIGN_BEATS } from '../prd/assignFlow'
+import { backlogTaskOpeningV2, V2_BEATS } from '../prd/backlogFlowV2'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
 import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
 import { isArtifactIntent, agentOpening, agentRouter, AGENT_BEATS } from '../prd/agentFlow'
@@ -184,9 +185,10 @@ export function useJourney() {
       if (name === 'pushStoriesFinal') { play(backlogStoriesPublish(state.messages)); return }
       /* Skipping the stories names what is on Jira and what is still left. */
       if (name === 'storiesSkipped') { play(backlogStoriesSkipped(state.messages)); return }
-      /* Meera's Story Assignment run rides the same backlog object, so its beats
-         sit alongside the backlog ones. */
-      const beat = BACKLOG_BEATS[name] ?? ASSIGN_BEATS[name]
+      /* Meera's Story Assignment run and the "PRD to Stories V2" compensating-
+         update demo both ride the same backlog object, so their beats sit
+         alongside the backlog ones. */
+      const beat = BACKLOG_BEATS[name] ?? ASSIGN_BEATS[name] ?? V2_BEATS[name]
       if (beat) play(beat)
       return
     }
@@ -408,6 +410,17 @@ export function useJourney() {
         subject: 'WireFrame Generation', said: 'Task assigned from AAVA — “PRD to Stories”', taskId })
       dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
       play(state.refinementRequested ? backlogRefinementOpening() : backlogTaskOpening())
+      return
+    }
+    /* The parallel "PRD to Stories V2" card — same PRD, same intake/epics/
+       features, but demos the pre-rewind "compensating update" experience on
+       an already-published epics gate instead of the shipped rewind mechanism.
+       Its own object/beats (V2_BEATS) so the main card above is never touched. */
+    if (taskId === PRD_V2_SEED_ID) {
+      dispatch({ type: 'OPEN_OBJECT', kind: 'backlog', title: 'PRD to Stories V2',
+        subject: 'WireFrame Generation', said: 'Task assigned from AAVA — “PRD to Stories V2”', taskId })
+      dispatch({ type: 'SET_SIDEBAR_OPEN', open: false })
+      play(backlogTaskOpeningV2())
       return
     }
     /* Meera's story-assignment card opens the downstream half of the handoff —
