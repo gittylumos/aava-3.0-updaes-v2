@@ -21,7 +21,7 @@ export const PROFILES: Record<ProfileId, Profile> = {
   ajay: { id: 'ajay', name: 'Ajay', role: 'Agent Designer', org: 'HP', initials: 'A' },
   /* User B in the cross-persona handoff — she picks up the backlog Raman
      publishes and allocates the stories across her scrum team. */
-  meera: { id: 'meera', name: 'Meera', role: 'Product Manager', org: 'HP', initials: 'M' },
+  meera: { id: 'meera', name: 'Meera', role: 'Scrum Master', org: 'HP', initials: 'M' },
 }
 
 /** The order the account switch cycles through. */

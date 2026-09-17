@@ -350,7 +350,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
           >
             <span className="block truncate text-[12.5px] font-semibold leading-tight">{profile.name}</span>
             <span className="block truncate text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>
-              {profile.role} · {profile.org}
+              {profile.role}
             </span>
           </span>
         </button>
@@ -377,7 +377,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold leading-tight">{profile.name}</p>
               <p className="truncate text-[11.5px] leading-tight" style={{ color: 'var(--muted)' }}>
-                {profile.role} · {profile.org}
+                {profile.role}
               </p>
             </div>
           </div>
