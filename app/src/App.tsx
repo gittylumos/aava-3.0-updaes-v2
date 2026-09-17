@@ -546,6 +546,8 @@ export default function App() {
           onOpenDoc={(doc) => openDoc(doc)}
           onConfirm={j.confirmReviseModal}
           onCancel={j.closeReviseModal}
+          note={j.state.reviseModal.note}
+          confirmLabel={j.state.reviseModal.confirmLabel}
         />
       )}
       {/* The orchestration builder, expanded to the whole window. Run from here

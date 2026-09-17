@@ -510,8 +510,19 @@ export function useJourney() {
       const present = authored.filter((it) =>
         after.some((m) => m.block?.kind === 'document' && m.block.doc?.startsWith(it.doc.split('-')[0])),
       )
-      if (present.length) dispatch({ type: 'OPEN_REVISE_MODAL', messageId, items: present })
-      else dispatch({ type: 'REVISE_DIRECT', messageId })
+      if (!present.length) { dispatch({ type: 'REVISE_DIRECT', messageId }); return }
+      /* Has anything downstream actually been PUBLISHED (an answered, non-skipped
+         `sync` card) since this gate was answered? Only a gate that opts in with
+         `releasedImpactNote` ever surfaces this — every other gate's `note` stays
+         undefined, so this changes nothing for a gate that never set the field. */
+      const released = gate?.kind === 'decision' && gate.releasedImpactNote
+        ? after.some((m) => m.block?.kind === 'sync' && m.live === false && m.answer !== 'proceeded')
+        : false
+      dispatch({
+        type: 'OPEN_REVISE_MODAL', messageId, items: present,
+        note: released && gate?.kind === 'decision' ? gate.releasedImpactNote : undefined,
+        confirmLabel: gate?.kind === 'decision' ? gate.reviseConfirmLabel : undefined,
+      })
     },
     closeReviseModal: () => dispatch({ type: 'CLOSE_REVISE_MODAL' }),
     confirmReviseModal: () => dispatch({ type: 'CONFIRM_REVISE_MODAL' }),
@@ -525,7 +536,7 @@ export function useJourney() {
       const m = state.messages.find((x) => x.id === messageId)
       const beat = beatOverride ?? (m?.block?.kind === 'decision' ? m.block.reviseBeat : undefined)
       dispatch({ type: 'REVISE_GATE', messageId, note })
-      const b = (beat && (BACKLOG_BEATS[beat] ?? ASSIGN_BEATS[beat])) || BACKLOG_BEATS.reviseGeneric
+      const b = (beat && (BACKLOG_BEATS[beat] ?? ASSIGN_BEATS[beat] ?? V2_BEATS[beat])) || BACKLOG_BEATS.reviseGeneric
       if (b) play(b)
     },
     /* Apply the pending inline comments — they land in the conversation as a turn

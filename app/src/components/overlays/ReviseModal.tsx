@@ -6,11 +6,16 @@ import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import type { BacklogDoc } from '../../prd/backlog'
 
-export function ReviseModal({ items, onOpenDoc, onConfirm, onCancel }: {
+export function ReviseModal({ items, onOpenDoc, onConfirm, onCancel, note, confirmLabel }: {
   items: { label: string; doc: BacklogDoc }[]
   onOpenDoc: (doc: BacklogDoc) => void
   onConfirm: () => void
   onCancel: () => void
+  /** Extra amber paragraph — e.g. some of this is already released to Jira,
+      so the regenerate will amend it with a compensating update rather than
+      delete it. Undefined for the default modal, unchanged from before. */
+  note?: string
+  confirmLabel?: string
 }) {
   /* Enter confirms, Escape cancels — the modal is the focus while it is open. */
   useEffect(() => {
@@ -57,11 +62,18 @@ export function ReviseModal({ items, onOpenDoc, onConfirm, onCancel }: {
           ))}
         </ul>
 
+        {note && (
+          <p className="mt-3 rounded-[9px] px-3 py-2.5 text-[12.5px] leading-[1.5]"
+            style={{ background: 'var(--warn-surface)', color: 'var(--warn)' }}>
+            {note}
+          </p>
+        )}
+
         <p className="mt-4 text-[13px]" style={{ color: 'var(--text-dim)' }}>Do you wish to continue?</p>
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <button onClick={onCancel} className="btn-secondary">Cancel</button>
-          <button onClick={onConfirm} className="btn-primary">Confirm</button>
+          <button onClick={onConfirm} className="btn-primary">{confirmLabel ?? 'Confirm'}</button>
         </div>
       </motion.div>
     </div>

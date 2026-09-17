@@ -221,7 +221,20 @@ export type BlockSpec =
       reviseBeat?: string
       /** The downstream artefacts that get marked invalid when this step is
           rewound — shown as links in the rewind-confirm modal. */
-      impact?: { label: string; doc: BacklogDoc }[] }
+      impact?: { label: string; doc: BacklogDoc }[]
+      /** Extra amber paragraph in the rewind-confirm modal, shown only when
+          something downstream of this gate has actually been published (an
+          answered, non-skipped `sync` card after it) — e.g. "part of this was
+          already released to Jira, so I will amend it with a compensating
+          update rather than delete it." Undefined for every gate that hasn't
+          opted in, so this never changes the default modal copy. */
+      releasedImpactNote?: string
+      /** Overrides for the rewind-confirm modal's Confirm button and the
+          in-place editor's label/send-button, when a gate wants copy other
+          than the defaults ("Confirm" / "Your input" / "Send"). */
+      reviseConfirmLabel?: string
+      reviseLabel?: string
+      reviseSendLabel?: string }
   /** The proposed capability/step list in the agent-designer flow — shown as a
       clean ordered list in the conversation (not the dock-linked plan card), so
       the user can refine it by typing before matching artifacts. `added` flags a
@@ -542,7 +555,7 @@ export interface AppState {
   /** The rewind-confirm modal (platform-level, not inside a gate). Set when a
       gate's Revise button is pressed; carries the gate id and the downstream
       artefacts that will be invalidated. */
-  reviseModal: { messageId: string; items: { label: string; doc: BacklogDoc }[] } | null
+  reviseModal: { messageId: string; items: { label: string; doc: BacklogDoc }[]; note?: string; confirmLabel?: string } | null
   /** The gate currently open for in-place editing (its "your input" is an editable
       textarea) after the rewind was confirmed. */
   revisingId: string | null
@@ -600,7 +613,7 @@ export type Action =
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }
   /** Open the platform-level rewind-confirm modal for a gate. */
-  | { type: 'OPEN_REVISE_MODAL'; messageId: string; items: { label: string; doc: BacklogDoc }[] }
+  | { type: 'OPEN_REVISE_MODAL'; messageId: string; items: { label: string; doc: BacklogDoc }[]; note?: string; confirmLabel?: string }
   | { type: 'CLOSE_REVISE_MODAL' }
   /** Confirmed the rewind modal — open the gate for in-place editing. */
   | { type: 'CONFIRM_REVISE_MODAL' }

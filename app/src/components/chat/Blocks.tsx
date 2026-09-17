@@ -47,18 +47,23 @@ function ReviseButton({ onClick }: { onClick: () => void }) {
 
 /* The in-place editor shown on a gate whose rewind was confirmed — the answer area
    becomes a textarea (the same "describe here" affordance as a collect option). */
-function ReviseEditor({ onSend, onCancel }: { onSend: (note: string) => void; onCancel: () => void }) {
+function ReviseEditor({ onSend, onCancel, label, sendLabel }: {
+  onSend: (note: string) => void; onCancel: () => void
+  /** Overrides for a gate that wants different copy than the default
+      "Your input" / "Send" — undefined leaves the default unchanged. */
+  label?: string; sendLabel?: string
+}) {
   const [note, setNote] = useState('')
   return (
     <div className="mt-2.5">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Your input</span>
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>{label ?? 'Your input'}</span>
       <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)}
         placeholder="Please describe here…"
         className="w-full resize-none rounded-[9px] px-3 py-2 text-[12.5px] placeholder:text-[var(--muted-deep)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
         style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }} />
       <div className="mt-2 flex flex-wrap justify-end gap-2">
         <button onClick={onCancel} className="btn-secondary">Cancel</button>
-        <button onClick={() => { const t = note.trim(); if (t) onSend(t) }} disabled={!note.trim()} className="btn-primary">Send</button>
+        <button onClick={() => { const t = note.trim(); if (t) onSend(t) }} disabled={!note.trim()} className="btn-primary">{sendLabel ?? 'Send'}</button>
       </div>
     </div>
   )
@@ -809,7 +814,7 @@ function ButtonsGate({ block, live, fire, onRecordAnswer, answer, revising, onRe
 
       {/* Rewound: the answer area becomes an editable "Your input" textarea. */}
       {!live && revising && onReviseSend && onReviseCancel && (
-        <ReviseEditor onSend={onReviseSend} onCancel={onReviseCancel} />
+        <ReviseEditor onSend={onReviseSend} onCancel={onReviseCancel} label={block.reviseLabel} sendLabel={block.reviseSendLabel} />
       )}
 
       {/* The recorded response, shown back once the gate is answered — the action

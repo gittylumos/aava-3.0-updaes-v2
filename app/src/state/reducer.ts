@@ -994,7 +994,7 @@ export function reducer(state: AppState, action: Action): AppState {
 
     /* The rewind-confirm modal lifecycle. */
     case 'OPEN_REVISE_MODAL':
-      return { ...state, reviseModal: { messageId: action.messageId, items: action.items } }
+      return { ...state, reviseModal: { messageId: action.messageId, items: action.items, note: action.note, confirmLabel: action.confirmLabel } }
     case 'CLOSE_REVISE_MODAL':
       return { ...state, reviseModal: null }
 

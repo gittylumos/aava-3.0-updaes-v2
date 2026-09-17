@@ -76,7 +76,7 @@ export function backlogProgress(messages: Message[]): { steps: PrepStep[]; at: n
   return { steps: PROGRESS_STEPS, at, started, waiting: gateLive }
 }
 
-type Step = [label: string, result: string, ms?: number]
+export type Step = [label: string, result: string, ms?: number]
 
 /* Generation pace. The backlog agents do real work — clustering, decomposing,
    checking — so each step dwells long enough to read the spinner resolve to a
@@ -85,8 +85,10 @@ type Step = [label: string, result: string, ms?: number]
 const GEN = 650
 
 /** A status checklist — spinner → ✓ with a result, one row at a time. A `title`
-   makes it a collapsible accordion that folds to a summary once it finishes. */
-function status(steps: Step[], title?: string): Effect {
+   makes it a collapsible accordion that folds to a summary once it finishes.
+   Exported so backlogFlowV2.ts (the compensating-update demo) can build
+   byte-identical checklists without duplicating this. */
+export function status(steps: Step[], title?: string): Effect {
   const toolSteps: ToolStep[] = steps.map(([label, result, ms]) => ({
     label, result, source: 'RUN', ms: ms ?? GEN,
   }))
@@ -94,30 +96,38 @@ function status(steps: Step[], title?: string): Effect {
 }
 
 /** A generated-artefact card — doc name + Open, which reveals it in the canvas. */
-function artifact(name: string, doc: BacklogDoc): Effect {
+export function artifact(name: string, doc: BacklogDoc): Effect {
   return { type: 'say', lines: [], stream: false, block: { kind: 'document', name, format: 'MD', doc } }
 }
 
 /* [label, beat, primary?, collect?] — `collect` turns the option into a
    "reveal a textarea, record what you type, then fire the beat" action. */
-type Opt = [label: string, beat: string, primary?: boolean, collect?: boolean]
+export type Opt = [label: string, beat: string, primary?: boolean, collect?: boolean]
 
 /** A gate — the golden "waiting on you" decision card. `revise` makes the answered
     gate revisable: `beat` re-runs the downstream process, `impact` lists the
-    artefacts marked invalid in the rewind-confirm modal. */
-function gate(step: number, title: string, question: string, options: Opt[], summary?: { label: string; detail?: string }[], revise?: { beat?: string; impact: { label: string; doc: BacklogDoc }[] }): BlockSpec {
+    artefacts marked invalid in the rewind-confirm modal. The extra `revise`
+    fields (`releasedImpactNote`/confirm/edit label overrides) are only ever
+    read by a gate that sets them — every gate in THIS file leaves them
+    undefined, so they change nothing here; backlogFlowV2.ts uses them. */
+export function gate(step: number, title: string, question: string, options: Opt[], summary?: { label: string; detail?: string }[], revise?: { beat?: string; impact: { label: string; doc: BacklogDoc }[]
+  releasedImpactNote?: string; reviseConfirmLabel?: string; reviseLabel?: string; reviseSendLabel?: string }): BlockSpec {
   return {
     kind: 'decision', step, title, question,
     placeholder: 'Please describe here…',
     options: options.map(([label, beat, primary, collect]) => ({ label, beat, primary, collect })),
     summary,
-    ...(revise ? { revisable: true, reviseBeat: revise.beat ?? 'reviseGeneric', impact: revise.impact } : {}),
+    ...(revise ? {
+      revisable: true, reviseBeat: revise.beat ?? 'reviseGeneric', impact: revise.impact,
+      releasedImpactNote: revise.releasedImpactNote, reviseConfirmLabel: revise.reviseConfirmLabel,
+      reviseLabel: revise.reviseLabel, reviseSendLabel: revise.reviseSendLabel,
+    } : {}),
   }
 }
 
 /** A quick "pushed to Jira" confirmation, run before continuing to the next
     phase when the user chooses to publish that level. */
-function pushConfirm(count: string): Effect[] {
+export function pushConfirm(count: string): Effect[] {
   return [
     { type: 'watch', text: `Pushing ${count} to Jira · WFS`, tone: 'info' },
     { type: 'wait', ms: T.prCreate },
@@ -128,7 +138,7 @@ function pushConfirm(count: string): Effect[] {
 
 /** A Jira push offer shown after a phase gate — publish this level, or move to
     the next creation step (`next` names it) and publish later. */
-function pushOffer(count: string, detail: string, pushBeat: string, nextBeat: string, next: string): Effect {
+export function pushOffer(count: string, detail: string, pushBeat: string, nextBeat: string, next: string): Effect {
   return {
     type: 'say',
     lines: [`${count} confirmed. Want me to push them to Jira now, or ${next} and publish later?`],
