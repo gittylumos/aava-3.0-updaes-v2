@@ -533,6 +533,9 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
       return { ...state, messages, tasks }
     }
 
+    case 'userSay':
+      return { ...state, messages: [...state.messages, { id: nextId(), from: 'user', typing: false, lines: [effect.text] }] }
+
     case 'tools': {
       const trailing = state.messages.at(-1)
       const block = { kind: 'tools' as const, steps: effect.steps, done: 0, title: effect.title }

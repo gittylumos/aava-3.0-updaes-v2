@@ -140,6 +140,10 @@ export type BlockSpec =
       underlined hyperlink style `links` uses elsewhere. */
   | { kind: 'callout'; lines: string[]; links?: { label: string; href: string }[]
       docLink?: { text: string; doc: BacklogDoc } }
+  /** A one-line separator — the thread is paused waiting on someone else's
+      step (a cross-persona handoff), so the conversation reads as one
+      continuous session rather than starting fresh when it resumes. */
+  | { kind: 'divider'; text: string }
   /** `title` groups the steps into a collapsible accordion — while running it is
       open and animating; once every step is done it folds to the title with a
       count, the way agent tools summarise a finished run. */
@@ -222,13 +226,14 @@ export type BlockSpec =
       /** The downstream artefacts that get marked invalid when this step is
           rewound — shown as links in the rewind-confirm modal. */
       impact?: { label: string; doc: BacklogDoc }[]
-      /** Extra amber paragraph in the rewind-confirm modal, shown only when
-          something downstream of this gate has actually been published (an
-          answered, non-skipped `sync` card after it) — e.g. "part of this was
-          already released to Jira, so I will amend it with a compensating
-          update rather than delete it." Undefined for every gate that hasn't
-          opted in, so this never changes the default modal copy. */
-      releasedImpactNote?: string
+      /** Opts into an extra amber paragraph in the rewind-confirm modal, shown
+          only when something downstream of this gate has actually been
+          published (an answered, non-skipped `sync` card after it) — the
+          exact wording is computed live from WHICH levels were released
+          (e.g. "Epics were…" vs "Epics and Features were…"), not a fixed
+          string. False/undefined for every gate that hasn't opted in, so
+          this never changes the default modal copy. */
+      releasedImpactNote?: boolean
       /** Overrides for the rewind-confirm modal's Confirm button and the
           in-place editor's label/send-button, when a gate wants copy other
           than the defaults ("Confirm" / "Your input" / "Send"). */
@@ -367,6 +372,11 @@ export type Effect =
       intake flow. Survives a profile switch, same as `backlogReady`. */
   | { type: 'refinementRequested' }
   | { type: 'wait'; ms: number }
+  /** Injects a plain user-styled bubble (right-aligned, like "Task assigned
+      from AAVA — …") mid-thread — used when a quiet replay of an earlier
+      run needs to show a second hand-off notice further down the same
+      session, not just the one `OPEN_OBJECT` puts at the very top. */
+  | { type: 'userSay'; text: string }
 
 export interface PrepStep {
   key: string

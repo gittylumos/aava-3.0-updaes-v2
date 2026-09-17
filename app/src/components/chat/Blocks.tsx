@@ -554,6 +554,20 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
     )
   }
 
+  /* A one-line separator — the thread is paused waiting on someone else's
+     step. A dashed rule on either side of small centred text, so a quiet
+     replay reads as one continuous session rather than a fresh one when it
+     resumes further down. */
+  if (block.kind === 'divider') {
+    return (
+      <div className="my-3 flex items-center gap-3">
+        <span className="h-0 flex-1" style={{ borderTop: '1px dashed var(--glass-line)' }} />
+        <span className="shrink-0 text-[11px]" style={{ color: 'var(--muted-deep)' }}>{block.text}</span>
+        <span className="h-0 flex-1" style={{ borderTop: '1px dashed var(--glass-line)' }} />
+      </div>
+    )
+  }
+
   /* The agent-designer capability/step list — an ordered, editable-by-talking
      process, shown as a clean card (no dock pointer). A step the user just
      added lands highlighted. */

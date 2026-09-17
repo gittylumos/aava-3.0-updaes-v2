@@ -111,7 +111,7 @@ export type Opt = [label: string, beat: string, primary?: boolean, collect?: boo
     read by a gate that sets them — every gate in THIS file leaves them
     undefined, so they change nothing here; backlogFlowV2.ts uses them. */
 export function gate(step: number, title: string, question: string, options: Opt[], summary?: { label: string; detail?: string }[], revise?: { beat?: string; impact: { label: string; doc: BacklogDoc }[]
-  releasedImpactNote?: string; reviseConfirmLabel?: string; reviseLabel?: string; reviseSendLabel?: string }): BlockSpec {
+  releasedImpactNote?: boolean; reviseConfirmLabel?: string; reviseLabel?: string; reviseSendLabel?: string }): BlockSpec {
   return {
     kind: 'decision', step, title, question,
     placeholder: 'Please describe here…',
@@ -258,11 +258,53 @@ export function backlogTaskOpening(): Effect[] {
 
 /* The reverse handoff: Meera sent 2 DoR-not-met stories back to Raman for
    refinement (Decision 1 → Option 1A). His "PRD to Stories" card reopens onto
-   this short, self-contained ask instead of the original intake run — reads
-   like a normal turn, with the two tickets as hyperlinks and the doc mention
-   itself opening the canvas artifact. */
+   this — but NOT as a fresh session: a profile switch throws away the parked
+   thread the same way it always does for this card, so this quietly replays
+   the completed run first (same convention as `backlogTaskOpening`'s
+   collapsed capability/plan — already happened, no delay), landing on the
+   exact "Done — all the epics, features and stories are created on Jira now"
+   record Raman actually finished on. A one-line divider marks the pause, then
+   the refinement ask appends below it as a genuinely new turn in the SAME
+   thread — reads like a normal turn, with the two tickets as hyperlinks and
+   the doc mention itself opening the canvas artifact. */
 export function backlogRefinementOpening(): Effect[] {
   return [
+    { type: 'say', stream: false, lines: [], block: {
+      kind: 'capability', searching: false, collapsed: true, badge: 'EFG-1.0',
+      maps: "This maps to the 'Epics and Features Generator' agentic process — it took the intake end-to-end:",
+      chips: [
+        'PRD parsing & requirement extraction',
+        'Backlog decomposition (epics → features → stories)',
+        'Definition-of-Ready checks',
+        'Sprint planning & story mapping',
+      ],
+    } },
+    { type: 'say', stream: false, lines: [], block: {
+      kind: 'plan', collapsed: true, count: 5, title: 'Epics & Feature Generator Process',
+      steps: [
+        { title: 'Intake & understanding', detail: 'Parse the PRD, summarise objectives, roles and requirements' },
+        { title: 'Draft epics', detail: 'Cluster 28 requirements into themed epics — pause for review' },
+        { title: 'Break into features', detail: 'Decompose each confirmed epic — pause for review' },
+        { title: 'Write user stories', detail: 'Draft stories from the confirmed features' },
+        { title: 'Publish to Jira', detail: 'Push the backlog; sprint planning goes to the scrum master' },
+      ],
+    } },
+    { type: 'say', stream: false, lines: [
+      'PRD received — WireFrame Generation, v1.0. I found 5 objectives, 6 user roles, 28 functional requirements across 6 categories, and 5 non-functional areas.',
+    ] },
+    artifact('intake.md', 'intake'),
+    { type: 'say', stream: false, lines: ['7 epics drafted and confirmed, pushed to Jira with parent–child links.'] },
+    artifact('epics.md', 'epics'),
+    { type: 'say', stream: false, lines: ['23 features drafted and confirmed, pushed to Jira with parent–child links.'] },
+    artifact('features.md', 'features'),
+    { type: 'say', stream: false, lines: ['58 stories decomposed and confirmed, each with acceptance criteria and linked to its parent.'] },
+    artifact('stories.md', 'stories'),
+    { type: 'say', stream: false,
+      lines: ["Done — all the epics, features and stories are created on Jira now. The scrum master will be notified of the stories and will need to start the 'Story Assignment' step in the process."],
+      block: JIRA_LINKS,
+    },
+    { type: 'say', stream: false, lines: [], block: { kind: 'divider', text: 'Waiting on Scrum master' } },
+    { type: 'userSay', text: 'Task assigned from AAVA — “PRD to Stories”' },
     { type: 'say', stream: false, lines: [], block: {
       kind: 'callout',
       lines: [
@@ -450,15 +492,13 @@ function storiesPublishClose(): Effect[] {
   ]
 }
 
-/** The two closing suggestion pills, shown once the run's last message is a
-    successful-publish links card — "Review current task status" (opens the
-    Execution-activity graph) and "Go to My Tasks" (the board). Not a gate: there
-    is nothing to answer, just two quick next moves. */
+/** The closing suggestion pill, shown once the run's last message is a
+    successful-publish links card — "Go to My Tasks" (the board). Not a gate:
+    there is nothing to answer, just a quick next move. */
 export function backlogChips(messages: Message[]): Chip[] {
   const last = messages.at(-1)
   if (!last || last.from !== 'aava' || last.block?.kind !== 'links') return []
   return [
-    { label: 'Review current task status', sends: 'Review current task status' },
     { label: 'Go to My Tasks', sends: 'Go to My Tasks' },
   ]
 }

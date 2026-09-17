@@ -5,7 +5,7 @@ import { prdSubject, prdTitle, isPrdIntent, isBacklogIntent, isInsightIntent, is
 import { prdOpening, prdCreateDocument, prdReviseDocument, prdRouter, PRD_BEATS } from '../prd/flow'
 import { backlogOpening, backlogReply, backlogRouter, backlogStoriesPublish, backlogStoriesSkipped, backlogTaskOpening, backlogRefinementOpening, BACKLOG_BEATS } from '../prd/backlogFlow'
 import { storyAssignmentOpening, ASSIGN_BEATS } from '../prd/assignFlow'
-import { backlogTaskOpeningV2, V2_BEATS } from '../prd/backlogFlowV2'
+import { backlogTaskOpeningV2, V2_BEATS, reviseEpicsV2, applyEpicsCompensatingUpdateV2, reviseFeaturesV2, applyFeaturesCompensatingUpdateV2, releasedLevels, describeReleasedNote } from '../prd/backlogFlowV2'
 import { insightOpening, insightReply, insightRouter, INSIGHT_BEATS } from '../prd/insightFlow'
 import { pmReportOpening, PM_REPORT_BEATS } from '../prd/pmReportFlow'
 import { isArtifactIntent, agentOpening, agentRouter, AGENT_BEATS } from '../prd/agentFlow'
@@ -185,6 +185,11 @@ export function useJourney() {
       if (name === 'pushStoriesFinal') { play(backlogStoriesPublish(state.messages)); return }
       /* Skipping the stories names what is on Jira and what is still left. */
       if (name === 'storiesSkipped') { play(backlogStoriesSkipped(state.messages)); return }
+      /* Applying a V2 compensating update: whether anything is left to build
+         afterward (fresh stories) or the task is simply done depends on how
+         far the run had progressed, which only the message history knows. */
+      if (name === 'applyEpicsCompensatingUpdateV2') { play(applyEpicsCompensatingUpdateV2(state.messages)); return }
+      if (name === 'applyFeaturesCompensatingUpdateV2') { play(applyFeaturesCompensatingUpdateV2()); return }
       /* Meera's Story Assignment run and the "PRD to Stories V2" compensating-
          update demo both ride the same backlog object, so their beats sit
          alongside the backlog ones. */
@@ -511,16 +516,17 @@ export function useJourney() {
         after.some((m) => m.block?.kind === 'document' && m.block.doc?.startsWith(it.doc.split('-')[0])),
       )
       if (!present.length) { dispatch({ type: 'REVISE_DIRECT', messageId }); return }
-      /* Has anything downstream actually been PUBLISHED (an answered, non-skipped
-         `sync` card) since this gate was answered? Only a gate that opts in with
-         `releasedImpactNote` ever surfaces this — every other gate's `note` stays
-         undefined, so this changes nothing for a gate that never set the field. */
-      const released = gate?.kind === 'decision' && gate.releasedImpactNote
-        ? after.some((m) => m.block?.kind === 'sync' && m.live === false && m.answer !== 'proceeded')
-        : false
+      /* Which levels downstream of this gate have actually been PUBLISHED
+         (an answered, non-skipped `sync` card)? Only a gate that opts in
+         with `releasedImpactNote` ever surfaces this — every other gate's
+         `note` stays undefined, so this changes nothing for a gate that
+         never set the field. The note names exactly which levels (Epics /
+         Features / Stories) are released, computed live from `after` alone. */
+      const note = gate?.kind === 'decision' && gate.releasedImpactNote
+        ? describeReleasedNote(releasedLevels(after))
+        : undefined
       dispatch({
-        type: 'OPEN_REVISE_MODAL', messageId, items: present,
-        note: released && gate?.kind === 'decision' ? gate.releasedImpactNote : undefined,
+        type: 'OPEN_REVISE_MODAL', messageId, items: present, note,
         confirmLabel: gate?.kind === 'decision' ? gate.reviseConfirmLabel : undefined,
       })
     },
@@ -536,6 +542,12 @@ export function useJourney() {
       const m = state.messages.find((x) => x.id === messageId)
       const beat = beatOverride ?? (m?.block?.kind === 'decision' ? m.block.reviseBeat : undefined)
       dispatch({ type: 'REVISE_GATE', messageId, note })
+      /* How far a V2 revise regenerates (and whether it halts at a
+         compensating gate at all) depends entirely on what the message
+         history already shows — only these two beats need that, so they are
+         dispatched as functions rather than looked up in a static map. */
+      if (beat === 'reviseEpicsV2') { play(reviseEpicsV2(state.messages)); return }
+      if (beat === 'reviseFeaturesV2') { play(reviseFeaturesV2(state.messages)); return }
       const b = (beat && (BACKLOG_BEATS[beat] ?? ASSIGN_BEATS[beat] ?? V2_BEATS[beat])) || BACKLOG_BEATS.reviseGeneric
       if (b) play(b)
     },

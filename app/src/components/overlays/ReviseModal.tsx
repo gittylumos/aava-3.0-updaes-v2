@@ -57,7 +57,7 @@ export function ReviseModal({ items, onOpenDoc, onConfirm, onCancel, note, confi
                 {it.label}
               </button>
               <span style={{ color: 'var(--muted)' }}>— will be marked as</span>
-              <span className="font-semibold" style={{ color: 'var(--danger)' }}>invalid</span>
+              <span className="font-semibold" style={{ color: 'var(--warn)' }}>invalid</span>
             </li>
           ))}
         </ul>
