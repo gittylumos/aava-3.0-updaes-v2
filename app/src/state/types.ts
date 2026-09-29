@@ -405,8 +405,12 @@ export interface EvidenceBlock {
 export interface DiffGroup {
   repo: string
   branch: string
+  /** `+ path` added, `~ path` modified, `- path` deleted. */
   files: string[]
   lines?: { tone: 'ctx' | 'del' | 'add'; text: string }[]
+  /** Lines added / removed per path, for files the scenario ships no source
+      for — a file it does ship is counted from that source instead. */
+  stats?: Record<string, [add: number, del: number]>
 }
 
 export interface Chip { label: string; sends: string }

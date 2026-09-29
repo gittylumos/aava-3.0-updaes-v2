@@ -11,19 +11,15 @@ import { Composer, MODELS, type Connector, type Effort } from './components/chro
 import { StartView } from './components/start/StartView'
 import { ConversationView } from './components/chat/ConversationView'
 import { TabWorkspace } from './components/playground/TabWorkspace'
-import { DocumentCanvas } from './prd/DocumentCanvas'
-import { InsightCanvas } from './prd/InsightCanvas'
 import { insightChips } from './prd/insightFlow'
 import { backlogChips } from './prd/backlogFlow'
-import type { InsightView } from './prd/insight'
-import { ReportCanvas } from './prd/ReportCanvas'
-import { OrchestrationCanvas } from './prd/OrchestrationCanvas'
+import { INSIGHT_FILE, type InsightView } from './prd/insight'
 import { type ReportView, REPORT_ASSETS, REPORT_ORDER } from './prd/report'
+import { matchById } from './prd/agentFlow'
 import { AgentGraph } from './prd/AgentGraph'
 import { ReportGraph } from './prd/ReportGraph'
 import { ScenarioGraph } from './components/playground/ScenarioGraph'
-import { ScenarioFiles } from './components/playground/ScenarioFiles'
-import { FilesPanel, type SessionFile } from './prd/FilesPanel'
+import type { SessionFile } from './state/workspace'
 import type { BacklogDoc } from './prd/backlog'
 import { FeedbackApp, previewTemplate, readTemplate } from './components/playground/FeedbackApp'
 import { TasksView } from './components/tasks/TasksView'
@@ -69,13 +65,12 @@ export default function App() {
      changes — holding the text here makes that remount invisible. */
   const [draft, setDraft] = useState('')
 
-  /* The right canvas shows one of three things: the active document, the session
-     files list, or the agent-workflow topology. Held here above the arrangements. */
-  const [canvasMode, setCanvasMode] = useState<'doc' | 'files' | 'graph'>('doc')
-  /* The agent object's builder can be expanded to the full window. Run, Execute
-     and Analytics all live inside the canvas mini-header now (Build / Execute /
-     Analytics tabs), so there is no separate playground screen to swap to. */
-  const [agentExpanded, setAgentExpanded] = useState(false)
+  /* The header's execution-activity / files toggles, and a beat that moves the
+     canvas, ask the workspace for a view — the graph opens as its own tab,
+     "files" is the Overview, "doc" is the artifact the session is on. The
+     counter makes asking twice for the same view ask twice. */
+  const [canvasReq, setCanvasReq] = useState<{ view: 'doc' | 'files' | 'graph'; n: number }>({ view: 'doc', n: 0 })
+  const askCanvas = (view: 'doc' | 'files' | 'graph') => setCanvasReq((r) => ({ view, n: r.n + 1 }))
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
   const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
@@ -84,6 +79,15 @@ export default function App() {
      files modal and (via Open) the canvas. Read off the document cards in the
      thread, deduped by document, so it always matches what was generated. */
   const sessionFiles = useMemo<SessionFile[]>(() => {
+    /* The analytics run produces dashboards, one view file each. */
+    if (j.state.activeObject?.kind === 'insight') {
+      const seen: InsightView[] = []
+      for (const m of j.state.messages) {
+        const v = m.block?.kind === 'document' ? m.block.insight : undefined
+        if (v && !seen.includes(v)) seen.push(v)
+      }
+      return seen.reverse().map((insight, i) => ({ insight, name: INSIGHT_FILE[insight], when: clockAgo(i) }))
+    }
     /* The triage-report run produces named .html / .pdf assets rather than
        backlog documents — list those, newest first, opening each report tab. */
     if (j.state.activeObject?.kind === 'report') {
@@ -108,19 +112,15 @@ export default function App() {
 
   /* Switching docs drops any pending inline comments — they were about the doc
      you were on, and their highlight ranges belong to that document's DOM. */
-  const openDoc = (doc: BacklogDoc) => { setCanvasMode('doc'); j.openObjectDoc(doc); setDocChanges([]) }
-  const showGraph = () => { setCanvasMode('graph'); j.setPanelOpen(true) }
-  const showFiles = () => { setCanvasMode('files'); j.setPanelOpen(true) }
-
-  /* A fresh session starts on its default canvas — the workspace/document — not
-     whatever graph/files view the last session was left on. */
-  useEffect(() => { setCanvasMode('doc'); setAgentExpanded(false) }, [j.state.activeTaskId, j.state.activeObject?.taskId])
+  const openDoc = (doc: BacklogDoc) => { j.openObjectDoc(doc); setDocChanges([]) }
+  const showGraph = () => { askCanvas('graph'); j.setPanelOpen(true) }
+  const showFiles = () => { askCanvas('files'); j.setPanelOpen(true) }
 
   /* A beat asked the canvas to change view (open onto the Execution-activity graph,
      then swap to the artefact it produced). The nonce re-fires even when the same
      view is requested twice. */
   useEffect(() => {
-    if (j.state.playground.canvasReq > 0) setCanvasMode(j.state.playground.canvasView)
+    if (j.state.playground.canvasReq > 0) askCanvas(j.state.playground.canvasView)
   }, [j.state.playground.canvasReq, j.state.playground.canvasView])
 
   /* Prompt-bar settings live here, above the composer, so they survive the
@@ -157,7 +157,9 @@ export default function App() {
      away and Escape should not be able to do that by surprise. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
+      /* A layer that already answered this Escape (full screen, a modal) has
+         spent it — the next layer waits for the next press. */
+      if (e.key !== 'Escape' || e.defaultPrevented) return
       if (j.state.overlay !== 'none') { j.setOverlay('none'); return }
       if (j.state.arrangement === 'tasks') { j.closeTasks(); return }
       if ((j.state.activeTaskId || j.state.activeObject) && j.state.playground.panelOpen) { j.setPanelOpen(false); return }
@@ -200,18 +202,6 @@ export default function App() {
       ? backlogChips(j.state.messages)
       : []
 
-  /* Which report assets have been generated — their tabs are open in the canvas.
-     Derived from the asset cards in the thread, in the order they appeared. */
-  const reportTabs = useMemo<ReportView[]>(() => {
-    if (j.state.activeObject?.kind !== 'report') return []
-    const seen: ReportView[] = []
-    for (const m of j.state.messages) {
-      const r = m.block?.kind === 'document' ? m.block.report : undefined
-      if (r && !seen.includes(r)) seen.push(r)
-    }
-    return seen
-  }, [j.state.activeObject?.kind, j.state.messages])
-
   /* A chip you have already taken does not come back. Read off the thread's own
      user messages rather than a separate "used" list, so it costs no state and
      parking a thread carries the answered chips with it. */
@@ -228,6 +218,37 @@ export default function App() {
   /* An intent-opened Canvas object (a PRD) is a working session too — it takes
      the right panel, exactly as a task does. */
   const inObject = !!j.state.activeObject && j.state.arrangement === 'split'
+
+  /* What the workspace is holding: a task, or an object — and, for the kinds
+     that have one, the execution-activity graph the header's toggle opens. */
+  const obj = !inTask && inObject ? j.state.activeObject : null
+  const session = inTask
+    ? {
+        key: j.state.activeTaskId,
+        object: null,
+        processName: undefined,
+        activity: j.scenario
+          ? <ScenarioGraph steps={j.scenario.prep} at={j.state.playground.prepAt} waiting={!!taskProgress?.waiting}
+              heading={j.scenario.capability} watch={j.state.watchLog} />
+          : null,
+      }
+    : obj
+      ? {
+          key: `obj:${obj.taskId}`,
+          object: obj,
+          /* The golden artifact by name and version — until it is cloned, when
+             it is the user's working copy (the builder renames it the same way). */
+          processName: obj.kind === 'agent'
+            ? (({ title, version }) => obj.agentCloned ? `${title} — My Copy` : `${title} ${version}`)(matchById(obj.activeArtifact))
+            : undefined,
+          activity: obj.kind === 'report'
+            ? <ReportGraph messages={j.state.messages} watch={j.state.watchLog} />
+            : obj.kind === 'insight' || obj.kind === 'agent'
+              ? null
+              : <AgentGraph messages={j.state.messages} watch={j.state.watchLog}
+                  assignActive={j.state.backlogReady} upstreamDone={j.state.profileId === 'meera'} />,
+        }
+      : null
 
   return (
     <TooltipProvider delayDuration={320} skipDelayDuration={140}>
@@ -356,7 +377,7 @@ export default function App() {
                     onOpenFile={j.openFile}
                     onOpenTab={j.setTab}
                     onOpenArtifact={(doc, insight, report) => (report ? j.openObjectReport(report) : insight ? j.openObjectInsight(insight) : doc ? openDoc(doc) : j.setPanelOpen(true))}
-                    onOpenAgentArtifact={(id) => { setCanvasMode('doc'); j.openObjectAgent(id) }}
+                    onOpenAgentArtifact={(id) => j.openObjectAgent(id)}
                     onOpenAgentDoc={j.openAgentDoc}
                     onRecordAnswer={j.recordAnswer}
                     onRevise={j.openReviseModal}
@@ -380,140 +401,36 @@ export default function App() {
               </AnimatePresence>
             </main>
           }
-          /* Mounted for the whole life of the task, not just while visible —
-             collapsing the panel must not take the tab layout with it. */
-          right={inTask ? (
-            /* TabWorkspace stays mounted for the whole task; the Execution-activity
-               graph and the session files list overlay it (an opaque layer) so
-               the tab layout survives switching to them and back. */
-            <div className="relative h-full min-h-0">
-              <TabWorkspace
-                pg={j.state.playground}
-                scenario={j.scenario}
-                taskId={j.state.activeTaskId}
-                watch={j.state.watchLog}
-                theme={theme}
-                active={j.state.playground.panelOpen}
-                onCollapse={() => j.setPanelOpen(false)}
-                onToast={j.toast}
-                onFile={j.setFile}
-                onEdit={j.editFile}
-              />
-              {canvasMode === 'graph' && j.scenario && (
-                <div className="absolute inset-0 z-10" style={{ background: 'var(--ground)' }}>
-                  <ScenarioGraph
-                    steps={j.scenario.prep}
-                    at={j.state.playground.prepAt}
-                    waiting={!!taskProgress?.waiting}
-                    heading={j.scenario.capability}
-                    watch={j.state.watchLog}
-                    onCollapse={() => setCanvasMode('doc')}
-                  />
-                </div>
-              )}
-              {canvasMode === 'files' && j.scenario && (
-                <div className="absolute inset-0 z-10" style={{ background: 'var(--ground)' }}>
-                  <ScenarioFiles
-                    root={j.scenario.fileRoot}
-                    files={j.scenario.fileOrder}
-                    activeFile={j.state.playground.activeFile}
-                    watch={j.state.watchLog}
-                    onOpen={(name) => { setCanvasMode('doc'); j.setFile(name); j.setTab('code') }}
-                    onCollapse={() => setCanvasMode('doc')}
-                  />
-                </div>
-              )}
-            </div>
-          ) : inObject && j.state.activeObject?.kind === 'insight' ? (
-            /* A Product-Analytics run renders its own evidence dashboards rather
-               than the document canvas or the topology — five views the run
-               advances through and the toolbar switches between. */
-            j.state.activeObject?.docReady ? (
-              <InsightCanvas
-                object={j.state.activeObject}
-                watch={j.state.watchLog}
-                onCollapse={() => j.setPanelOpen(false)}
-                onSelectView={(v: InsightView) => { setCanvasMode('doc'); j.openObjectInsight(v) }}
-                onToast={j.toast}
-              />
-            ) : undefined
-          ) : inObject && j.state.activeObject?.kind === 'report' && canvasMode === 'doc' ? (
-            /* The structured triage run renders named-file asset tabs (Deepak
-               canvas style), reusing the analytics dashboards for the .html
-               report and a document layout for the .pdf reports. The execution
-               activity and session-files views take over when their toggles are
-               pressed (canvasMode !== 'doc'), handled by the branches below. */
-            j.state.activeObject?.docReady ? (
-              <ReportCanvas
-                object={j.state.activeObject}
-                tabs={reportTabs}
-                watch={j.state.watchLog}
-                onCollapse={() => j.setPanelOpen(false)}
-                onSelectReport={(v: ReportView) => { setCanvasMode('doc'); j.openObjectReport(v) }}
-                onToast={j.toast}
-              />
-            ) : undefined
-          ) : inObject && j.state.activeObject?.kind === 'agent' ? (
-            /* The Agent Designer run renders in the orchestration canvas. Build /
-               Execute / Analytics all live inside the canvas mini-header, so Run
-               is an in-canvas section switch, never a new screen. */
-            j.state.activeObject?.docReady ? (
-              <OrchestrationCanvas
-                object={j.state.activeObject}
-                onCollapse={() => j.setPanelOpen(false)}
-                onToast={j.toast}
-                onToggleExpand={() => setAgentExpanded(true)}
-                readOnly={!j.state.activeObject.agentCloned}
-                onClone={j.cloneArtifact}
-                stakeholderAdded={j.state.activeObject.agentStakeholder}
-              />
-            ) : undefined
-          ) : inObject && canvasMode === 'graph' ? (
-            /* The agent-workflow topology — shown in place of the document when
-               the workflow icon is pressed. Each run has its own blueprint.
-               Closing it returns to the document if one is ready, otherwise
-               folds the panel away. */
-            j.state.activeObject?.kind === 'report' ? (
-              <ReportGraph
-                messages={j.state.messages}
-                watch={j.state.watchLog}
-                onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
-              />
-            ) : (
-              <AgentGraph
-                messages={j.state.messages}
-                watch={j.state.watchLog}
-                assignActive={j.state.backlogReady}
-                upstreamDone={j.state.profileId === 'meera'}
-                onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
-              />
-            )
-          ) : inObject && canvasMode === 'files' ? (
-            /* The session files list, in the panel (not a modal). Picking a file
-               opens it — a report asset focuses its canvas tab, a document opens
-               in the document canvas. */
-            <FilesPanel
+          /* One workspace for every session — a task, a PRD, a backlog, an
+             analytics or report run, an agent build. Mounted for the whole life
+             of the session, not just while visible — collapsing the panel must
+             not take the tab layout with it. */
+          right={(inTask || inObject) ? (
+            <TabWorkspace
+              sessionKey={session?.key ?? null}
+              pg={j.state.playground}
+              scenario={session?.object ? null : j.scenario}
+              taskId={j.state.activeTaskId}
+              task={session?.object ? null : j.state.tasks.find((t) => t.id === j.state.activeTaskId) ?? null}
+              object={session?.object ?? null}
+              messages={j.state.messages}
               files={sessionFiles}
-              watch={j.state.watchLog}
-              activeDoc={j.state.activeObject?.activeDoc}
-              activeReport={j.state.activeObject?.activeReport}
-              onOpen={(f) => { setCanvasMode('doc'); if (f.report) j.openObjectReport(f.report); else if (f.doc) openDoc(f.doc) }}
-              onCollapse={() => { setCanvasMode('doc'); if (!j.state.activeObject?.docReady) j.setPanelOpen(false) }}
-            />
-          ) : inObject && j.state.activeObject?.docReady ? (
-            /* A document object opens in the document canvas (Preview/Code +
-               Share/Expand/Download/History/Close), Watch docked beneath. The
-               panel only mounts once a document is ready — so the intake/thinking
-               steps run against the conversation alone first. */
-            <DocumentCanvas
-              object={j.state.activeObject}
-              watch={j.state.watchLog}
-              onToast={j.toast}
-              onCollapse={() => j.setPanelOpen(false)}
-              files={sessionFiles}
-              onSelectDoc={openDoc}
-              onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
+              processName={session?.processName}
+              activity={session?.activity}
+              canvasRequest={canvasReq}
               changes={docChanges}
+              onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
+              onSelectDoc={openDoc}
+              onSelectInsight={j.openObjectInsight}
+              onSelectReport={j.openObjectReport}
+              onClone={j.cloneArtifact}
+              watch={j.state.watchLog}
+              theme={theme}
+              active={j.state.playground.panelOpen}
+              onCollapse={() => j.setPanelOpen(false)}
+              onToast={j.toast}
+              onFile={j.setFile}
+              onEdit={j.editFile}
             />
           ) : undefined}
         />
@@ -549,22 +466,6 @@ export default function App() {
           note={j.state.reviseModal.note}
           confirmLabel={j.state.reviseModal.confirmLabel}
         />
-      )}
-      {/* The orchestration builder, expanded to the whole window. Run from here
-          drops back into the docked panel and shows the Playground there. */}
-      {agentExpanded && j.state.activeObject?.kind === 'agent' && (
-        <div className="fixed inset-0 z-[70]" style={{ background: 'var(--ground)' }}>
-          <OrchestrationCanvas
-            object={j.state.activeObject}
-            onCollapse={() => setAgentExpanded(false)}
-            onToast={j.toast}
-            expanded
-            onToggleExpand={() => setAgentExpanded(false)}
-            readOnly={!j.state.activeObject.agentCloned}
-            onClone={j.cloneArtifact}
-            stakeholderAdded={j.state.activeObject.agentStakeholder}
-          />
-        </div>
       )}
       <Toast text={j.state.toast} />
     </TooltipProvider>

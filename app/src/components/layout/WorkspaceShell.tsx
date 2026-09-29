@@ -160,12 +160,32 @@ export function WorkspaceShell({
     return () => window.removeEventListener('pointerup', up)
   }, [resizing])
 
+  /* Intent → geometry for the workspace. A session can mount the panel already
+     folded (it waits for the run), so the command is a frame late on purpose:
+     the Group registers a panel across the commit that mounts it, and telling
+     it to move before then throws. A panel that mounted folded has no size to
+     restore — expand() would fall back to the minimum — so its first opening
+     is sized explicitly. */
+  const hasRight = !!right
+  const rightSized = useRef(false)
   useEffect(() => {
-    const panel = rightRef.current
-    if (!panel) return
-    if (rightOpen && panel.isCollapsed()) panel.expand()
-    else if (!rightOpen && !panel.isCollapsed()) panel.collapse()
-  }, [rightOpen, rightRef])
+    if (!hasRight) { rightSized.current = false; return }
+    const id = requestAnimationFrame(() => {
+      const panel = rightRef.current
+      if (!panel) return
+      try {
+        if (rightOpen && panel.isCollapsed()) {
+          panel.expand()
+          if (!rightSized.current) panel.resize('60%')
+        } else if (!rightOpen && !panel.isCollapsed()) panel.collapse()
+        if (rightOpen) rightSized.current = true
+      } catch {
+        /* Still not registered — leaving geometry alone is safe, and the next
+           change of intent reasserts it. */
+      }
+    })
+    return () => cancelAnimationFrame(id)
+  }, [rightOpen, rightRef, hasRight])
 
   return (
     <div className="relative h-full w-full">
@@ -249,7 +269,10 @@ export function WorkspaceShell({
             collapsedSize="0px"
             minSize="360px"
             maxSize="72%"
-            defaultSize="60%"
+            /* Mounts the way intent says: open, or folded to nothing. Mounting
+               open and folding a frame later would read as the user dragging
+               it open (onResize below) and reopen it. */
+            defaultSize={rightOpen ? '60%' : '0px'}
             onResize={(size) => {
               const collapsed = size.inPixels < 1
               if (collapsed === rightOpen) onRightOpenChange(!collapsed)

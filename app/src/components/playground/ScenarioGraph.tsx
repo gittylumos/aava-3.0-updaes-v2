@@ -8,7 +8,6 @@
  * The toolbar carries the session heading — the capability name and badge.
  */
 import { useMemo } from 'react'
-import { Tooltip } from '../chrome/Tooltip'
 import type { PrepStep, WatchEntry } from '../../state/types'
 
 type Kind = 'agent' | 'tool' | 'human'
@@ -52,14 +51,13 @@ function layout(steps: PrepStep[]): NodeDef[] {
   })
 }
 
-export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch, onCollapse }: {
+export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch }: {
   steps: PrepStep[]
   at: number
   /** True when the current step is a gate genuinely awaiting the user. */
   waiting: boolean
   heading?: { name: string; badge: string }
   watch: WatchEntry[]
-  onCollapse: () => void
 }) {
   const nodes = useMemo(() => layout(steps), [steps])
   const stateOf = (i: number): NState =>
@@ -68,9 +66,7 @@ export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch, onCo
   const vbH = Y0 + Math.floor(Math.max(0, steps.length - 1) / PER_ROW) * YSTEP + H + 40
 
   return (
-    <section aria-label="Canvas — execution activity" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
+    <section aria-label="Execution activity" className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
         <style>{`
           .sg-flow { stroke-dasharray: 7 7; animation: sgMarch .7s linear infinite; }
           @keyframes sgMarch { to { stroke-dashoffset: -28; } }
@@ -90,12 +86,6 @@ export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch, onCo
             <div className="text-[11px] font-semibold uppercase tracking-[.14em]" style={{ color: 'var(--muted-deep)' }}>Execution activity</div>
             {heading && <div className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>{heading.name} · {heading.badge}</div>}
           </div>
-          <Tooltip label="Close" side="bottom" align="end">
-            <button onClick={onCollapse} aria-label="Close"
-              className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          </Tooltip>
         </div>
 
         {/* Legend */}
@@ -129,7 +119,6 @@ export function ScenarioGraph({ steps, at, waiting, heading, watch: _watch, onCo
             {nodes.map((n, i) => <Card key={n.id} node={n} state={stateOf(i)} />)}
           </svg>
         </div>
-      </div>
     </section>
   )
 }

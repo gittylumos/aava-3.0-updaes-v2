@@ -77,31 +77,44 @@ export function Code({ scenario, pg, theme, onFile, onEdit }: {
           )}
         </div>
 
-        {/* min-h-0 + flex-1: Monaco measures its container, and an auto-height
-            parent measures Monaco. One of the two has to commit to a size. */}
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <Editor
-            height="100%"
-            path={active}
-            language={LANG[active.split('.').pop() ?? ''] ?? 'plaintext'}
-            value={value}
-            theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-            onChange={(text) => onEdit(active, text ?? '')}
-            loading={<span className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Loading editor…</span>}
-            options={{
-              fontSize: 12,
-              lineHeight: 20,
-              fontFamily: 'var(--font-mono, ui-monospace)',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              renderLineHighlight: 'none',
-              padding: { top: 10, bottom: 10 },
-              tabSize: 2,
-              automaticLayout: true,
-            }}
-          />
-        </div>
+        <FileEditor file={active} value={value} theme={theme} onEdit={onEdit} />
       </div>
+    </div>
+  )
+}
+
+/* One Monaco instance over one file. Shared by the Code tab (with its explorer)
+   and the per-file tabs Changes opens. min-h-0 + flex-1: Monaco measures its
+   container, and an auto-height parent measures Monaco — one of the two has to
+   commit to a size. */
+export function FileEditor({ file, value, theme, onEdit }: {
+  file: string
+  value: string
+  theme: 'dark' | 'light'
+  onEdit: (file: string, text: string) => void
+}) {
+  return (
+    <div className="min-h-0 flex-1 overflow-hidden">
+      <Editor
+        height="100%"
+        path={file}
+        language={LANG[file.split('.').pop() ?? ''] ?? 'plaintext'}
+        value={value}
+        theme={theme === 'dark' ? 'vs-dark' : 'vs'}
+        onChange={(text) => onEdit(file, text ?? '')}
+        loading={<span className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Loading editor…</span>}
+        options={{
+          fontSize: 12,
+          lineHeight: 20,
+          fontFamily: 'var(--font-mono, ui-monospace)',
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          renderLineHighlight: 'none',
+          padding: { top: 10, bottom: 10 },
+          tabSize: 2,
+          automaticLayout: true,
+        }}
+      />
     </div>
   )
 }

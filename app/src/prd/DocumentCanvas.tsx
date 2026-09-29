@@ -1,37 +1,30 @@
-/* The document artefact viewer.
+/* A document as a workspace tab — a PRD, or one of the backlog's phase files.
  *
- * This is what the Canvas becomes when the object it holds is a document (a
- * PRD). The layout follows the pattern the generative tools converged on: a
- * Preview/Source switch on the left of the toolbar, and object actions —
- * Expand to full screen, Download in a chosen format, and version History — on
- * the right, with a Close that folds the panel away. Manus's history drawer is
- * the model for the version list: timestamped entries, each offering Preview or
- * Restore on hover. The Watch zone stays docked beneath it.
+ * The tab carries the file's name; this is what sits under it. The mini-header
+ * has the Preview/Source switch on the left and the document's own actions on
+ * the right — inline Comment, Download in a chosen format, and version History
+ * (Manus's drawer is the model: timestamped entries, Preview or Restore on
+ * hover). Full screen and Close belong to the workspace shell now.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import { useDismiss } from '../state/useDismiss'
 import { Tooltip } from '../components/chrome/Tooltip'
 import { Markdown } from '../components/playground/Markdown'
+import { FileMiniHeader } from '../components/playground/MiniHeader'
 import { SelectionActions } from './SelectionActions'
-import { LoadingState } from '../components/chat/LoadingState'
-import { prdMarkdown, prdFileName } from './document'
-import { backlogMarkdown, BACKLOG_FILE, type BacklogDoc } from './backlog'
-import type { SessionFile } from './FilesPanel'
-import type { ActiveObject, WatchEntry } from '../state/types'
+import { prdMarkdown } from './document'
+import { backlogMarkdown, type BacklogDoc } from './backlog'
+import { documentFile } from '../state/overview'
+import type { ActiveObject } from '../state/types'
 
 type View = 'preview' | 'code'
 const FORMATS = ['Markdown', 'PDF', 'DOCX'] as const
 
 interface Props {
   object: ActiveObject
-  watch: WatchEntry[]
+  /** Which backlog document this tab shows — the latest one written to its file. */
+  doc?: BacklogDoc
   onToast: (text: string) => void
-  onCollapse: () => void
-  /** Every artefact in the session, for the filename switcher dropdown. */
-  files?: SessionFile[]
-  /** Switch the canvas to another document (from the filename dropdown). */
-  onSelectDoc?: (doc: BacklogDoc) => void
   /** A comment was sent — it stacks in the changes tray above the composer.
       `range` is the live DOM selection, kept so the passage stays highlighted. */
   onAddChange?: (change: { quote: string; note: string; range?: Range }) => void
@@ -40,14 +33,14 @@ interface Props {
   changes?: { quote: string; note: string; range?: Range }[]
 }
 
-export function DocumentCanvas({ object, watch: _watch, onToast, onCollapse, files = [], onSelectDoc, onAddChange, changes = [] }: Props) {
+export function DocumentBody({ object, doc: docProp, onToast, onAddChange, changes = [] }: Props) {
   const isBacklog = object.kind === 'backlog'
-  const doc = object.activeDoc ?? 'intake'
+  const doc = docProp ?? object.activeDoc ?? 'intake'
   const md = useMemo(
     () => (isBacklog ? backlogMarkdown(doc) : prdMarkdown(object.subject)),
     [isBacklog, doc, object.subject],
   )
-  const file = isBacklog ? BACKLOG_FILE[doc] : `${prdFileName(object.subject)}.md`
+  const file = documentFile(object, doc)
   const [view, setView] = useState<View>('preview')
   /* The Source view is a plain text editor — typing here edits this session's
      copy of the file, per filename, seeded from the scripted markdown the first
@@ -55,8 +48,7 @@ export function DocumentCanvas({ object, watch: _watch, onToast, onCollapse, fil
      space for the user, not fed back into the render. */
   const [sourceEdits, setSourceEdits] = useState<Record<string, string>>({})
   const source = sourceEdits[file] ?? md
-  const [expanded, setExpanded] = useState(false)
-  const [menu, setMenu] = useState<'none' | 'download' | 'history' | 'files'>('none')
+  const [menu, setMenu] = useState<'none' | 'download' | 'history'>('none')
   const bar = useRef<HTMLDivElement>(null)
   useDismiss(menu !== 'none', bar, useCallback(() => setMenu('none'), []))
 
@@ -84,9 +76,9 @@ export function DocumentCanvas({ object, watch: _watch, onToast, onCollapse, fil
     })
   }
   /* Keep on the selection bar → the rewrite stacks in the changes tray above
-     the composer, same as before, and the selected passage stays highlighted
-     (with its change number) in the doc; commenting stays armed so more
-     selections can be added before the whole batch is applied. */
+     the composer, and the selected passage stays highlighted (with its change
+     number) in the doc; commenting stays armed so more selections can be added
+     before the whole batch is applied. */
   const keepEdit = (rewrite: string) => {
     if (!pin) return
     onAddChange?.({ quote: pin.quote, note: rewrite, range: pin.range })
@@ -123,153 +115,94 @@ export function DocumentCanvas({ object, watch: _watch, onToast, onCollapse, fil
     }
   }
 
-  const body = (
-    <div className="min-h-0 flex-1 overflow-auto px-6 py-5"
-      onMouseUp={onSelect}
-      style={commenting ? { cursor: 'text' } : undefined}>
-      <style>{`::highlight(aava-comment){ background: rgba(124,124,255,.30); border-radius: 2px; }`}</style>
-      <div ref={contentRef} className="relative">
-        {view === 'preview'
-          ? <Markdown source={md} />
-          : <textarea value={source} onChange={(e) => setSourceEdits((s) => ({ ...s, [file]: e.target.value }))} spellCheck={false}
-              /* `rows` sized to the content, not `minHeight: 100%` — a percentage
-                 height only resolves against an ancestor with a DEFINITE height,
-                 and this textarea's immediate parent is auto-height, so the
-                 textarea fell back to its intrinsic ~2-row default and clipped
-                 everything after the first line. Sizing rows from the text itself
-                 makes the box exactly as tall as its content; the outer panel's
-                 own scroll (already `overflow-auto`) handles anything past that. */
-              rows={Math.max(10, source.split('\n').length + 1)}
-              className="mono w-full resize-none whitespace-pre-wrap bg-transparent text-[12.5px] leading-[1.65] focus-visible:outline-none"
-              style={{ color: 'var(--text-dim)' }} />}
-        {/* Numbered markers on each highlighted passage — the same numbers as the
-            changes tray above the composer. Position is content-relative, so they
-            stay glued to the text as the doc scrolls. */}
-        {view === 'preview' && changes.map((c, i) => {
-          if (!c.range) return null
-          const r = c.range.getBoundingClientRect()
-          const box = contentRef.current?.getBoundingClientRect()
-          if (!box || (r.width === 0 && r.height === 0)) return null
-          return (
-            <span key={i} aria-hidden
-              className="pointer-events-none absolute grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-semibold shadow"
-              style={{ top: r.top - box.top - 9, left: r.left - box.left - 9, background: 'var(--brand)', color: 'var(--on-text)', zIndex: 5 }}>
-              {i + 1}
-            </span>
-          )
-        })}
-      </div>
-    </div>
-  )
-
-  /* Until the draft exists, the canvas shows a quiet drafting state rather than
-     the document — the clarifying turn in the conversation comes first. */
-  if (!object.docReady) {
-    return (
-      <section aria-label="Canvas — drafting" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="m-[12px] grid min-h-0 flex-1 place-items-center overflow-hidden rounded-[var(--r-md)]"
-          style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
-          <div className="max-w-[280px] px-8 text-center">
-            <div className="mb-3 flex justify-center"><LoadingState label="Drafting the document" /></div>
-            <p className="text-[12px] leading-[1.5]" style={{ color: 'var(--muted-deep)' }}>
-              The PRD will appear here once it is ready to review.
-            </p>
-          </div>
-        </div>
-      </section>
-    )
-  }
+  const switchView = (v: View) => { setView(v); if (v === 'code') { setCommenting(false); setPin(null) } }
 
   return (
-    <section aria-label="Canvas — document" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div
-        ref={cardRef}
-        className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}
-      >
-        {/* Toolbar — the Preview/Code switch on the left, object actions right. */}
-        <div ref={bar} className="relative flex items-center gap-2.5 px-2.5 py-2" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-          <ViewTabs view={view} onChange={(v) => { setView(v); if (v === 'code') { setCommenting(false); setPin(null) } }} />
-          {/* Filename is a highlighted switcher — the chevron opens an overlay of
-              every session file; picking one replaces the canvas content. */}
-          <button onClick={() => setMenu(menu === 'files' ? 'none' : 'files')} aria-pressed={menu === 'files'}
-            className="press mono flex min-w-0 items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-[11.5px]"
-            style={{ background: 'var(--wash-3)', border: '1px solid var(--glass-line-soft)', color: 'var(--text-dim)' }}>
-            <span className="truncate">{file}</span>
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transform: menu === 'files' ? 'rotate(180deg)' : undefined, transition: 'transform .15s' }}><path d="M6 9l6 6 6-6" /></svg>
-          </button>
-
-          <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]"
-            style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            <ToolBtn label="Expand" onClick={() => setExpanded(true)}><Icon.Expand /></ToolBtn>
-            {/* Inline commenting is a preview‑only affordance — there is nothing to
-                annotate in the raw source view. */}
+    <div ref={cardRef} className="relative flex h-full min-h-0 flex-col">
+      <div ref={bar} className="relative">
+        <FileMiniHeader
+          left={
+            <span className="flex min-w-0 items-center gap-1.5 px-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+              docs
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 6 6 6-6 6" /></svg>
+              <span className="truncate" style={{ color: 'var(--text-dim)' }}>{file}</span>
+            </span>
+          }
+          right={<>
+            <ViewTabs view={view} onChange={switchView} />
+            <span className="mx-1 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
+            {/* Inline commenting is a preview-only affordance — there is nothing
+                to annotate in the raw source view. */}
             {view === 'preview' && (
               <ToolBtn label={commenting ? 'Done commenting' : 'Comment on the doc'} active={commenting}
                 onClick={() => { setCommenting((c) => !c); setPin(null) }}><Icon.Comment /></ToolBtn>
             )}
             <ToolBtn label="Download" active={menu === 'download'} onClick={() => setMenu(menu === 'download' ? 'none' : 'download')}><Icon.Download /></ToolBtn>
             <ToolBtn label="Version history" active={menu === 'history'} onClick={() => setMenu(menu === 'history' ? 'none' : 'history')}><Icon.History /></ToolBtn>
-            <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
-            <ToolBtn label="Close" onClick={onCollapse}><Icon.Close /></ToolBtn>
-          </div>
-
-          {menu === 'download' && (
-            <Dropdown>
-              {FORMATS.map((f) => (
-                <DropItem key={f} onClick={() => download(f)}>
-                  <FormatIcon format={f} /> <span>{f}</span>
-                </DropItem>
-              ))}
-            </Dropdown>
-          )}
-          {menu === 'history' && <HistoryDrawer onAction={(what, when) => { setMenu('none'); onToast(`${what} version from ${when}`) }} />}
-          {menu === 'files' && (
-            <FileSwitcher files={files} activeName={file}
-              onPick={(d) => { setMenu('none'); onSelectDoc?.(d) }} />
-          )}
-        </div>
-
-        {body}
-
-        {/* A hint while commenting is armed but nothing is selected yet. */}
-        {commenting && !pin && (
-          <div className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-[11.5px]"
-            style={{ background: 'var(--text)', color: 'var(--on-text)', opacity: .9 }}>
-            Select any text to comment
-          </div>
+          </>}
+        />
+        {menu === 'download' && (
+          <Dropdown>
+            {FORMATS.map((f) => (
+              <DropItem key={f} onClick={() => download(f)}>
+                <FormatIcon format={f} /> <span>{f}</span>
+              </DropItem>
+            ))}
+          </Dropdown>
         )}
-
-        {/* The inline comment bar — pick a quick AI action or describe the edit,
-            watch the rewrite stream in, then Keep (stacks into the changes
-            tray) or Discard. */}
-        {pin && (
-          <SelectionActions quote={pin.quote} top={pin.top} left={pin.left} onKeep={keepEdit} onDiscard={discardEdit} />
-        )}
+        {menu === 'history' && <HistoryDrawer onAction={(what, when) => { setMenu('none'); onToast(`${what} version from ${when}`) }} />}
       </div>
 
-      {/* Full-screen document view. */}
-      {expanded && (
-        <div className="fixed inset-0 z-[90] flex flex-col" style={{ background: 'var(--ground)' }}>
-          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-            <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{object.title}</span>
-            <span className="mono text-[11.5px]" style={{ color: 'var(--muted-deep)' }}>{file}</span>
-            <div className="ml-auto flex items-center gap-2">
-              <ViewTabs view={view} onChange={(v) => { setView(v); if (v === 'code') { setCommenting(false); setPin(null) } }} />
-              <ToolBtn label="Exit full screen" onClick={() => setExpanded(false)}><Icon.Collapse /></ToolBtn>
-            </div>
-          </div>
-          <div className="mx-auto min-h-0 w-full max-w-[860px] flex-1 overflow-auto px-8 py-8">
-            {view === 'preview'
-              ? <Markdown source={md} />
-              : <textarea value={source} onChange={(e) => setSourceEdits((s) => ({ ...s, [file]: e.target.value }))} spellCheck={false}
-                  rows={Math.max(20, source.split('\n').length + 1)}
-                  className="mono w-full resize-none whitespace-pre-wrap bg-transparent text-[13px] leading-[1.7] focus-visible:outline-none"
-                  style={{ color: 'var(--text-dim)' }} />}
-          </div>
+      <div className="min-h-0 flex-1 overflow-auto px-6 py-5"
+        onMouseUp={onSelect}
+        style={commenting ? { cursor: 'text' } : undefined}>
+        <style>{`::highlight(aava-comment){ background: rgba(124,124,255,.30); border-radius: 2px; }`}</style>
+        <div ref={contentRef} className="relative mx-auto max-w-[860px]">
+          {view === 'preview'
+            ? <Markdown source={md} />
+            : <textarea value={source} onChange={(e) => setSourceEdits((s) => ({ ...s, [file]: e.target.value }))} spellCheck={false}
+                /* `rows` sized to the content, not `minHeight: 100%` — a percentage
+                   height only resolves against an ancestor with a DEFINITE height,
+                   and this textarea's parent is auto-height. Sizing rows from the
+                   text makes the box exactly as tall as its content; the panel's
+                   own scroll handles anything past that. */
+                rows={Math.max(10, source.split('\n').length + 1)}
+                className="mono w-full resize-none whitespace-pre-wrap bg-transparent text-[12.5px] leading-[1.65] focus-visible:outline-none"
+                style={{ color: 'var(--text-dim)' }} />}
+          {/* Numbered markers on each highlighted passage — the same numbers as the
+              changes tray above the composer. Position is content-relative, so they
+              stay glued to the text as the doc scrolls. */}
+          {view === 'preview' && changes.map((c, i) => {
+            if (!c.range) return null
+            const r = c.range.getBoundingClientRect()
+            const box = contentRef.current?.getBoundingClientRect()
+            if (!box || (r.width === 0 && r.height === 0)) return null
+            return (
+              <span key={i} aria-hidden
+                className="pointer-events-none absolute grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-semibold shadow"
+                style={{ top: r.top - box.top - 9, left: r.left - box.left - 9, background: 'var(--brand)', color: 'var(--on-text)', zIndex: 5 }}>
+                {i + 1}
+              </span>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* A hint while commenting is armed but nothing is selected yet. */}
+      {commenting && !pin && (
+        <div className="pointer-events-none absolute left-1/2 top-12 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-[11.5px]"
+          style={{ background: 'var(--text)', color: 'var(--on-text)', opacity: .9 }}>
+          Select any text to comment
         </div>
       )}
-    </section>
+
+      {/* The inline comment bar — pick a quick AI action or describe the edit,
+          watch the rewrite stream in, then Keep (stacks into the changes tray)
+          or Discard. */}
+      {pin && (
+        <SelectionActions quote={pin.quote} top={pin.top} left={pin.left} onKeep={keepEdit} onDiscard={discardEdit} />
+      )}
+    </div>
   )
 }
 
@@ -314,82 +247,21 @@ function HistoryDrawer({ onAction }: { onAction: (what: string, when: string) =>
   )
 }
 
-/* The filename switcher — an overlay under the filename pill listing every
-   session file; picking one replaces the canvas content. */
-function FileSwitcher({ files, activeName, onPick }: {
-  files: SessionFile[]; activeName: string; onPick: (doc: BacklogDoc) => void
-}) {
-  return (
-    <div role="menu" onMouseDown={(e) => e.stopPropagation()}
-      className="absolute left-[132px] top-[calc(100%-2px)] z-50 max-h-[300px] w-[248px] overflow-auto rounded-[10px] p-1 shadow-lg"
-      style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line)' }}>
-      <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-deep)' }}>
-        Files in this session
-      </div>
-      {files.length === 0 && (
-        <div className="px-2 py-2 text-[12px]" style={{ color: 'var(--muted)' }}>No other files yet.</div>
-      )}
-      {files.filter((f) => f.doc).map((f) => {
-        const active = f.name === activeName
-        return (
-          <button key={f.name + f.when} role="menuitem" onClick={() => f.doc && onPick(f.doc)}
-            className="press flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-left hover:bg-[var(--glass)]"
-            style={active ? { background: 'var(--wash-3)' } : undefined}>
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px]"
-              style={{ background: active ? 'var(--brand)' : 'var(--wash-2)', color: active ? '#fff' : 'var(--muted)' }}>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></svg>
-            </span>
-            <span className="mono min-w-0 flex-1 truncate text-[12px]" style={{ color: 'var(--text-dim)' }}>{f.name}</span>
-            {active && <span className="shrink-0 text-[10px]" style={{ color: 'var(--brand)' }}>current</span>}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-/* The Preview/Source switch — one segmented control. The active tab is a filled
-   pill showing icon + label; the inactive one collapses to its icon alone and
-   the label glides away, the way lovable's editor does it. Source is the plain
-   markdown, editable in place — the internal id stays 'code' (nothing else
-   depends on the label), only what's shown changes. */
+/* The Preview/Source switch — two quiet text labels, the active one on a soft
+   grey pill (the same neutral the artifact cards' Open button uses), never a
+   loud filled control. Source is the plain markdown, editable in place. */
 function ViewTabs({ view, onChange }: { view: View; onChange: (v: View) => void }) {
-  const tabs: { id: View; label: string; icon: () => React.JSX.Element }[] = [
-    { id: 'preview', label: 'Preview', icon: Icon.Preview },
-    { id: 'code', label: 'Source', icon: Icon.Code },
-  ]
+  const tabs: { id: View; label: string }[] = [{ id: 'preview', label: 'Preview' }, { id: 'code', label: 'Source' }]
   return (
-    <div className="flex items-center gap-0.5 rounded-[11px] p-[3px]"
-      style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-      {tabs.map(({ id, label, icon: Ico }) => {
+    <div className="flex items-center gap-0.5">
+      {tabs.map(({ id, label }) => {
         const active = view === id
         return (
-          <Tooltip key={id} label={label} disabled={active} side="bottom">
-            <motion.button
-              layout onClick={() => onChange(id)} aria-pressed={active}
-              transition={{ type: 'spring', stiffness: 520, damping: 40 }}
-              className="press flex items-center gap-1.5 rounded-[8px] text-[12.5px] font-medium focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
-              style={active
-                ? { background: 'var(--brand)', color: 'var(--on-text)', padding: '5px 11px', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }
-                : { background: 'transparent', color: 'var(--muted)', padding: '5px 6px' }}
-            >
-              <Ico />
-              <AnimatePresence initial={false}>
-                {active && (
-                  <motion.span
-                    layout
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.16 }}
-                    className="overflow-hidden whitespace-nowrap"
-                  >
-                    {label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          </Tooltip>
+          <button key={id} onClick={() => onChange(id)} aria-pressed={active}
+            className="press rounded-[7px] px-2.5 py-1 text-[12.5px] transition-colors hover:text-[var(--text)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+            style={active ? { background: 'var(--wash-4)', color: 'var(--text)' } : { color: 'var(--muted)' }}>
+            {label}
+          </button>
         )
       })}
     </div>
@@ -431,13 +303,7 @@ function FormatIcon({ format }: { format: string }) {
 
 const svg = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
 const Icon = {
-  Preview: () => <svg {...svg} width="15" height="15"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18" /></svg>,
-  Code: () => <svg {...svg} width="15" height="15"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13 6l-2 12" /></svg>,
-  Share: () => <svg {...svg} width="16" height="16"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>,
   Comment: () => <svg {...svg} width="16" height="16"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
-  Expand: () => <svg {...svg} width="16" height="16"><path d="M9 4H4v5M20 9V4h-5M15 20h5v-5M4 15v5h5" /></svg>,
-  Collapse: () => <svg {...svg} width="16" height="16"><path d="M4 9h5V4M15 4v5h5M20 15h-5v5M9 20v-5H4" /></svg>,
   Download: () => <svg {...svg} width="16" height="16"><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>,
   History: () => <svg {...svg} width="16" height="16"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 4v4h4M12 8v4l3 2" /></svg>,
-  Close: () => <svg {...svg} width="16" height="16"><path d="M6 6l12 12M18 6 6 18" /></svg>,
 }

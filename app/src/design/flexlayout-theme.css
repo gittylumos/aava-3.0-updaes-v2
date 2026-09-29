@@ -84,27 +84,8 @@
   --flexlayout-color-mini-scroll-indicator-hovered: var(--muted);
 }
 
-/* The active tab has to be unmistakable, and AAVA marks active state with a
-   brand edge rather than a raised card — §22's "compact and IDE-like", not a
-   row of rounded tiles. The variables above cannot express an underline, so
-   this is the one place that needs a rule of its own. */
-.flexlayout__tab_button {
-  border-radius: var(--r-sm) var(--r-sm) 0 0;
-  padding: 5px 12px;
-  box-shadow: inset 0 -2px 0 transparent;
-  transition:
-    background-color var(--dur) var(--ease),
-    color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
-}
-
-.flexlayout__tab_button--selected {
-  box-shadow: inset 0 -2px 0 var(--brand);
-}
-
-.flexlayout__tab_button:hover {
-  color: var(--text);
-}
+/* Tab visuals live in the "AAVA canvas chrome" block below (clean rounded-
+   rectangle pills). This section keeps only focus + close-affordance rules. */
 
 /* Keyboard focus reuses the global ring rather than inventing a second one. */
 .flexlayout__tab_button:focus-visible {
@@ -131,6 +112,91 @@
 
 .flexlayout__tab_button_trailing:hover {
   color: var(--danger);
+}
+
+/* ── AAVA canvas chrome ────────────────────────────────────────────────────
+   Bringing the FlexLayout tab strip closer to the Cursor / Claude reference:
+   a comfortable strip, tabs that read as browser tabs (a subtly filled active
+   tab, not just an underline), and a right-hand control cluster (expand /
+   close) that AAVA supplies instead of FlexLayout's default toolbar. */
+
+/* The strip carries the hairline that divides it from the content, and centres
+   its tabs so the pills sit in the middle of a comfortable row. */
+.flexlayout__tabset_tabbar_outer {
+  min-height: 44px;
+}
+.flexlayout__tabset_tabbar_inner {
+  border-bottom: 1px solid var(--glass-line-soft);
+}
+.flexlayout__tabset_tabbar_inner_tab_container {
+  align-items: center;
+  padding: 0 6px;
+  gap: 5px;
+}
+
+/* Clean rounded-rectangle pills — the Claude Code / Cursor browser-tab look:
+   each tab is a self-contained box (icon · name · ×), the active one filled
+   with a hairline stroke, the rest quiet text until hovered. No underline, no
+   connected-tab geometry. */
+.flexlayout__tab_button {
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.flexlayout__tab_button--selected {
+  background: var(--wash-3);
+  color: var(--text);
+  border-color: var(--glass-line-soft);
+  box-shadow: none;
+}
+.flexlayout__tab_button--unselected:hover {
+  background: var(--wash-1);
+  color: var(--text);
+}
+
+/* A little gap between the tab's leading icon and its label. */
+.flexlayout__tab_button_leading {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+/* A tab is named after its artifact, and artifact names run long ("Add
+   product feedback form") — the pill truncates rather than growing; the full
+   name is the tab's hover text. */
+.flexlayout__tab_button_content {
+  /* FlexLayout lays the label out as a flex box, which never ellipsises —
+     a block does. */
+  display: block;
+  max-width: 148px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* AAVA owns the right-hand controls (full screen / close), so FlexLayout's own
+   maximize/overflow chrome would be a duplicate. */
+.flexlayout__tab_toolbar_button-max,
+.flexlayout__tab_toolbar_button-min {
+  display: none;
+}
+
+/* The control cluster (our sticky "+" and the expand/close buttons) lines up
+   centred with the tabs and keeps a little air from the strip edge. */
+.flexlayout__tabset_sticky_buttons_container,
+.flexlayout__tab_toolbar {
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
 }
 
 /* tokens.css already zeroes durations globally under reduced motion; the drag

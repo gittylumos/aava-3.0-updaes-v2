@@ -975,7 +975,10 @@ export function reducer(state: AppState, action: Action): AppState {
         messages: [
           { id: nextId(), from: 'user', typing: false, lines: [action.said] },
         ],
-        playground: emptyPlayground,
+        /* The panel waits for the run: the intake and thinking steps run against
+           the conversation alone, and the first artefact (or a graph the run
+           shows) opens it. The toggle still opens it early, onto the Overview. */
+        playground: { ...emptyPlayground, panelOpen: false },
       }
     }
 

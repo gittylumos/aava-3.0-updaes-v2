@@ -1,17 +1,12 @@
 /* The analytics-insight viewer.
  *
- * What the Canvas becomes when the object it holds is a Product-Analytics run
- * (Example 3). It mirrors DocumentCanvas's shell — a card with a toolbar, a
- * scrollable body, and the Watch zone docked beneath — but instead of a single
- * document it renders one of five evidence dashboards (funnel, feedback, log
- * audit, impact, PRD), switched from the toolbar or advanced by the run itself.
- * The content is data in ./insight; this file only lays it out. */
+ * What a Product-Analytics run (Example 3) puts in the workspace: five
+ * evidence dashboards (funnel, feedback, log audit, impact, PRD), each its own
+ * tab, opened as the run reaches it. The content is data in ./insight; this
+ * file only lays it out. */
 import { useState } from 'react'
-import { Tooltip } from '../components/chrome/Tooltip'
-import type { ActiveObject, WatchEntry } from '../state/types'
 import {
   type InsightView, type Kpi, type Delta,
-  INSIGHT_ORDER, INSIGHT_FILE,
   FUNNEL_KPIS, FUNNEL_STEPS,
   FRICTION_KPIS, FEEDBACK_SYNTHESIS, FEEDBACK_ITEMS,
   AUDIT_KPIS, TIMELINE_PRE, TIMELINE_POST, LOG_ENTRIES,
@@ -19,17 +14,6 @@ import {
   PRD_META, PRD_SECTIONS,
 } from './insight'
 
-interface Props {
-  object: ActiveObject
-  watch: WatchEntry[]
-  onCollapse: () => void
-  onSelectView: (view: InsightView) => void
-  onToast: (text: string) => void
-}
-
-const VIEW_LABEL: Record<InsightView, string> = {
-  funnel: 'Funnel', feedback: 'Feedback', audit: 'Log audit', impact: 'Impact', prd: 'PRD',
-}
 const VIEW_TITLE: Record<InsightView, { title: string; subtitle: string; source?: boolean }> = {
   funnel: { title: 'Product funnel performance & anomaly detection', subtitle: 'Self-serve onboarding and checkout stream, post-Release v3.4', source: true },
   feedback: { title: 'Step 3 friction & customer feedback', subtitle: 'Session duration, bounce, and 42 incoming complaints', source: true },
@@ -49,68 +33,35 @@ const BAR: Record<'blue' | 'danger' | 'ok', string> = {
   blue: 'var(--zone-canvas-accent)', danger: 'var(--danger)', ok: 'var(--ok)',
 }
 
-export function InsightCanvas({ object, watch: _watch, onCollapse, onSelectView, onToast: _onToast }: Props) {
-  const view: InsightView = object.activeInsight ?? 'funnel'
+/* One analytics dashboard as a workspace tab — the tab is named after the
+   view's file, so the five-way view switcher and the filename the old toolbar
+   carried are the tab strip's job now. This is the dashboard alone: its
+   heading (with the Google Analytics source, where there is one) over it. */
+export function InsightBody({ view }: { view: InsightView }) {
   const head = VIEW_TITLE[view]
-  const file = INSIGHT_FILE[view]
-
   return (
-    <section aria-label="Canvas — analytics" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
-
-        {/* Toolbar — the five views on the left, the filename and Close on the right. */}
-        <div className="relative flex items-center gap-2 px-2.5 py-2" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-          <div className="flex items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            {INSIGHT_ORDER.map((v) => {
-              const active = v === view
-              return (
-                <button key={v} onClick={() => onSelectView(v)} aria-pressed={active}
-                  className="press rounded-[8px] px-2.5 py-1 text-[11.5px] font-medium"
-                  style={active
-                    ? { background: 'var(--text)', color: 'var(--on-text)' }
-                    : { color: 'var(--muted)' }}>
-                  {VIEW_LABEL[v]}
-                </button>
-              )
-            })}
-          </div>
-          <span className="mono ml-1 hidden truncate text-[11.5px] sm:block" style={{ color: 'var(--muted-deep)' }}>{file}</span>
-          <div className="ml-auto flex items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
-            <Tooltip label="Close" side="bottom" align="end">
-              <button onClick={onCollapse} aria-label="Close" className="icon-btn">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
-              </button>
-            </Tooltip>
-          </div>
+    <div className="h-full min-h-0 overflow-y-auto p-4">
+      <header className="mb-3.5 flex items-start justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--glass-line-soft)' }}>
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>{head.title}</h3>
+          <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>{head.subtitle}</p>
         </div>
+        {head.source && (
+          <a href="https://analytics.google.com" target="_blank" rel="noreferrer"
+            className="press flex shrink-0 items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[11.5px] font-medium"
+            style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--zone-canvas-accent)' }}>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><path d="M15 3h6v6" /><path d="M10 14 21 3" /></svg>
+            Google Analytics
+          </a>
+        )}
+      </header>
 
-        {/* Body — the current dashboard, scrollable. */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <header className="mb-3.5 flex items-start justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--glass-line-soft)' }}>
-            <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>{head.title}</h3>
-              <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>{head.subtitle}</p>
-            </div>
-            {head.source && (
-              <a href="https://analytics.google.com" target="_blank" rel="noreferrer"
-                className="press flex shrink-0 items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[11.5px] font-medium"
-                style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--zone-canvas-accent)' }}>
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><path d="M15 3h6v6" /><path d="M10 14 21 3" /></svg>
-                Google Analytics
-              </a>
-            )}
-          </header>
-
-          {view === 'funnel' && <FunnelView />}
-          {view === 'feedback' && <FeedbackView />}
-          {view === 'audit' && <AuditView />}
-          {view === 'impact' && <ImpactView />}
-          {view === 'prd' && <PrdView />}
-        </div>
-      </div>
-    </section>
+      {view === 'funnel' && <FunnelView />}
+      {view === 'feedback' && <FeedbackView />}
+      {view === 'audit' && <AuditView />}
+      {view === 'impact' && <ImpactView />}
+      {view === 'prd' && <PrdView />}
+    </div>
   )
 }
 

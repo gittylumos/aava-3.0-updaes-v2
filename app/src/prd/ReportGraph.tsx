@@ -10,7 +10,6 @@
  * derivation, so the two runs never share a hard-coded topology.
  */
 import { useMemo } from 'react'
-import { Tooltip } from '../components/chrome/Tooltip'
 import type { Message, WatchEntry } from '../state/types'
 
 type Kind = 'agent' | 'tool' | 'human'
@@ -125,14 +124,12 @@ function nodeState(n: NodeDef, run: Run): NState {
   return 'queued'
 }
 
-export function ReportGraph({ messages, watch: _watch, onCollapse }: { messages: Message[]; watch: WatchEntry[]; onCollapse: () => void }) {
+export function ReportGraph({ messages, watch: _watch }: { messages: Message[]; watch: WatchEntry[] }) {
   const run = useMemo(() => deriveRun(messages), [messages])
   const states = useMemo(() => NODES.map((n) => nodeState(n, run)), [run])
 
   return (
-    <section aria-label="Canvas — execution activity" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
+    <section aria-label="Execution activity" className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2.5 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
           <span className="grid h-6 w-6 place-items-center rounded-[7px]" style={{ background: 'var(--brand)', color: 'var(--on-text)' }}>
@@ -144,12 +141,6 @@ export function ReportGraph({ messages, watch: _watch, onCollapse }: { messages:
             <div className="text-[11px] font-semibold uppercase tracking-[.14em]" style={{ color: 'var(--muted-deep)' }}>Execution activity</div>
             <div className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Product Analytics &amp; Feedback Triage · PAT-1.0</div>
           </div>
-          <Tooltip label="Close" side="bottom" align="end">
-            <button onClick={onCollapse} aria-label="Close"
-              className="press grid h-8 w-8 place-items-center rounded-[8px] transition-colors hover:bg-[var(--wash-3)]" style={{ color: 'var(--muted)' }}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          </Tooltip>
         </div>
 
         {/* Legend */}
@@ -194,7 +185,6 @@ export function ReportGraph({ messages, watch: _watch, onCollapse }: { messages:
             {NODES.map((n, i) => <Card key={n.id} node={n} state={states[i]} />)}
           </svg>
         </div>
-      </div>
     </section>
   )
 }

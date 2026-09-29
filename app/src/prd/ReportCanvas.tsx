@@ -1,126 +1,57 @@
-/* The report-asset viewer (Example 4).
+/* The report assets (Example 4) as workspace tabs.
  *
- * Same dashboard visuals as InsightCanvas, but the toolbar is a Deepak-canvas
- * tab strip: each generated asset (an .html analysis report, a .pdf impact /
- * recommendations report) opens as a named-file tab, with a trailing "+".
- * The .html tab renders the reused analytics dashboards under browser chrome;
- * the .pdf tabs render a report-styled document. */
-import { Tooltip } from '../components/chrome/Tooltip'
-import type { ActiveObject, WatchEntry } from '../state/types'
+ * Each generated asset opens as its own tab, named by its file — an .html
+ * analysis report and two .pdf reports. The .html renders the reused analytics
+ * dashboards under the browser mini-header; a .pdf renders a report-styled
+ * page under the file mini-header, whose only action is Download. */
+import { BrowserMiniHeader, FileMiniHeader, MiniHeaderBtn } from '../components/playground/MiniHeader'
 import { FunnelView, FeedbackView, ImpactView } from './InsightCanvas'
 import {
-  type ReportView, REPORT_ASSETS, REPORT_ORDER,
+  type ReportView, REPORT_ASSETS,
   REPORT_META, REPORT_SECTIONS, REPORT_IMPACT_SECTION, type ReportSection,
 } from './report'
 
-interface Props {
-  object: ActiveObject
-  /** Which assets have been generated (their tabs are open). */
-  tabs: ReportView[]
-  watch: WatchEntry[]
-  onCollapse: () => void
-  onSelectReport: (view: ReportView) => void
-  onToast: (text: string) => void
-}
-
-export function ReportCanvas({ object, tabs, watch: _watch, onCollapse, onSelectReport, onToast }: Props) {
-  const openTabs = REPORT_ORDER.filter((v) => tabs.includes(v))
-  const active: ReportView = object.activeReport && openTabs.includes(object.activeReport)
-    ? object.activeReport
-    : openTabs[openTabs.length - 1] ?? 'analysis'
-  const asset = REPORT_ASSETS[active]
-
-  return (
-    <section aria-label="Canvas — report" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="relative m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
-
-        {/* Tab strip — named-file tabs + a trailing "+", Deepak-canvas style. */}
-        <div className="relative flex items-center gap-1.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-          <div role="tablist" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-            {openTabs.map((v) => {
-              const isActive = v === active
-              return (
-                <button key={v} role="tab" aria-selected={isActive} onClick={() => onSelectReport(v)}
-                  className="press group flex shrink-0 items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-[11.5px] font-medium"
-                  style={isActive
-                    ? { background: 'var(--wash-3)', color: 'var(--text)', boxShadow: 'inset 0 0 0 1px var(--glass-line-soft)' }
-                    : { color: 'var(--muted)' }}>
-                  <FileGlyph kind={REPORT_ASSETS[v].kind} />
-                  <span className="max-w-[180px] truncate">{REPORT_ASSETS[v].file}</span>
-                  <span aria-hidden className="grid h-4 w-4 place-items-center rounded-[4px] opacity-0 transition-opacity group-hover:opacity-60" style={{ color: 'var(--muted)' }}>
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                  </span>
-                </button>
-              )
-            })}
-            <Tooltip label="New tab" side="bottom">
-              <button aria-label="New tab" className="icon-btn shrink-0" onClick={() => onToast('AAVA opens asset tabs as it produces them')}>
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-              </button>
-            </Tooltip>
-          </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[11px] p-[3px]" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-            {/* Same toolset and glyphs as the document canvas — Download, Close. */}
-            <Tooltip label="Download" side="bottom">
-              <button onClick={() => onToast(`Downloaded ${asset.file}`)} aria-label="Download" className="icon-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
-              </button>
-            </Tooltip>
-            <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--glass-line-soft)' }} aria-hidden />
-            <Tooltip label="Close" side="bottom" align="end">
-              <button onClick={onCollapse} aria-label="Close" className="icon-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-              </button>
-            </Tooltip>
-          </div>
-        </div>
-
-        {/* Asset body. */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {asset.kind === 'html'
-            ? <HtmlAsset file={asset.file} />
-            : <PdfAsset file={asset.file} view={active} />}
-        </div>
+export function ReportBody({ view, onToast }: { view: ReportView; onToast: (text: string) => void }) {
+  const asset = REPORT_ASSETS[view]
+  if (asset.kind === 'html') {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <BrowserMiniHeader url={`reports/${asset.file}`} />
+        <div className="min-h-0 flex-1 overflow-y-auto"><HtmlAsset /></div>
       </div>
-    </section>
+    )
+  }
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <FileMiniHeader right={
+        <MiniHeaderBtn label="Download" onClick={() => onToast(`Downloaded ${asset.file}`)}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 4v11M8 11l4 4 4-4M5 20h14" /></svg>
+        </MiniHeaderBtn>
+      } />
+      <div className="min-h-0 flex-1 overflow-y-auto"><PdfAsset file={asset.file} view={view} /></div>
+    </div>
   )
 }
 
-function FileGlyph({ kind }: { kind: 'html' | 'pdf' }) {
-  const c = kind === 'pdf' ? 'var(--danger)' : 'var(--zone-canvas-accent)'
+/* The .html analysis report — the reused dashboards, sourced from Analytics. */
+function HtmlAsset() {
   return (
-    <span className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-[3px] text-[7px] font-bold uppercase" style={{ background: c, color: '#fff' }}>
-      {kind === 'pdf' ? 'P' : '<>'}
-    </span>
-  )
-}
-
-/* The .html analysis report — browser chrome, then the reused dashboards. */
-function HtmlAsset({ file }: { file: string }) {
-  return (
-    <div className="p-3">
-      <div className="mb-3 flex items-center gap-2 rounded-[8px] px-3 py-2" style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)' }}>
-        <span className="flex gap-1.5" aria-hidden>
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--danger)' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--warn)' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--ok)' }} />
-        </span>
-        <span className="mono truncate text-[11.5px]" style={{ color: 'var(--muted)' }}>{file}</span>
+    <div className="p-4">
+      <header className="mb-3.5 flex items-start justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--glass-line-soft)' }}>
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>Analysis insights — Checkout post-v3.4</h3>
+          <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>Web analytics correlated with customer feedback</p>
+        </div>
         <a href="https://analytics.google.com" target="_blank" rel="noreferrer"
-          className="press ml-auto flex shrink-0 items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[11px] font-medium"
-          style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)', color: 'var(--zone-canvas-accent)' }}>
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><path d="M15 3h6v6" /><path d="M10 14 21 3" /></svg>
+          className="press flex shrink-0 items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[11.5px] font-medium"
+          style={{ background: 'var(--wash-2)', border: '1px solid var(--glass-line-soft)', color: 'var(--zone-canvas-accent)' }}>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><path d="M15 3h6v6" /><path d="M10 14 21 3" /></svg>
           Google Analytics
         </a>
-      </div>
-      <div className="px-1">
-        <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>Analysis insights — Checkout post-v3.4</h3>
-        <p className="mb-3.5 mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>Web analytics correlated with customer feedback</p>
-        <div className="flex flex-col gap-5">
-          <FunnelView />
-          <FeedbackView interactive />
-        </div>
+      </header>
+      <div className="flex flex-col gap-5">
+        <FunnelView />
+        <FeedbackView interactive />
       </div>
     </div>
   )

@@ -20,7 +20,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { Hand, ZoomIn, ZoomOut, Maximize, Workflow, X } from 'lucide-react'
+import { Hand, ZoomIn, ZoomOut, Maximize, Workflow } from 'lucide-react'
 import { Tooltip } from '../components/chrome/Tooltip'
 import type { Message, WatchEntry } from '../state/types'
 
@@ -183,8 +183,8 @@ function nodeState(n: NodeDef, run: Run): NState {
   return 'queued'
 }
 
-export function AgentGraph({ messages, watch: _watch, onCollapse, assignActive, upstreamDone }: {
-  messages: Message[]; watch: WatchEntry[]; onCollapse: () => void
+export function AgentGraph({ messages, watch: _watch, assignActive, upstreamDone }: {
+  messages: Message[]; watch: WatchEntry[]
   /* Raman's post-publish preview: the whole backlog is his, so his own messages
      drive every node — we only nudge the Story Assignment node to "in progress",
      since the scrum team has been handed the work. */
@@ -241,9 +241,7 @@ export function AgentGraph({ messages, watch: _watch, onCollapse, assignActive, 
   }, [layout, vbW, vbH])
 
   return (
-    <section aria-label="Canvas — execution activity" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="m-[12px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--r-md)]"
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
+    <section aria-label="Execution activity" className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
         {/* Toolbar — label, capability line, and Close. Unchanged from before;
             only the canvas cards below got the redesign. */}
         <div className="flex items-center gap-2.5 px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
@@ -256,9 +254,6 @@ export function AgentGraph({ messages, watch: _watch, onCollapse, assignActive, 
             <div className="text-[11px] font-semibold uppercase tracking-[.14em]" style={{ color: 'var(--muted-deep)' }}>Execution activity</div>
             <div className="mono text-[11px]" style={{ color: 'var(--muted-deep)' }}>Epics &amp; Features Generator · EFG-1.0</div>
           </div>
-          <Tooltip label="Close" side="bottom" align="end">
-            <button onClick={onCollapse} className="icon-btn h-7 w-7" aria-label="Close"><X size={15} /></button>
-          </Tooltip>
         </div>
 
         {/* Legend — unchanged. */}
@@ -334,7 +329,6 @@ export function AgentGraph({ messages, watch: _watch, onCollapse, assignActive, 
             </Tooltip>
           </div>
         </div>
-      </div>
     </section>
   )
 }

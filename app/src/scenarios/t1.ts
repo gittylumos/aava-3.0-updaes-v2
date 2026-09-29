@@ -125,9 +125,27 @@ export const t1: Scenario = {
     { repo: 'PLAY component library', branch: 'feat/play-formfield-charactercounter', files: [
       '+ src/lib/form-field/form-field.component.ts',
       '+ src/lib/character-counter/character-counter.component.ts',
-    ] },
+    ], stats: {
+      'src/lib/form-field/form-field.component.ts': [46, 0],
+      'src/lib/character-counter/character-counter.component.ts': [31, 0],
+    } },
+    /* The seven files the "Injected the feedback form" step names. */
     { repo: 'Product', branch: 'feat/MOB-2841-feedback-form',
-      files: ['+ src/app/feedback/feedback-form.component.html', '+ 6 more files'],
+      files: [
+        '+ src/app/feedback/feedback-form.component.html',
+        '+ src/app/feedback/feedback-form.component.ts',
+        '+ src/app/feedback/feedback-form.component.scss',
+        '+ src/app/feedback/feedback-form.component.spec.ts',
+        '+ src/app/feedback/feedback.service.ts',
+        '~ src/app/feedback/feedback.module.ts',
+        '~ src/app/app.routes.ts',
+      ],
+      stats: {
+        'src/app/feedback/feedback-form.component.scss': [38, 0],
+        'src/app/feedback/feedback-form.component.spec.ts': [112, 0],
+        'src/app/feedback/feedback.module.ts': [6, 1],
+        'src/app/app.routes.ts': [2, 0],
+      },
       lines: [
         { tone: 'add', text: '+ <play-rating-scale formControlName="rating"></play-rating-scale>' },
         { tone: 'add', text: '+ <play-form-field label="Comment">' },

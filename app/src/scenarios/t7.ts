@@ -271,7 +271,10 @@ export const t7: Scenario = {
     { repo: 'ledger-service', branch: 'feat/PAY-3120-refund-v2', files: [
       '~ src/ingest/refund-consumer.ts',
       '~ contracts/refund.settled.pact.json',
-    ] },
+    ], stats: {
+      'src/ingest/refund-consumer.ts': [9, 3],
+      'contracts/refund.settled.pact.json': [14, 2],
+    } },
   ],
 
   beats: {

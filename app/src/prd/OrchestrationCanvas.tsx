@@ -14,10 +14,8 @@
  * blue = agent; green = start/merge; amber = HITL; violet = Split. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Actions, DockLocation, Layout, Model, TabNode } from 'flexlayout-react'
-import type { IJsonModel } from 'flexlayout-react'
 import {
-  Save, Play, Maximize2, Minimize2, X, Info, Search, ListFilter, ChevronDown, ChevronRight,
+  Save, Play, X, Info, Search, ListFilter, ChevronDown, ChevronRight,
   GripVertical, Sparkles, Bot, Split as SplitIcon, GitMerge, Circle, Pencil, Copy,
   PanelLeftClose, Hand, ZoomIn, ZoomOut, Undo2, Redo2, Maximize, UserCheck,
   Lock, GitFork, CirclePlus, Workflow, History, Send, CircleStop, Loader2, Plug, Cpu,
@@ -25,33 +23,13 @@ import {
 } from 'lucide-react'
 import { Tooltip } from '../components/chrome/Tooltip'
 import { matchById } from './agentFlow'
-import { HldDocument } from './HldDocument'
 import { VersionHistoryPanel } from './AgentDrawers'
 import { AnalyticsView, ExecuteView, useExecutionRun } from './AgentExecution'
 import type { ExecStep } from './AgentExecution'
 import type { ActiveObject, ArtifactMatch } from '../state/types'
-import '../design/flexlayout-theme.css'
 
 /* The hover spring — the reference motion config used across the canvas. */
 const HOVER_SPRING = { type: 'spring' as const, stiffness: 300, damping: 25 }
-
-interface Props {
-  object: ActiveObject
-  onCollapse: () => void
-  onToast: (text: string) => void
-  expanded?: boolean
-  onToggleExpand?: () => void
-  /** Legacy hook — Run is now handled inside the canvas (Execute tab); kept
-      optional so callers that still pass it don't break. */
-  onRun?: () => void
-  /** Read-only until cloned: the header shows Clone + a read-only banner, and the
-      floating library / per-node config / section tabs are hidden. */
-  readOnly?: boolean
-  /** The canvas Clone button — make a working copy and start customising. */
-  onClone?: () => void
-  /** The user added a Stakeholder Review node — render it after HITL Review. */
-  stakeholderAdded?: boolean
-}
 
 /* ── The HLD Architecture Builder graph ────────────────────────────────────
    The golden process the user opens and clones: a linear HLD chain, laid out
@@ -142,93 +120,25 @@ function KindIcon({ kind, size = 14 }: { kind: NodeKind; size?: number }) {
   return <Circle {...p} />
 }
 
-/* The workspace model — a Canvas tab always; the Sample I/O document tab is
-   added on demand from the conversation. Tabs drag and split like Deepak's. */
-function agentModel(): IJsonModel {
-  return {
-    global: { tabEnableClose: true, tabEnableRename: false, tabSetEnableMaximize: true, tabSetMinWidth: 160, tabSetMinHeight: 120 },
-    layout: {
-      type: 'row', weight: 100,
-      children: [{
-        type: 'tabset', id: 'agent-root', weight: 100,
-        children: [{ type: 'tab', id: 'canvas', name: 'Canvas', component: 'canvas', enableClose: false }],
-      }],
-    },
-  }
-}
-
-export function OrchestrationCanvas({ object, onCollapse, onToast, expanded, onToggleExpand, readOnly, onClone, stakeholderAdded }: Props) {
-  /* The artifact this workspace is showing. */
+/* The agent workflow as a workspace tab — the unified shell owns the tab
+   strip, full screen and close now; this is the builder alone. The process
+   name reads as the golden artifact until cloned, then as the user's working
+   copy, which they can rename inline. The Sample Run document opens as its own
+   tab beside it. */
+export function AgentWorkflow({ object, onToast, onClone }: {
+  object: ActiveObject; onToast: (text: string) => void; onClone?: () => void
+}) {
   const artifact = matchById(object.activeArtifact)
-  const [model] = useState(() => Model.fromJson(agentModel()))
-  const docOpened = useRef(false)
-
-  /* The process name shown in the Canvas tab's header. Read-only shows the
-     golden name; cloning renames it to the user's working copy, which they can
-     then rename inline. */
+  const readOnly = !object.agentCloned
   const [name, setName] = useState(`${artifact.title} ${artifact.version}`)
   const wasReadOnly = useRef(readOnly)
   useEffect(() => {
     if (wasReadOnly.current && !readOnly) setName(`${artifact.title} — My Copy`)
     wasReadOnly.current = readOnly
   }, [readOnly, artifact.title])
-
-  /* Open the Sample Run tab when the conversation's card asks — open-or-select,
-     added into whichever tabset is active so a split is respected. */
-  useEffect(() => {
-    if (!object.agentDocOpen) return
-    if (model.getNodeById('sampleIO')) { model.doAction(Actions.selectTab('sampleIO')); return }
-    if (docOpened.current) return
-    docOpened.current = true
-    const target = model.getActiveTabset() ?? model.getFirstTabSet()
-    if (!target) return
-    model.doAction(Actions.addNode(
-      { type: 'tab', id: 'sampleIO', name: 'Sample Run', component: 'sampleIO' },
-      target.getId(), DockLocation.CENTER, -1, true,
-    ))
-  }, [object.agentDocOpen, model])
-
   return (
-    <section aria-label="Canvas — orchestration builder" className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${expanded ? '' : 'm-[12px] rounded-[var(--r-md)]'}`}
-        style={{ background: 'var(--slab-raised)', border: '1px solid var(--glass-line-soft)' }}>
-
-        {/* The tab strip is the top-level chrome; each tab carries its own
-            content's header inside. Expand/Close live on the strip's right. */}
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          <Layout
-            model={model}
-            factory={(node: TabNode) => node.getComponent() === 'sampleIO'
-              ? <HldDocument />
-              : <AgentCanvasBody name={name} onRename={setName} artifact={artifact} onToast={onToast} readOnly={readOnly} onClone={onClone} stakeholderAdded={stakeholderAdded} />}
-            onRenderTabSet={(_node, values) => {
-              values.buttons.push(
-                <TabStripActions key="ws-actions" expanded={expanded} onToggleExpand={onToggleExpand} onCollapse={onCollapse} />,
-              )
-            }}
-            realtimeResize
-          />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-/* Expand and Close, docked at the right end of the tab strip. */
-function TabStripActions({ expanded, onToggleExpand, onCollapse }: { expanded?: boolean; onToggleExpand?: () => void; onCollapse: () => void }) {
-  return (
-    <div className="flex items-center gap-0.5 pl-1">
-      {onToggleExpand && (
-        <Tooltip label={expanded ? 'Exit full screen' : 'Expand'} side="bottom">
-          <button onClick={onToggleExpand} className="icon-btn h-7 w-7" aria-label={expanded ? 'Exit full screen' : 'Expand'}>
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
-        </Tooltip>
-      )}
-      <Tooltip label="Close" side="bottom" align="end">
-        <button onClick={onCollapse} className="icon-btn h-7 w-7" aria-label="Close"><X size={15} /></button>
-      </Tooltip>
-    </div>
+    <AgentCanvasBody name={name} onRename={setName} artifact={artifact} onToast={onToast}
+      readOnly={readOnly} onClone={onClone} stakeholderAdded={object.agentStakeholder} />
   )
 }
 

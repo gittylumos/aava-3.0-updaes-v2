@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { t7 } from './t7'
 import { getScenario, routeBeat } from './index'
 import { initialState, prepStart } from '../state/reducer'
-import { openableTabs } from '../state/workspace'
+import { openableTabs, suggestedTabs } from '../state/workspace'
 import { acceptBeatAt } from '../state/useJourney'
 import type { Effect } from '../state/types'
 
@@ -147,7 +147,8 @@ describe('t7 scenario', () => {
   it('offers no preview tab', () => {
     const tabs = openableTabs(initialState.playground, 'T7', t7).map((e) => e.legacy)
     expect(tabs).not.toContain('preview')
-    expect(tabs).toContain('tests')
+    /* Validation results are a suggested artefact now, not a standing tab. */
+    expect(suggestedTabs(initialState.playground, 'T7', t7).map((e) => e.legacy)).toContain('tests')
   })
 
   /* The card's file link, the results tab header and the file tree all name
