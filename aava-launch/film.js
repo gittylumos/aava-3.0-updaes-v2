@@ -1,5 +1,5 @@
 // AAVA 3.0 pitch film: a pure function of time. window.seek(t) paints frame t (lib/motion.js).
-// Timing is in beats (u) on the measured grid (beats.json, 120 bpm, 96 beats = 48 s).
+// Timing is in beats (u) on the measured grid (beats.json, 120 bpm, 128 beats = 64 s).
 // docs/shotlist.md is the plan this file follows. Every screen is a real capture of the running
 // prototype (assets/shots/), only cropped, tilted and moved; the copy is the product's own.
 import * as M from './lib/motion.js';
@@ -14,10 +14,11 @@ const C = {
 const DISPLAY = 'Display', UI = 'UI';
 const DEG = Math.PI / 180;
 
-// The pitch cut (48 s, 120 bpm, 96 beats) is narrated: docs/vo_script.md holds the read, and each
+// The pitch cut (64 s, 120 bpm, 128 beats) is narrated: docs/vo_script.md holds the read, and each
 // line has a slot on the grid. Shots 2-6 are the launch cut's choreography, retimed through WARP
 // (pitch beat -> launch-cut beat) so every move breathes under the voice without being re-keyed.
-const WARP = [[24, 5.2], [28, 8], [40, 20], [54, 32.3], [66.4, 43.4], [80, 52], [82, 54], [96, 60]];
+// u50-80 is the pitch's own tour (task progress, then the canvas) and doesn't use the warp.
+const WARP = [[24, 5.2], [28, 8], [40, 20], [50, 26], [80, 31], [82, 32.3], [96, 43.4], [112, 52], [114, 54], [128, 60]];
 function warpMap(x, A, B) {
   const k = WARP;
   if (x <= k[0][A]) return k[0][B] + (x - k[0][A]) * (k[1][B] - k[0][B]) / (k[1][A] - k[0][A]);
@@ -47,7 +48,7 @@ const LAUNCH_HITS = [
   [44.3, 'pane: home', 'tick', { gain: 0.14, pan: -0.5 }],
   [44.8, 'pane: PRD', 'tick', { gain: 0.14, pan: -0.15 }],
   [45.3, 'pane: review', 'tick', { gain: 0.24, pan: 0.2 }],
-  [47.5, 'caption: One place', 'pop', { pitch: 'D5', gain: 0.18 }],
+  [48.5, 'caption: One place', 'pop', { pitch: 'D5', gain: 0.18 }],
   [52, 'end card mark', 'impact', { gain: 0.5 }],
   [52.5, 'AAVA 3.0', 'bell', { pitch: 'D6', gain: 0.18, verb: 0.5 }],
   [54, 'tagline', 'pop', { pitch: 'A4', gain: 0.12 }],
@@ -63,7 +64,19 @@ const HITS = [
   [16, 'Meet AAVA 3.0 on the drop', 'impact', { gain: 0.42 }],
   [16.3, 'wordmark', 'bell', { pitch: 'D6', gain: 0.14, verb: 0.5 }],
   [24.6, 'home begins its flight', 'whoosh', { len: 0.9, from: 400, to: 1800, gain: 0.14 }],
-  ...LAUNCH_HITS.map(([b, ...rest]) => [+unwarp(b).toFixed(3), ...rest]),
+  [50.75, 'run dock lifts', 'whoosh', { len: 0.45, from: 900, to: 2200, gain: 0.15 }],
+  [55.4, 'row: read', 'tick', { gain: 0.14 }],
+  [56.9, 'row: built', 'tick', { gain: 0.14 }],
+  [58.3, 'row: checked', 'tick', { gain: 0.14 }],
+  [59.6, 'canvas lifts', 'whoosh', { len: 0.5, from: 700, to: 2000, gain: 0.15 }],
+  [60.5, 'tab: Overview', 'click', { gain: 0.14 }],
+  [66, 'tab: Browser', 'click', { gain: 0.16 }],
+  [68.75, 'tab: Code', 'click', { gain: 0.16 }],
+  [71, 'tab: Terminal', 'click', { gain: 0.16 }],
+  [73.25, 'tab: Changes', 'click', { gain: 0.16 }],
+  [75.75, 'tab: Execution activity', 'click', { gain: 0.16 }],
+  [81, 'whip to validator', 'whoosh', { len: 0.5, from: 2400, to: 600, pan: 0.3, gain: 0.24 }],
+  ...LAUNCH_HITS.filter(([b]) => b < 25 || b > 32.5).map(([b, ...rest]) => [+unwarp(b).toFixed(3), ...rest]),
 ];
 
 // ---------------------------------------------------------------- shared pieces
@@ -83,10 +96,15 @@ const R = {
   raiseBtn: [955, 1853, 234, 72],
   valGate: [206, 1461, 1010, 490],
   approveBtn: [784, 1853, 405, 72],
+  dock: [352, 125, 720, 838],          // the run-progress dock, expanded (runstrip.png)
+  canvas: [1306, 24, 1870, 1496],      // the right-hand canvas, tab bar to the activity map's last row
 };
+// dock rows lit as the voice says them: [centre y in capture px, beat]
+const DOCK_ROWS = [[253, 55.4], [669, 56.9], [808, 58.3]];
 const centre = ([x, y, w, h]) => onPane(x + w / 2, y + h / 2);
 
 let G = null;   // scratch canvases + sprites, made once in init
+const SHOTS = ['home', 'review', 'validator', 'prd', 'runstrip', 'overview', 'code', 'terminal', 'changes', 'graph'];
 
 function ambient(ctx, u, amt = 1) {
   fill(ctx, C.ground);
@@ -205,11 +223,14 @@ function pane(ctx, img, o) {
 }
 
 // A crop of a real screen lifted toward camera: from where it sits on the landed pane to a target.
-function lift(ctx, img, rect, k, target, press = null) {
+function liftBox(rect, k, target) {
   const [x, y] = onPane(rect[0], rect[1]);
   const w0 = rect[2] * SC, h0 = rect[3] * SC;
-  const cx = lerp(x + w0 / 2, target.cx, k), cy = lerp(y + h0 / 2, target.cy, k);
-  const w = lerp(w0, target.w, k), h = w * rect[3] / rect[2];
+  const w = lerp(w0, target.w, k);
+  return { cx: lerp(x + w0 / 2, target.cx, k), cy: lerp(y + h0 / 2, target.cy, k), w, h: w * rect[3] / rect[2] };
+}
+function lift(ctx, img, rect, k, target, press = null) {
+  const { cx, cy, w, h } = liftBox(rect, k, target);
   ctx.save();
   ctx.globalAlpha *= 0.75 * clamp(k * 2);
   ctx.drawImage(G.shadow, cx - w * 0.682, cy - h * 0.833 + h * (0.04 + 0.08 * k), w * 1.364, h * 1.667);
@@ -340,12 +361,12 @@ function sceneHome(ctx, u, IMG) {
 }
 
 // ---------------------------------------------------------------- S3 ready before you are   (u 20..32.4)
-function sceneReview(ctx, u, IMG, dx = 0) {
+function sceneReview(ctx, u, IMG, dx = 0, gate = true) {
   ctx.save(); ctx.translate(dx, 0);
   const p = E.outCubic(prog(u, 20, 24));
   const s = logZ(2.6, 1, p);
   const [fx0, fy0] = centre(R.previewForm);
-  const lk = springU(u, 26, { stiffness: 150, damping: 19 });
+  const lk = gate ? springU(u, 26, { stiffness: 150, damping: 19 }) : 0;
   ctx.save();
   cam(ctx, s, lerp(fx0, W / 2, p), lerp(fy0, H / 2, p));
   pane(ctx, IMG.review, { cx: PCX, cy: PCY, w: PW, zoom: s });
@@ -353,6 +374,84 @@ function sceneReview(ctx, u, IMG, dx = 0) {
   ctx.restore();
   caption(ctx, u, [[['Ready']], [['before', true]], [['you are.']]], { x: 120, y: 420, size: 96, lh: 104, u0: 21.5, step: 0.5, out: 25.0 });
   if (lk > 0) lift(ctx, IMG.review, R.reviewGate, lk, { cx: 960, cy: 545, w: 980 * logZ(1, 1.05, E.inOutSine(prog(u, 27, 31))) }, { rect: R.raiseBtn, amt: bump(u, 30.15, 0.32) });
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- pitch: task progress + the canvas   (u 50..81.4)
+const SPR_LIFT = { stiffness: 150, damping: 19 };
+const TOUR = [   // [image, list label, from beat]: the canvas's real tabs, switched on the read
+  ['review', null, 0],
+  ['overview', null, 60.5],
+  ['review', 'Browser', 66],
+  ['code', 'Code', 68.75],
+  ['terminal', 'Terminal', 71],
+  ['changes', 'Changes', 73.25],
+  ['graph', 'Activity', 75.75],
+];
+function sceneTour(ctx, u, IMG, dx = 0) {
+  ctx.save(); ctx.translate(dx, 0);
+  pane(ctx, IMG.review, { cx: PCX, cy: PCY, w: PW });
+  const dk = clamp(springU(u, 50.75, SPR_LIFT)) * (1 - E.inOutCubic(prog(u, 58.8, 60.4)));
+  const ck = springU(u, 59.6, SPR_LIFT);
+  const dim = Math.max(dk, clamp(ck));
+  if (dim > 0) { ctx.globalAlpha = 0.66 * dim; fill(ctx, C.ground); ctx.globalAlpha = 1; }
+
+  // task progress: the run dock opens and lifts; its rows light as the voice names them
+  if (dk > 0.002) {
+    const T = { cx: 1290, cy: 545, w: 700 };
+    lift(ctx, IMG.runstrip, R.dock, dk, T);
+    const b = liftBox(R.dock, dk, T), sc = b.w / R.dock[2], x0 = b.cx - b.w / 2, y0 = b.cy - b.h / 2;
+    DOCK_ROWS.forEach(([ry, at]) => {
+      const a = E.outCubic(prog(u, at - 0.15, at + 0.45)) * clamp(dk * 1.5);
+      if (a <= 0) return;
+      const rx = x0 + (370 - R.dock[0]) * sc, rw = 694 * sc, rh = 70 * sc, top = y0 + (ry - 35 - R.dock[1]) * sc;
+      ctx.save(); ctx.globalAlpha = a;
+      rrect(ctx, rx, top, rw, rh, 9 * sc);
+      ctx.fillStyle = 'rgba(167,139,250,0.10)'; ctx.fill();
+      ctx.strokeStyle = aurora(ctx, rx, rx + rw); ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+    });
+  }
+  caption(ctx, u, [[['Every'], ['step,']], [['on'], ['the'], ['record.', true]]], { x: 120, y: 470, size: 92, lh: 100, u0: 50.9, step: 0.35, out: 58.6 });
+
+  // the canvas: lifted out of the screen, then switched tab by tab
+  if (ck > 0.001) {
+    const T = { cx: 1290, cy: 540, w: 1080 };
+    const bx = liftBox(R.canvas, ck, T);
+    ctx.save(); ctx.globalAlpha *= 0.75 * clamp(ck * 2);
+    ctx.drawImage(G.shadow, bx.cx - bx.w * 0.682, bx.cy - bx.h * 0.833 + bx.h * 0.08, bx.w * 1.364, bx.h * 1.667);
+    ctx.restore();
+    let i = 0; while (i + 1 < TOUR.length && u >= TOUR[i + 1][2]) i++;
+    const t = E.outCubic(prog(u, TOUR[i][2], TOUR[i][2] + 0.35));
+    const [sx, sy, sw, sh] = R.canvas, L = bx.cx - bx.w / 2, Tp = bx.cy - bx.h / 2;
+    ctx.save(); rrect(ctx, L, Tp, bx.w, bx.h, 12 * bx.w / 1000); ctx.clip();
+    if (i > 0 && t < 1) ctx.drawImage(IMG[TOUR[i - 1][0]].full, sx, sy, sw, sh, L, Tp, bx.w, bx.h);
+    ctx.globalAlpha = i > 0 ? t : 1;
+    ctx.drawImage(IMG[TOUR[i][0]].full, sx, sy, sw, sh, L, Tp, bx.w, bx.h);
+    ctx.restore();
+    rrect(ctx, L + 0.5, Tp + 0.5, bx.w - 1, bx.h - 1, 12 * bx.w / 1000); ctx.strokeStyle = C.border; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  // the list of what the canvas holds, the one on screen lit
+  const e = E.inCubic(prog(u, 79.0, 80.4));
+  caption(ctx, u, [[['The'], ['canvas.', true]]], { x: 120, y: 330, size: 100, u0: 60.3, step: 0.4, out: 79.0, outDur: 1.4 });
+  const items = TOUR.filter((x) => x[1]);
+  items.forEach(([, label, at], j) => {
+    const s0 = 61.6 + j * 0.3, k = E.outCubic(prog(u, s0, s0 + 2));
+    if (k <= 0.002 || e >= 1) return;
+    const next = items[j + 1] ? items[j + 1][2] : 79.0;
+    const act = E.outCubic(prog(u, at - 0.1, at + 0.3)) * (1 - E.inCubic(prog(u, next - 0.1, next + 0.3)));
+    const y = 456 + j * 76, size = 56, f = font(size, 560, DISPLAY);
+    ctx.save();
+    ctx.globalAlpha = k * (1 - e) * (0.62 + 0.38 * act);
+    const b = 20 * (1 - k) ** 1.4 + 20 * e;
+    if (b > 0.25) ctx.filter = `blur(${b.toFixed(2)}px)`;
+    ctx.font = f; ctx.letterSpacing = `${-0.03 * size}px`; ctx.textAlign = 'left';
+    ctx.fillStyle = M.mix(C.muted, C.text, act);
+    ctx.fillText(label, 150 + 14 * act, y + 26 * (1 - k));
+    ctx.letterSpacing = '0px';
+    if (act > 0.01) { ctx.globalAlpha *= act; ctx.fillStyle = aurora(ctx, 120, 128); ctx.fillRect(122, y - 40, 5, 46); }
+    ctx.restore();
+  });
   ctx.restore();
 }
 
@@ -398,7 +497,7 @@ function sceneValidator(ctx, u, IMG, dx = 0) {
   }
   ctx.restore();
   caption(ctx, u, [[['It'], ['stops']], [['where'], ['you']], [['decide.', true]]], { x: 120 + dx, y: 420, size: 96, lh: 104, u0: 33, step: 0.42, out: 37.2 });
-  caption(ctx, u, [[['One'], ['place.', true]]], { x: 160, y: 930, size: 124, u0: 47.5, step: 0.6, dur: 2.8, out: 50.2, outDur: 1.4 });
+  caption(ctx, u, [[['One'], ['place.', true]]], { x: 160, y: 930, size: 124, u0: 48.5, step: 0.6, dur: 2.8, out: 50.2, outDur: 1.4 });
 }
 
 // ---------------------------------------------------------------- S6 end card   (u 51.5..60)
@@ -450,7 +549,7 @@ function grainTile() {
 
 M.film({
   fonts: [font(100, 640, DISPLAY), font(40, 480, DISPLAY), font(30, 400, UI)],
-  images: { homeF: 'assets/shots/home.png', reviewF: 'assets/shots/review.png', validatorF: 'assets/shots/validator.png', prdF: 'assets/shots/prd.png' },
+  images: Object.fromEntries(SHOTS.map((k) => [k + 'F', `assets/shots/${k}.png`])),
   hits: HITS,
   samples: 10,
   init(ctx, IMG) {
@@ -458,7 +557,7 @@ M.film({
       const c = document.createElement('canvas'); c.width = im.width / 2; c.height = im.height / 2;
       const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, c.width, c.height); return c;
     };
-    for (const k of ['home', 'review', 'validator', 'prd']) IMG[k] = { full: IMG[k + 'F'], half: half(IMG[k + 'F']) };
+    for (const k of SHOTS) IMG[k] = { full: IMG[k + 'F'], half: half(IMG[k + 'F']) };
     const scratch = document.createElement('canvas'); scratch.width = W; scratch.height = H;
     const shadow = document.createElement('canvas'); shadow.width = 600; shadow.height = 400;
     const sx = shadow.getContext('2d'); sx.filter = 'blur(38px)'; sx.fillStyle = '#000'; sx.fillRect(80, 80, 440, 240);
@@ -466,15 +565,16 @@ M.film({
   },
   draw(ctx, u, t, IMG) {
     ctx.imageSmoothingQuality = 'high';
-    ambient(ctx, u, 1 + 0.45 * (1 - E.inOutSine(prog(u, 0, 8))) + 0.3 * bump(u, 18, 4) + 0.35 * E.outCubic(prog(u, 79, 83)));
+    ambient(ctx, u, 1 + 0.45 * (1 - E.inOutSine(prog(u, 0, 8))) + 0.3 * bump(u, 18, 4) + 0.35 * E.outCubic(prog(u, 111, 115)));
     if (u < 16.2) sceneProblem(ctx, u);
     if (u >= 15.5 && u < 27) sceneMeet(ctx, u);
     if (u < 24) return;
     const o = warp(u);   // shots 2-6 run on the launch cut's choreography
     if (o >= 5.2 && o < 20) sceneHome(ctx, o, IMG);
-    const whip = E.inOutCubic(prog(o, 31.0, 32.2));
-    if (o >= 20 && o < 32.3) sceneReview(ctx, o, IMG, -W * whip);
-    if (o >= 31 && o < 53) sceneValidator(ctx, o, IMG, W * (1 - whip));
+    if (u >= 40 && u < 50) sceneReview(ctx, o, IMG, 0, false);
+    const whip = E.inOutCubic(prog(u, 79.8, 81.4));
+    if (u >= 50 && u < 81.6) sceneTour(ctx, u, IMG, -W * whip);
+    if (u >= 80 && o < 53) sceneValidator(ctx, o, IMG, W * (1 - whip));
     if (o >= 51.5) sceneEnd(ctx, o);
   },
   post(ctx, u, t) {

@@ -43,27 +43,83 @@
   },
   {
    "line": 6,
-   "text": "And when a decision is yours, it stops, and asks. Never earlier. Never later.",
-   "start": 27.502,
-   "end": 32.36,
-   "u0": 55.0,
-   "u_end": 64.72
+   "text": "Every step is on the record: what it read, what it built, what it checked.",
+   "start": 25.377,
+   "end": 29.601,
+   "u0": 50.75,
+   "u_end": 59.2
   },
   {
    "line": 7,
-   "text": "Ten steps become a few. All in one place.",
-   "start": 35.002,
-   "end": 37.755,
-   "u0": 70.0,
-   "u_end": 75.51
+   "text": "On the right, the canvas holds the work itself.",
+   "start": 30.127,
+   "end": 32.775,
+   "u0": 60.25,
+   "u_end": 65.55
   },
   {
    "line": 8,
+   "text": "The live preview.",
+   "start": 33.002,
+   "end": 34.14,
+   "u0": 66.0,
+   "u_end": 68.28
+  },
+  {
+   "line": 9,
+   "text": "The code.",
+   "start": 34.377,
+   "end": 35.127,
+   "u0": 68.75,
+   "u_end": 70.25
+  },
+  {
+   "line": 10,
+   "text": "A terminal.",
+   "start": 35.502,
+   "end": 36.259,
+   "u0": 71.0,
+   "u_end": 72.51
+  },
+  {
+   "line": 11,
+   "text": "Every change.",
+   "start": 36.627,
+   "end": 37.555,
+   "u0": 73.25,
+   "u_end": 75.11
+  },
+  {
+   "line": 12,
+   "text": "And the whole run, mapped step by step.",
+   "start": 37.877,
+   "end": 40.06,
+   "u0": 75.75,
+   "u_end": 80.12
+  },
+  {
+   "line": 13,
+   "text": "And when a decision is yours, it stops, and asks. Never earlier. Never later.",
+   "start": 42.002,
+   "end": 46.86,
+   "u0": 84.0,
+   "u_end": 93.72
+  },
+  {
+   "line": 14,
+   "text": "Ten steps become a few. All in one place.",
+   "start": 50.502,
+   "end": 53.255,
+   "u0": 101.0,
+   "u_end": 106.51
+  },
+  {
+   "line": 15,
    "text": "AAVA does the heavy lifting. You make the decisions.",
-   "start": 40.502,
-   "end": 43.529,
-   "u0": 81.0,
-   "u_end": 87.05
+   "start": 56.502,
+   "end": 59.529,
+   "u0": 113.0,
+   "u_end": 119.05
   }
  ]
 }

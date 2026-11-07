@@ -77,3 +77,18 @@ Remaining:
    the key words check out within ~0.2 s.
 Checks: all pass. VO lines all inside their slots; mix -14.1 LUFS, -1.0 dBTP, music ducked under VO.
 Verdict: READY
+
+## Round 6 (pitch v2, 64 s: task progress + canvas tour)
+| hook | read | motion | variety | brand | sync | min |
+|  8   |  8   |   8    |    9    |   9   |  9   |  8  |
+
+Added u50–81: the run-progress dock lifts out of the real screen and its rows light on "read / built /
+checked"; then the canvas lifts out and switches through its real tabs (Overview, Browser, Code,
+Terminal, Changes, Execution activity) on the read, with a lit list on the left. 15 VO lines, all
+inside their slots (canvas items are separate takes, so each tab switch lands on its word exactly).
+Remaining:
+1. [u60] One transitional beat where the dock has gone and the canvas is still small; acceptable as
+   the breath between "on the record" and "On the right…".
+2. [u61–80, phone] The tab list at 56 px is the smallest moving type; readable on the phone page.
+3. The terminal capture is sparse (dev-server boot only); a busier terminal state would sell it more.
+Verdict: READY

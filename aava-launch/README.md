@@ -1,7 +1,7 @@
-# AAVA 3.0 — pitch film (48 s, narrated) + launch cut (29 s)
+# AAVA 3.0 — pitch film (64 s, narrated) + launch cut (29 s)
 
 A code-rendered film: real AAVA UI flying in, soft blur-in headlines, and a clean end card.
-- **Pitch cut (current `film.js`)**: 48 s, explanatory pitch with a voice-over (`docs/vo_script.md`).
+- **Pitch cut (current `film.js`)**: 64 s, explanatory pitch with a voice-over (`docs/vo_script.md`).
   Final cut: `out/aava-launch/final.mp4` (+ `poster.png`). Narration: Kokoro-82M offline TTS, warm US
   male voice, built by `audio/vo.py` (see `docs/vo_script.md`).
 - **Launch cut**: the original 29 s music-only version, `out/aava-launch/launch-29s.mp4`
@@ -12,8 +12,8 @@ A code-rendered film: real AAVA UI flying in, soft blur-in headlines, and a clea
 - **Film:** `film.js` is a pure function of time. `window.seek(t)` paints frame `t`, and
   `lib/motion.js` is the harness.
 - **Screens:** `assets/shots/` holds real captures of this repo's prototype (`app/`) at 1600×1000 @2x,
-  taken with Playwright against `npm run dev`: home, the T1 review gate, the T7 validator gate, and a
-  PRD draft. Nothing in the film is a mock screen.
+  taken with Playwright against `npm run dev`: home, the T1 review gate, the T7 validator gate, a PRD
+  draft, the run-progress dock, and the canvas tabs (Overview, Code, Terminal, Changes, Execution activity). Nothing in the film is a mock screen.
 - **Brand:** colours from `app/src/design/tokens.css` (the aurora is the single accent), Geist + Geist
   Mono from the app's bundled fonts, and the AAVA mark redrawn as vectors from `app/src/assets/aava-logo.png`.
 - **Copy:** the product's own lines (`assets/copy.md`).
