@@ -1,0 +1,69 @@
+{
+ "voice": "kokoro-82M am_michael x1.0",
+ "lines": [
+  {
+   "line": 1,
+   "text": "One small feature takes ten steps, eight tools, and hours of coordination.",
+   "start": 0.002,
+   "end": 4.958,
+   "u0": 0.0,
+   "u_end": 9.91
+  },
+  {
+   "line": 2,
+   "text": "Most of it isn't judgment. It's busywork.",
+   "start": 5.377,
+   "end": 8.066,
+   "u0": 10.75,
+   "u_end": 16.13
+  },
+  {
+   "line": 3,
+   "text": "Meet AAVA 3.0: an agentic assistant that starts the work before you do.",
+   "start": 8.502,
+   "end": 13.696,
+   "u0": 17.0,
+   "u_end": 27.39
+  },
+  {
+   "line": 4,
+   "text": "It picks up your tickets, and pulls context from the tools you already use.",
+   "start": 14.002,
+   "end": 18.62,
+   "u0": 28.0,
+   "u_end": 37.24
+  },
+  {
+   "line": 5,
+   "text": "By the time you look, the work is built, tested, and ready for review.",
+   "start": 20.502,
+   "end": 24.469,
+   "u0": 41.0,
+   "u_end": 48.93
+  },
+  {
+   "line": 6,
+   "text": "And when a decision is yours, it stops, and asks. Never earlier. Never later.",
+   "start": 27.502,
+   "end": 32.36,
+   "u0": 55.0,
+   "u_end": 64.72
+  },
+  {
+   "line": 7,
+   "text": "Ten steps become a few. All in one place.",
+   "start": 35.002,
+   "end": 37.755,
+   "u0": 70.0,
+   "u_end": 75.51
+  },
+  {
+   "line": 8,
+   "text": "AAVA does the heavy lifting. You make the decisions.",
+   "start": 40.502,
+   "end": 43.529,
+   "u0": 81.0,
+   "u_end": 87.05
+  }
+ ]
+}

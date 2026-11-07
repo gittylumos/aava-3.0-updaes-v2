@@ -47,19 +47,19 @@ const LAUNCH_HITS = [
   [44.3, 'pane: home', 'tick', { gain: 0.14, pan: -0.5 }],
   [44.8, 'pane: PRD', 'tick', { gain: 0.14, pan: -0.15 }],
   [45.3, 'pane: review', 'tick', { gain: 0.24, pan: 0.2 }],
-  [46.5, 'caption: One place', 'pop', { pitch: 'D5', gain: 0.18 }],
+  [47.5, 'caption: One place', 'pop', { pitch: 'D5', gain: 0.18 }],
   [52, 'end card mark', 'impact', { gain: 0.5 }],
   [52.5, 'AAVA 3.0', 'bell', { pitch: 'D6', gain: 0.18, verb: 0.5 }],
   [54, 'tagline', 'pop', { pitch: 'A4', gain: 0.12 }],
   [56, 'aurora sweep on the mark', 'blip', { pitch: 'A6', gain: 0.08, verb: 0.6 }],
 ];
 const HITS = [
-  [0, 'Ten', 'tick', { gain: 0.16 }],
-  [1, 'steps.', 'tick', { gain: 0.14 }],
-  [2, 'Eight', 'tick', { gain: 0.16 }],
-  [3, 'tools.', 'tick', { gain: 0.14 }],
-  [5, 'context-switch line', 'blip', { pitch: 'A5', gain: 0.1 }],
-  [12.6, 'busywork line', 'tick', { gain: 0.12 }],
+  [2.4, 'Ten', 'tick', { gain: 0.14 }],
+  [3.0, 'steps.', 'tick', { gain: 0.12 }],
+  [3.6, 'Eight', 'tick', { gain: 0.14 }],
+  [4.2, 'tools.', 'tick', { gain: 0.12 }],
+  [5.8, 'context-switch line', 'blip', { pitch: 'A5', gain: 0.1 }],
+  [10.8, 'busywork line', 'tick', { gain: 0.12 }],
   [16, 'Meet AAVA 3.0 on the drop', 'impact', { gain: 0.42 }],
   [16.3, 'wordmark', 'bell', { pitch: 'D6', gain: 0.14, verb: 0.5 }],
   [24.6, 'home begins its flight', 'whoosh', { len: 0.9, from: 400, to: 1800, gain: 0.14 }],
@@ -270,9 +270,10 @@ function sceneProblem(ctx, u) {
   const push = 1 + 0.05 * E.inOutSine(prog(u, -1, 16));
   ctx.save();
   M.zoomAbout(ctx, push, 160, 560);
-  caption(ctx, u, [[['Ten'], ['steps.']], [['Eight'], ['tools.']]], { x: 160, y: 470, size: 178, lh: 188, u0: -1.7, step: 1.0, dur: 2.6, out: 11.2, outDur: 1.6, weight: 640 });
-  caption(ctx, u, [[['Fifteen-plus context switches.'], ['Two to four hours.']]], { x: 166, y: 790, size: 54, u0: 5, step: 0.6, dur: 2.0, out: 11.4, outDur: 1.4, weight: 480, color: C.muted });
-  caption(ctx, u, [[['Most'], ['of'], ['it']], [['is'], ['busywork.', false]]], { x: 160, y: 500, size: 150, lh: 162, u0: 12.4, step: 0.3, dur: 2.2, out: 14.5, outDur: 1.0, weight: 640 });
+  caption(ctx, u, [[['One'], ['small'], ['feature.']]], { x: 164, y: 286, size: 84, u0: -1.5, step: 0.42, dur: 2.0, out: 9.4, outDur: 1.4, weight: 560, color: C.dim });
+  caption(ctx, u, [[['Ten'], ['steps.']], [['Eight'], ['tools.']]], { x: 160, y: 470, size: 178, lh: 188, u0: 2.4, step: 0.6, dur: 2.4, out: 9.6, outDur: 1.5, weight: 640 });
+  caption(ctx, u, [[['Fifteen-plus context switches.'], ['Two to four hours.']]], { x: 166, y: 790, size: 54, u0: 5.8, step: 0.6, dur: 2.0, out: 10.0, outDur: 1.2, weight: 480, color: C.muted });
+  caption(ctx, u, [[['Most'], ['of'], ['it']], [['is'], ['busywork.', false]]], { x: 160, y: 500, size: 150, lh: 162, u0: 10.8, step: 0.36, dur: 2.2, out: 14.5, outDur: 1.0, weight: 640 });
   ctx.restore();
 }
 
@@ -308,7 +309,7 @@ function sceneMeet(ctx, u) {
   });
   ctx.restore();
   const words = 'An agentic assistant that starts the work'.split(' ').map((w) => [w]);
-  caption(ctx, u, [words, [['before', true], ['you', true], ['do.', true]]], { x: 164, y: 742, size: 58, lh: 72, u0: 19.6, step: 0.28, dur: 2.0, out: 24.0, outDur: 1.6, weight: 520, color: C.muted });
+  caption(ctx, u, [words, [['before', true], ['you', true], ['do.', true]]], { x: 164, y: 742, size: 58, lh: 72, u0: 20.3, step: 0.26, dur: 2.0, out: 24.4, outDur: 1.6, weight: 520, color: C.muted });
 }
 
 // ---------------------------------------------------------------- S2 home flies in   (u 5.4..20)
@@ -381,9 +382,9 @@ function sceneValidator(ctx, u, IMG, dx = 0) {
   const drift = E.inOutSine(prog(u, 32, 38));
   const dol = E.inOutCubic(prog(u, 38, 41));
   const [gx, gy] = centre(R.valGate);
-  const sIn = logZ(1, 1.13, drift) * logZ(1, 2.15, dol);
+  const sIn = logZ(1, 1.08, drift) * logZ(1, 2.15, dol);
   const s = logZ(sIn, 1, pb);
-  const fx = lerp(lerp(W / 2 + 150 * drift, gx, dol), W / 2, pb), fy = lerp(lerp(H / 2, gy, dol), H / 2, pb);
+  const fx = lerp(lerp(W / 2 - 80 * drift, gx, dol), W / 2, pb), fy = lerp(lerp(H / 2, gy, dol), H / 2, pb);
   ctx.save();
   ctx.translate(dx, 0);
   cam(ctx, s, fx, fy);
@@ -397,11 +398,17 @@ function sceneValidator(ctx, u, IMG, dx = 0) {
   }
   ctx.restore();
   caption(ctx, u, [[['It'], ['stops']], [['where'], ['you']], [['decide.', true]]], { x: 120 + dx, y: 420, size: 96, lh: 104, u0: 33, step: 0.42, out: 37.2 });
-  caption(ctx, u, [[['One'], ['place.', true]]], { x: 160, y: 930, size: 124, u0: 46.5, step: 0.6, dur: 2.8, out: 50.2, outDur: 1.4 });
+  caption(ctx, u, [[['One'], ['place.', true]]], { x: 160, y: 930, size: 124, u0: 47.5, step: 0.6, dur: 2.8, out: 50.2, outDur: 1.4 });
 }
 
 // ---------------------------------------------------------------- S6 end card   (u 51.5..60)
 function sceneEnd(ctx, u) {
+  ctx.save();
+  M.zoomAbout(ctx, logZ(1, 1.035, E.inOutSine(prog(u, 53, 60))), 160, 540);   // keeps the long narrated hold alive
+  sceneEndCard(ctx, u);
+  ctx.restore();
+}
+function sceneEndCard(ctx, u) {
   const k = springU(u, 51.7, { stiffness: 110, damping: 16 });
   if (k <= 0.001) return;
   const d = 204, mx = 160 + d / 2, my = 452;

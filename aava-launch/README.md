@@ -2,7 +2,8 @@
 
 A code-rendered film: real AAVA UI flying in, soft blur-in headlines, and a clean end card.
 - **Pitch cut (current `film.js`)**: 48 s, explanatory pitch with a voice-over (`docs/vo_script.md`).
-  Renders to `out/aava-launch/final.mp4` once the narration (`audio/vo.wav`) is in.
+  Final cut: `out/aava-launch/final.mp4` (+ `poster.png`). Narration: Kokoro-82M offline TTS, warm US
+  male voice, built by `audio/vo.py` (see `docs/vo_script.md`).
 - **Launch cut**: the original 29 s music-only version, `out/aava-launch/launch-29s.mp4`
   (+ `launch-29s-poster.png`); its source is the first commit that added this directory.
 

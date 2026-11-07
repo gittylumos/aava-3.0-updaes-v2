@@ -45,3 +45,35 @@ Worst three (remaining, all minor):
    "soft blur-in". Accepted.
 Checks: all pass. Sync 25/25 within 20 ms, median 2.6 ms; mix -14.1 LUFS / -1.3 dBTP.
 Verdict: READY
+
+---
+# Pitch cut (48 s, narrated)
+
+## Round 4 (pitch round 1)
+| hook | read | motion | variety | brand | sync | min |
+|  7   |  8   |   7    |    8    |   9   |  8   |  7  |
+
+Worst three:
+1. [VO 2→3, 5.4–8.5 s] First synthesized pass: line 2 ran 1.06 s past its slot and line 3 overlapped
+   it, so "busywork" ran straight into "Meet AAVA" -> line 1 tightened ("One small feature takes…"),
+   line 1 moved to u0, line 2 to u10.75, line 3 to u17 at 1.06x: every line now has a 0.3–0.4 s breath.
+2. [u0–5] The headline led the voice by ~2 beats ("Ten steps." on screen before it is said) and frame 0
+   was empty under the first words -> "One small feature." resolving on frame 0 (84 px), the headline
+   words retimed onto the read (Ten u2.4 … tools u4.2), the "agentic assistant" super onto its words
+   (u20.3), and "One place." onto "one place" (launch beat 47.5).
+3. [u54–61] The validator drift (13% zoom, focus panned right) slid the screen's left edge to x≈450,
+   under "where you" -> 8% zoom with the focus drifting left; the edge now stays right of x≈700.
+
+## Round 5 (pitch round 2)
+| hook | read | motion | variety | brand | sync | min |
+|  8   |  8   |   8    |    8    |   9   |  9   |  8  |
+
+Remaining:
+1. [u86–96] The end card holds ~5 s after the last line -> a slow 3.5% log push across the hold.
+2. Sync: sync.py on the full mix reports 15/29 because VO syllables now dominate the onset envelope;
+   measured on the SFX stem, every transient hit is within 7 ms. The 7 "misses" are whooshes (no sharp
+   attack by design) and a bell under the drop's impact tail.
+3. Word-level super sync is estimated from character position (Kokoro gives no timestamps); stills at
+   the key words check out within ~0.2 s.
+Checks: all pass. VO lines all inside their slots; mix -14.1 LUFS, -1.0 dBTP, music ducked under VO.
+Verdict: READY

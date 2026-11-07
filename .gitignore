@@ -7,6 +7,7 @@ app/dist/
 .env*
 # launch film: audio + render outputs are regenerated; only the final cut and poster are kept
 aava-launch/audio/*.wav
+aava-launch/audio/vo_takes/
 out/*
 !out/aava-launch/
 out/aava-launch/*
