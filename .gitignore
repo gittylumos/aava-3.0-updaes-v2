@@ -5,3 +5,10 @@ app/dist/
 .DS_Store
 .vercel
 .env*
+# launch film: audio + render outputs are regenerated; only the final cut and poster are kept
+aava-launch/audio/*.wav
+out/*
+!out/aava-launch/
+out/aava-launch/*
+!out/aava-launch/final.mp4
+!out/aava-launch/poster.png

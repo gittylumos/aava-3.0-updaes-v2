@@ -1,0 +1,21 @@
+{
+ "source": "app/src/design/tokens.css (dark, the product's default look)",
+ "colors": {
+  "ground": "#0F1117",
+  "slab": "#181B25",
+  "raised": "#212530",
+  "text": "#F1F5F9",
+  "muted": "#94A3B8",
+  "border": "#2D3348",
+  "aurora": [
+   "#FF7AC6",
+   "#A78BFA",
+   "#5B9DFF"
+  ]
+ },
+ "accent": "aurora gradient (brand mark, recommended-card ring, ambient field)",
+ "fonts": {
+  "display": "Geist Variable (@fontsource-variable/geist)",
+  "ui": "Geist Mono Variable (@fontsource-variable/geist-mono)"
+ }
+}
