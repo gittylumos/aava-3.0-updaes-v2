@@ -12,3 +12,5 @@ out/*
 out/aava-launch/*
 !out/aava-launch/final.mp4
 !out/aava-launch/poster.png
+!out/aava-launch/launch-29s.mp4
+!out/aava-launch/launch-29s-poster.png

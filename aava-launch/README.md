@@ -1,10 +1,12 @@
-# AAVA 3.0 — launch film (29 s)
+# AAVA 3.0 — pitch film (48 s, narrated) + launch cut (29 s)
 
-A code-rendered launch film: real AAVA UI flying in, soft blur-in headlines, and a clean end card.
-The final cut is `out/aava-launch/final.mp4` (1920×1080, 60 fps, H.264 + AAC, mastered to -14 LUFS),
-and its poster frame is `out/aava-launch/poster.png`.
+A code-rendered film: real AAVA UI flying in, soft blur-in headlines, and a clean end card.
+- **Pitch cut (current `film.js`)**: 48 s, explanatory pitch with a voice-over (`docs/vo_script.md`).
+  Renders to `out/aava-launch/final.mp4` once the narration (`audio/vo.wav`) is in.
+- **Launch cut**: the original 29 s music-only version, `out/aava-launch/launch-29s.mp4`
+  (+ `launch-29s-poster.png`); its source is the first commit that added this directory.
 
-- **Plan:** `docs/shotlist.md`, six shots on a 124 bpm beat grid (`beats.json`).
+- **Plan:** `docs/shotlist.md` (launch cut, 124 bpm) and `docs/vo_script.md` (pitch cut: script + slot per line on the 120 bpm grid in `beats.json`). Shots 2–6 of the pitch reuse the launch choreography through a time warp (`WARP` in `film.js`).
 - **Review log:** `docs/critique.md`, three critique rounds with scores.
 - **Film:** `film.js` is a pure function of time. `window.seek(t)` paints frame `t`, and
   `lib/motion.js` is the harness.

@@ -1,5 +1,5 @@
-// AAVA 3.0 launch film: a pure function of time. window.seek(t) paints frame t (lib/motion.js).
-// Timing is in beats (u) on the measured grid (beats.json, 124.14 bpm, 60 beats = 29 s).
+// AAVA 3.0 pitch film: a pure function of time. window.seek(t) paints frame t (lib/motion.js).
+// Timing is in beats (u) on the measured grid (beats.json, 120 bpm, 96 beats = 48 s).
 // docs/shotlist.md is the plan this file follows. Every screen is a real capture of the running
 // prototype (assets/shots/), only cropped, tilted and moved; the copy is the product's own.
 import * as M from './lib/motion.js';
@@ -14,14 +14,25 @@ const C = {
 const DISPLAY = 'Display', UI = 'UI';
 const DEG = Math.PI / 180;
 
+// The pitch cut (48 s, 120 bpm, 96 beats) is narrated: docs/vo_script.md holds the read, and each
+// line has a slot on the grid. Shots 2-6 are the launch cut's choreography, retimed through WARP
+// (pitch beat -> launch-cut beat) so every move breathes under the voice without being re-keyed.
+const WARP = [[24, 5.2], [28, 8], [40, 20], [54, 32.3], [66.4, 43.4], [80, 52], [82, 54], [96, 60]];
+function warpMap(x, A, B) {
+  const k = WARP;
+  if (x <= k[0][A]) return k[0][B] + (x - k[0][A]) * (k[1][B] - k[0][B]) / (k[1][A] - k[0][A]);
+  for (let i = 1; i < k.length; i++) {
+    if (x <= k[i][A]) return lerp(k[i - 1][B], k[i][B], (x - k[i - 1][A]) / (k[i][A] - k[i - 1][A]));
+  }
+  return k[k.length - 1][B] + (x - k[k.length - 1][A]);
+}
+const warp = (u) => warpMap(u, 0, 1);      // pitch beat -> launch-cut beat
+const unwarp = (o) => warpMap(o, 1, 0);    // launch-cut beat -> pitch beat
+
 // Every accent: [beat, label, sfx, opts]. sfx.mjs voices each one on its frame.
-const HITS = [
-  [0, 'Ten', 'tick', { gain: 0.16 }],
-  [1, 'steps.', 'tick', { gain: 0.14 }],
-  [2, 'Eight', 'tick', { gain: 0.16 }],
-  [3, 'tools.', 'tick', { gain: 0.14 }],
-  [4.5, 'context-switch line', 'blip', { pitch: 'A5', gain: 0.1 }],
-  [8, 'home lands on the drop', 'swell+thud', { gain: 0.32, len: 0.9 }],
+// Shots 2-6 are authored in launch-cut beats (LAUNCH_HITS) and mapped onto the pitch grid.
+const LAUNCH_HITS = [
+  [8, 'home lands', 'swell+thud', { gain: 0.32, len: 0.9 }],
   [9.5, 'caption: Work finds you', 'pop', { pitch: 'D5', gain: 0.18 }],
   [15.5, 'recommended ring', 'blip', { pitch: 'D6', gain: 0.12, verb: 0.4 }],
   [20, 'match cut into the run', 'whoosh', { len: 0.7, from: 500, to: 2600, gain: 0.22 }],
@@ -41,6 +52,18 @@ const HITS = [
   [52.5, 'AAVA 3.0', 'bell', { pitch: 'D6', gain: 0.18, verb: 0.5 }],
   [54, 'tagline', 'pop', { pitch: 'A4', gain: 0.12 }],
   [56, 'aurora sweep on the mark', 'blip', { pitch: 'A6', gain: 0.08, verb: 0.6 }],
+];
+const HITS = [
+  [0, 'Ten', 'tick', { gain: 0.16 }],
+  [1, 'steps.', 'tick', { gain: 0.14 }],
+  [2, 'Eight', 'tick', { gain: 0.16 }],
+  [3, 'tools.', 'tick', { gain: 0.14 }],
+  [5, 'context-switch line', 'blip', { pitch: 'A5', gain: 0.1 }],
+  [12.6, 'busywork line', 'tick', { gain: 0.12 }],
+  [16, 'Meet AAVA 3.0 on the drop', 'impact', { gain: 0.42 }],
+  [16.3, 'wordmark', 'bell', { pitch: 'D6', gain: 0.14, verb: 0.5 }],
+  [24.6, 'home begins its flight', 'whoosh', { len: 0.9, from: 400, to: 1800, gain: 0.14 }],
+  ...LAUNCH_HITS.map(([b, ...rest]) => [+unwarp(b).toFixed(3), ...rest]),
 ];
 
 // ---------------------------------------------------------------- shared pieces
@@ -242,15 +265,50 @@ function mark(ctx, cx, cy, d, sweep = -1) {
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- S1 headline   (u 0..8)
-function sceneHeadline(ctx, u) {
-  const push = 1 + 0.035 * E.inOutSine(prog(u, -1, 8));
+// ---------------------------------------------------------------- S1 the problem   (u 0..16)
+function sceneProblem(ctx, u) {
+  const push = 1 + 0.05 * E.inOutSine(prog(u, -1, 16));
   ctx.save();
   M.zoomAbout(ctx, push, 160, 560);
-  const out = 5.0;
-  caption(ctx, u, [[['Ten'], ['steps.']], [['Eight'], ['tools.']]], { x: 160, y: 470, size: 178, lh: 188, u0: -1.7, step: 1.0, dur: 2.6, out, outDur: 1.5, weight: 640 });
-  caption(ctx, u, [[['Fifteen-plus context switches.'], ['Two to four hours.', true]]], { x: 166, y: 790, size: 54, u0: 4.5, step: 0.45, dur: 2.0, out: out + 0.2, outDur: 1.4, weight: 480, color: C.muted });
+  caption(ctx, u, [[['Ten'], ['steps.']], [['Eight'], ['tools.']]], { x: 160, y: 470, size: 178, lh: 188, u0: -1.7, step: 1.0, dur: 2.6, out: 11.2, outDur: 1.6, weight: 640 });
+  caption(ctx, u, [[['Fifteen-plus context switches.'], ['Two to four hours.']]], { x: 166, y: 790, size: 54, u0: 5, step: 0.6, dur: 2.0, out: 11.4, outDur: 1.4, weight: 480, color: C.muted });
+  caption(ctx, u, [[['Most'], ['of'], ['it']], [['is'], ['busywork.', false]]], { x: 160, y: 500, size: 150, lh: 162, u0: 12.4, step: 0.3, dur: 2.2, out: 14.5, outDur: 1.0, weight: 640 });
   ctx.restore();
+}
+
+// ---------------------------------------------------------------- S1b meet AAVA 3.0   (u 15.5..27)
+function sceneMeet(ctx, u) {
+  const e = E.inCubic(prog(u, 24.2, 26.6));               // leaves as the home screen rises
+  const k = springU(u, 15.75, { stiffness: 120, damping: 15 });
+  if (k <= 0.001 || e >= 1) return;
+  const d = 236, mx = 160 + d / 2, my = 470;
+  ctx.save();
+  ctx.translate(0, -60 * e);
+  ctx.save();
+  ctx.globalAlpha = clamp(k * 1.4) * (1 - e);
+  const blur = 30 * Math.max(0, 1 - k) ** 1.3 + 26 * e;
+  if (blur > 0.25) ctx.filter = `blur(${blur.toFixed(2)}px)`;
+  const sc = (0.8 + 0.2 * k) * (1 - 0.08 * e);
+  ctx.translate(mx, my); ctx.scale(sc, sc); ctx.translate(-mx, -my);
+  mark(ctx, mx, my, d, (u - 17.4) / 1.6);
+  ctx.restore();
+  const size = 206, f = font(size, 640, DISPLAY), track = -0.03 * size;
+  const L = M.layout(ctx, 'AAVA 3.0', f, track);
+  const x0 = 160 + d + 44, base = my + size * 0.36;
+  L.glyphs.forEach((g, j) => {
+    const s0 = 16.15 + j * 0.1;
+    const kk = E.outCubic(prog(u, s0, s0 + 2.2));
+    if (kk <= 0.002) return;
+    const b = 22 * (1 - kk) ** 1.4 + 24 * e;
+    ctx.save();
+    ctx.globalAlpha = kk * (1 - e);
+    if (b > 0.25) ctx.filter = `blur(${b.toFixed(2)}px)`;
+    M.glyph(ctx, g.ch, x0 + g.cx + 26 * (1 - kk), base, f, C.text);
+    ctx.restore();
+  });
+  ctx.restore();
+  const words = 'An agentic assistant that starts the work'.split(' ').map((w) => [w]);
+  caption(ctx, u, [words, [['before', true], ['you', true], ['do.', true]]], { x: 164, y: 742, size: 58, lh: 72, u0: 19.6, step: 0.28, dur: 2.0, out: 24.0, outDur: 1.6, weight: 520, color: C.muted });
 }
 
 // ---------------------------------------------------------------- S2 home flies in   (u 5.4..20)
@@ -401,13 +459,16 @@ M.film({
   },
   draw(ctx, u, t, IMG) {
     ctx.imageSmoothingQuality = 'high';
-    ambient(ctx, u, 1 + 0.45 * (1 - E.inOutSine(prog(u, 0, 8))) + 0.35 * E.outCubic(prog(u, 51, 54)));
-    if (u < 8.6) sceneHeadline(ctx, u);
-    if (u >= 5.2 && u < 20) sceneHome(ctx, u, IMG);
-    const whip = E.inOutCubic(prog(u, 31.0, 32.2));
-    if (u >= 20 && u < 32.3) sceneReview(ctx, u, IMG, -W * whip);
-    if (u >= 31 && u < 53) sceneValidator(ctx, u, IMG, W * (1 - whip));
-    if (u >= 51.5) sceneEnd(ctx, u);
+    ambient(ctx, u, 1 + 0.45 * (1 - E.inOutSine(prog(u, 0, 8))) + 0.3 * bump(u, 18, 4) + 0.35 * E.outCubic(prog(u, 79, 83)));
+    if (u < 16.2) sceneProblem(ctx, u);
+    if (u >= 15.5 && u < 27) sceneMeet(ctx, u);
+    if (u < 24) return;
+    const o = warp(u);   // shots 2-6 run on the launch cut's choreography
+    if (o >= 5.2 && o < 20) sceneHome(ctx, o, IMG);
+    const whip = E.inOutCubic(prog(o, 31.0, 32.2));
+    if (o >= 20 && o < 32.3) sceneReview(ctx, o, IMG, -W * whip);
+    if (o >= 31 && o < 53) sceneValidator(ctx, o, IMG, W * (1 - whip));
+    if (o >= 51.5) sceneEnd(ctx, o);
   },
   post(ctx, u, t) {
     // a whisper of grain, after the blur accumulation so it isn't averaged away
