@@ -5,3 +5,6 @@ app/dist/
 .DS_Store
 .vercel
 .env*
+
+# /brag intermediates (captured frames, renders, scratch scripts)
+brag-output/work/
