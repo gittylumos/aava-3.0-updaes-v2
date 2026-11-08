@@ -25,7 +25,25 @@ Demo personas (Deepak, etc.) are the prototype's fictional seed data. No org nam
 ## Music
 120 BPM (0.5s beat, 2s bar), A minor, 30fps. Soft four-on-the-floor kick, offbeat hats, sub bass, warm pad, pluck arpeggio. Every cut lands on a beat. SFX (whoosh into cuts, soft clicks, a chime when the PRs land) are in key and tucked under the music.
 
-## Storyboard (22.0s)
+## Storyboard v2 (32.0s, extended cut: brag.mp4)
+
+Extended on request to show the Canvas tools, the task-progress notch, source citations, the evidence panel and the execution flow. That takes it past the usual 15–25s window, a deliberate trade for coverage. The original 22.5s cut is kept as `brag-v1-22s.mp4`.
+
+| # | Time | Beat | On screen | Text |
+|---|---|---|---|---|
+| 1 | 0.0–4.0 | Hook | Tool chips (ticket, design file, IDE, terminal, PR…) pile up | "Shipping one feedback screen" / "8 tools. 15+ context switches." |
+| 2 | 4.0–7.0 | Reveal | AAVA home, push in on "I have worked on a couple of your tasks", click the feedback-form task | "Or just open AAVA." |
+| 3 | 7.0–10.5 | Canvas tools | Canvas "+" menu, then Code (Monaco + explorer), Terminal (dev server), Changes (diff), Browser preview, one tab per beat. Tool-chip row tracks the active tool | "Built before you got here." |
+| 4 | 10.5–15.0 | Evidence | Task-progress notch drops open (9/10 steps, each with its proof). Click "Verified API contract" and the Evidence panel opens on the right. Then a Jira citation pill's hover card | "Every step cites its evidence." |
+| 5 | 15.0–17.5 | Execution flow | Execution activity graph (agent / tool / human nodes), panning to the amber Human-in-the-loop Review node | "See the whole run." |
+| 6 | 17.5–21.0 | Approve | Click Raise both PRs; push, PR and link rows resolve; "Both PRs raised." | "You approve. It ships." |
+| 7 | 21.0–25.0 | Gate | Refunds-API validator 18/2, pan to the amber approval gate | "Unsure? It stops and asks you." |
+| 8 | 25.0–28.5 | Intent | Type "Create a PRD for a referral program", then the PRD canvas | "Or just say what you want." |
+| 9 | 28.5–32.0 | Punchline | AAVA mark | "AAVA does the heavy lifting. / You make the decisions. / AAVA 3.0" |
+
+Music: same 120 BPM A-minor score, retimed. Soft UI ticks on each tool-tab cut, clicks on the notch row and the PR button, and in-key chimes when evidence opens, the review node lights, the PRs land, the gate lights and the PRD appears. Final chord at 30.0s.
+
+## Storyboard v1 (22.5s): brag-v1-22s.mp4
 
 | # | Time | Beat | On screen | Text (hold) |
 |---|---|---|---|---|

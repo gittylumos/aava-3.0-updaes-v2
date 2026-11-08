@@ -1,1 +1,1 @@
-Shipping one feedback screen used to mean 8 tools and 15+ context switches. AAVA 3.0 does that prep before you show up, then stops at the one call that's actually yours. AAVA does the heavy lifting. You make the decisions.
+Shipping one feedback screen used to mean 8 tools and 15+ context switches. AAVA 3.0 does that prep before you show up: code, terminal, diff and preview in one canvas, every step backed by cited evidence, the whole run on one graph. Then it stops at the one call that's actually yours. AAVA does the heavy lifting. You make the decisions.
