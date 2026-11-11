@@ -78,6 +78,10 @@ export interface Task {
   note: string
   /** When the task last moved. Relative, because nothing here has a real clock. */
   updated: string
+  /** Fixed stage ETA used when this sample task has no scripted Scenario. */
+  runProgress?: { stage: number; totalStages: number; etaMs?: number }
+  /** Position within the board's queued tasks. Derived when the board renders. */
+  queuePosition?: number
   /** What AAVA opens with when this task is picked up. */
   opening: string[]
   context: TaskContext
@@ -383,6 +387,10 @@ export interface PrepStep {
   label: string
   result: string
   detail: string
+  /** Stage from the five-step process plan that this execution step belongs to. */
+  stageKey?: string
+  /** Fixed remaining duration for the current stage, from this step to its next review/end. */
+  etaMs?: number
   /** Not done yet. The FIRST pending step is where the run is parked — that is
       what seeds `playground.prepAt`, and everything after it is simply ahead. */
   pending?: boolean
@@ -456,6 +464,8 @@ export interface Scenario {
       the session heading in the Execution-activity panel (e.g. the backlog flow's
       "Epics & Features Generator · EFG-1.0"). */
   capability?: { name: string; badge: string }
+  /** Five user-facing stages; prep steps map to these through `stageKey`. */
+  stages?: { key: string; label: string }[]
   prep: PrepStep[]
   evidence: Record<string, EvidenceBlock>
   files: Record<string, { versions: string[] }>

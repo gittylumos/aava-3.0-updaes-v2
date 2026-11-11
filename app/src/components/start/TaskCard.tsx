@@ -1,9 +1,12 @@
 import { motion } from 'motion/react'
 import type { Task } from '../../state/types'
 import { TAG_META } from '../../state/reducer'
+import { taskProgressText } from '../../state/taskProgress'
 
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const tag = TAG_META[task.tag]
+  const progress = taskProgressText(task)
+  const accessibleName = [task.title, tag.label, progress, task.note].filter(Boolean).join('. ')
 
   return (
     /* No layoutId. It had no partner to morph into — the start view is swapped
@@ -12,7 +15,8 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
        80px the wrong way before they settled. */
     <motion.button
       onClick={() => onOpen(task.id)}
-      className="press group flex h-full w-full flex-col rounded-[var(--r-lg)] px-5 pb-[18px] pt-[18px] text-left backdrop-blur-[20px] hover:bg-[var(--card-hover)]"
+      aria-label={accessibleName}
+      className="press group flex h-full w-full flex-col rounded-[var(--r-lg)] px-5 pb-[18px] pt-[18px] text-left backdrop-blur-[20px] hover:bg-[var(--card-hover)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
       style={{ background: 'var(--card)', border: '1px solid var(--glass-line)', minHeight: 152 }}
     >
       <h2 className="text-[15px] font-semibold leading-[1.35] tracking-[-.014em] text-pretty">{task.title}</h2>
@@ -30,6 +34,11 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
           <span className="h-[5px] w-[5px] rounded-full" style={{ background: 'currentColor' }} />
           {tag.label}
         </span>
+        {progress && (
+          <span className="text-[12px] font-medium leading-[1.4] text-pretty" style={{ color: 'var(--text-dim)' }}>
+            {progress}
+          </span>
+        )}
         <span className="text-[12px] leading-[1.45] text-pretty" style={{ color: 'var(--muted)' }}>
           {task.note}
         </span>

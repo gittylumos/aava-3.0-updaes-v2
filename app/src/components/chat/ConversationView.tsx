@@ -21,7 +21,7 @@ interface Props {
   chips: Chip[]
   /** Scenario run progress — rendered as the hanging dock (RunStrip), the same
       as the backlog flow. Null when there is no scenario. */
-  taskProgress: { steps: PrepStep[]; at: number; waiting: boolean } | null
+  taskProgress: { steps: PrepStep[]; at: number; waiting: boolean; stageSummary: string } | null
   /** Open a scenario step's evidence from the dock. */
   onOpenStep?: (key: string) => void
   preview: React.ReactNode
@@ -278,7 +278,7 @@ export function ConversationView({
         {taskProgress && (
           <div className="relative z-20 shrink-0 px-6 -mt-px">
             <RunStrip steps={taskProgress.steps} at={taskProgress.at} waiting={taskProgress.waiting}
-              onOpenStep={(key) => onOpenStep?.(key)} />
+              onOpenStep={(key) => onOpenStep?.(key)} stageSummary={taskProgress.stageSummary} />
           </div>
         )}
 
