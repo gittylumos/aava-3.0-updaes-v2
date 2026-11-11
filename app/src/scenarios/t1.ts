@@ -39,17 +39,24 @@ export class FeedbackService {
 
 export const t1: Scenario = {
   capability: { name: 'UI Screen Generator', badge: 'USG-1.0' },
+  stages: [
+    { key: 'intake', label: 'Read the ticket & design' },
+    { key: 'components', label: 'Match PLAY components' },
+    { key: 'contract', label: 'Verify the API contract' },
+    { key: 'build', label: 'Build & wire the screen' },
+    { key: 'handoff', label: 'Test & hand off' },
+  ],
   prep: [
-    { key: 'jira',   label: 'Read Jira',                   result: 'MOB-2841',              detail: 'Ticket, acceptance criteria and sprint pulled from the connected Jira project.' },
-    { key: 'figma',  label: 'Identified image from Figma', result: 'Feedback Form v3',       detail: 'Matched the ticket to a frame in the product file. Open the evidence to see the design.' },
-    { key: 'play',   label: 'Verified PLAY components',    result: '6 needed',               detail: 'Broke the design into six components and checked each one against the PLAY library.' },
-    { key: 'build',  label: 'Identified build vs use',     result: '4 reused · 2 built',     detail: 'Four components already existed. Two did not, so I built them. They need their own PR into PLAY.' },
-    { key: 'api',    label: 'Verified API contract',       result: 'POST /api/v1/feedback',  detail: 'Endpoint is live and the schema matches what the form needs. No contract change required.' },
-    { key: 'repo',   label: 'Identified code from repo',   result: 'src/app/feedback/',      detail: 'Located the feature module and the routing entry the form belongs to.' },
-    { key: 'inject', label: 'Injected the feedback form',  result: '7 files changed',        detail: 'Built the Angular page, wired it to the endpoint, registered the route.' },
-    { key: 'tests',  label: 'Ran unit tests',              result: '11 passed · 87%',        detail: 'All specs pass. Coverage is above the 80% gate.' },
-    { key: 'checks', label: 'Checks passed',               result: 'build · lint · contract', detail: 'Build clean, lint clean, response shape matches the contract. Three assumptions logged.' },
-    { key: 'ready',  label: 'Human-in-the-loop Review',    result: 'awaiting your review',   detail: 'It is running in the preview. Check it over, then clear the gate and I will raise both PRs.', pending: true, gate: 'ship' },
+    { key: 'jira',   label: 'Read Jira',                   result: 'MOB-2841',              detail: 'Ticket, acceptance criteria and sprint pulled from the connected Jira project.', stageKey: 'intake', etaMs: T.sampleStageEtaMs },
+    { key: 'figma',  label: 'Identified image from Figma', result: 'Feedback Form v3',       detail: 'Matched the ticket to a frame in the product file. Open the evidence to see the design.', stageKey: 'intake', etaMs: T.sampleStageEtaMs },
+    { key: 'play',   label: 'Verified PLAY components',    result: '6 needed',               detail: 'Broke the design into six components and checked each one against the PLAY library.', stageKey: 'components', etaMs: T.sampleStageEtaMs },
+    { key: 'build',  label: 'Identified build vs use',     result: '4 reused · 2 built',     detail: 'Four components already existed. Two did not, so I built them. They need their own PR into PLAY.', stageKey: 'components', etaMs: T.sampleStageEtaMs },
+    { key: 'api',    label: 'Verified API contract',       result: 'POST /api/v1/feedback',  detail: 'Endpoint is live and the schema matches what the form needs. No contract change required.', stageKey: 'contract', etaMs: T.sampleStageEtaMs },
+    { key: 'repo',   label: 'Identified code from repo',   result: 'src/app/feedback/',      detail: 'Located the feature module and the routing entry the form belongs to.', stageKey: 'build', etaMs: T.sampleStageEtaMs },
+    { key: 'inject', label: 'Injected the feedback form',  result: '7 files changed',        detail: 'Built the Angular page, wired it to the endpoint, registered the route.', stageKey: 'build', etaMs: T.sampleStageEtaMs },
+    { key: 'tests',  label: 'Ran unit tests',              result: '11 passed · 87%',        detail: 'All specs pass. Coverage is above the 80% gate.', stageKey: 'handoff', etaMs: T.sampleStageEtaMs },
+    { key: 'checks', label: 'Checks passed',                result: 'build · lint · contract', detail: 'Build clean, lint clean, response shape matches the contract. Three assumptions logged.', stageKey: 'handoff', etaMs: T.sampleStageEtaMs },
+    { key: 'ready',  label: 'Human-in-the-loop Review',    result: 'awaiting your review',   detail: 'It is running in the preview. Check it over, then clear the gate and I will raise both PRs.', stageKey: 'handoff', pending: true, gate: 'ship' },
   ],
 
   evidence: {

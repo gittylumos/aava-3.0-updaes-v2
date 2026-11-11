@@ -18,7 +18,7 @@ export function TasksView({ tasks, onOpenTask }: { tasks: Task[]; onOpenTask: (i
         
       </h1>
 
-      <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-4">
         {TASK_COLUMNS.map((col) => {
           const rows = tasks.filter((t) => t.status === col.key)
           return (

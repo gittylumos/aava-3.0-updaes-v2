@@ -1,6 +1,7 @@
 import type { Action, Arrangement, AppState, Effect, PlaygroundState, PrepStep, Task, TaskTag, Thread, ThreadSnapshot } from './types'
 import { hasPreview } from './workspace'
 import { DEFAULT_PROFILE, PROFILE_ORDER, type ProfileId } from '../data/user'
+import { T } from './timing'
 
 /* The board task that mirrors a PRD object. Created when the PRD opens, so a
    PRD parked at a gate shows on the home screen exactly like a scripted task,
@@ -33,6 +34,7 @@ export const TASKS: Task[] = [
   {
     id: 'T1', title: 'Add product feedback form',
     status: 'clarify', tag: 'review', est: '2 hrs', dep: 'None', recommended: true,
+    runProgress: { stage: 5, totalStages: 5 },
     note: 'Completed development of UI screen.', updated: '8 min ago',
     opening: [
       'Analyzed the task.',
@@ -68,6 +70,7 @@ export const TASKS: Task[] = [
   {
     id: 'T7', title: 'Migrate the refunds API to the v2 schema',
     status: 'clarify', tag: 'input', est: '6 hrs', dep: 'Payments platform',
+    runProgress: { stage: 4, totalStages: 5 },
     note: 'Validator passed. Parked at step 4 of 10 — your approval.', updated: '12 min ago',
     opening: [
       'The Validator agent has finished. Nothing has been applied to any service yet.',
@@ -170,6 +173,7 @@ export const TASKS: Task[] = [
   {
     id: 'T4', title: 'Add telemetry functionality',
     status: 'wip', tag: 'working', est: '4 hrs', dep: 'None',
+    runProgress: { stage: 3, totalStages: 5, etaMs: T.sampleStageEtaMs },
     note: 'Instrumenting endpoints. Roughly half done.', updated: '3 hrs ago',
     opening: [
       'Still working on this one. Seven of twelve endpoints are instrumented and reporting.',
@@ -404,6 +408,7 @@ export const threadIdForTask = (taskId: string) => `th-${taskId.toLowerCase()}`
 /** The board's columns. The sidebar lists tasks flat — a 268px column is too
  *  narrow for three headers to earn their space. */
 export const TASK_COLUMNS: { key: Task['status']; name: string }[] = [
+  { key: 'pending', name: 'Queued' },
   { key: 'wip',     name: 'Working in the background' },
   { key: 'clarify', name: 'Need your inputs' },
   { key: 'done',    name: 'Completed' },

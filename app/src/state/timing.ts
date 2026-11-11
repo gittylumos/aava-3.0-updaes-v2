@@ -21,6 +21,8 @@ export const T = {
   ttftFast: t(700),
   /** TTFT when the answer needs reasoning over gathered context. Real: 1.8–3s. */
   ttftReason: t(2400),
+  /** Fixed sample ETA for the running-task card example; display-only, not playback. */
+  sampleStageEtaMs: 4 * 60_000,
   /** Characters revealed per second while streaming. Real: ~45 tok/s ≈ 180 c/s.
    *  Not scaled by SPEED — streaming that is too fast stops reading as streaming. */
   streamCps: 120,

@@ -163,19 +163,26 @@ describe('toV2', () => {
 
 export const t7: Scenario = {
   capability: { name: 'Schema Migration Agent', badge: 'SMA-2.0' },
+  stages: [
+    { key: 'ticket', label: 'Read the ticket & RFC' },
+    { key: 'diff', label: 'Diff v1 → v2 schema' },
+    { key: 'replay', label: 'Replay recorded refunds' },
+    { key: 'validate', label: 'Validate and apply changes' },
+    { key: 'rollout', label: 'Canary & roll out' },
+  ],
   prep: [
-    { key: 'jira',     label: 'Read Jira',                        result: 'PAY-3120',              detail: 'Ticket, the linked v2 RFC and the three target services pulled from the connected Jira project.' },
-    { key: 'map',      label: 'Mapped v1 → v2 refund schema',     result: '14 fields · 3 renamed', detail: 'Every v1 field is mapped to a v2 field or explicitly dropped. Two fields have no clean source — that is what the gate below is for.' },
-    { key: 'validate', label: 'Validator agent · contract conformance', result: '18 passed · 2 failed', detail: 'A separate agent, not the one that wrote the mapping. It replayed 1,200 recorded v1 refunds through the mapper and checked every result against the v2 JSON Schema and each consumer contract.' },
+    { key: 'jira',     label: 'Read Jira',                        result: 'PAY-3120',              detail: 'Ticket, the linked v2 RFC and the three target services pulled from the connected Jira project.', stageKey: 'ticket', etaMs: T.sampleStageEtaMs },
+    { key: 'map',      label: 'Mapped v1 → v2 refund schema',     result: '14 fields · 3 renamed', detail: 'Every v1 field is mapped to a v2 field or explicitly dropped. Two fields have no clean source — that is what the gate below is for.', stageKey: 'diff', etaMs: T.sampleStageEtaMs },
+    { key: 'validate', label: 'Validator agent · contract conformance', result: '18 passed · 2 failed', detail: 'A separate agent, not the one that wrote the mapping. It replayed 1,200 recorded v1 refunds through the mapper and checked every result against the v2 JSON Schema and each consumer contract.', stageKey: 'replay', etaMs: T.sampleStageEtaMs },
     /* Short result on purpose — the current row carries two pills, and the
        label is what has to survive the truncation. */
-    { key: 'gate1',    label: 'Confirm the two unmapped fields',   result: 'approved by you',          detail: 'The two checks the Validator failed are both "v1 has data v2 has no home for". Rule on them and I will run steps 5 and 6, then stop again at step 7.', pending: true, gate: 'gate1' },
-    { key: 'apply',    label: 'Apply migration across 3 services', result: '9 files · 3 repos',           detail: 'payments-api, ledger-service and refund-worker, behind the refunds_v2 flag so the rollback is a flag flip.', pending: true },
-    { key: 'regress',  label: 'Regression + consumer contract tests', result: '340 passed · 4 of 4',        detail: 'The full payments regression suite plus the recorded contracts for all four downstream consumers.', pending: true },
-    { key: 'gate2',    label: 'Sign-off before staging',          result: 'signed off by you',           detail: 'Second gate. Real money moves through staging, so a human confirms the regression results before the canary goes anywhere.', pending: true, gate: 'gate2' },
-    { key: 'canary',   label: 'Canary release to staging',        result: '5% · 1 hour',           detail: 'Five percent of refund traffic on v2, the rest on v1, for one hour.', pending: true },
-    { key: 'verify',   label: 'Verify live consumer traffic',     result: 'no drift',           detail: 'Compare v1 and v2 settlement totals on the canary. Any drift and the flag goes back off.', pending: true },
-    { key: 'prs',      label: 'Raise the PRs',                    result: '3 raised',           detail: 'Three pull requests, one per service, all linked to PAY-3120. Opening a PR puts the work in front of other people, so the last call is yours too.', pending: true, gate: 'gate3' },
+    { key: 'gate1',    label: 'Confirm the two unmapped fields',   result: 'approved by you',          detail: 'The two checks the Validator failed are both "v1 has data v2 has no home for". Rule on them and I will run steps 5 and 6, then stop again at step 7.', stageKey: 'validate', pending: true, gate: 'gate1' },
+    { key: 'apply',    label: 'Apply migration across 3 services', result: '9 files · 3 repos',           detail: 'payments-api, ledger-service and refund-worker, behind the refunds_v2 flag so the rollback is a flag flip.', stageKey: 'validate', etaMs: T.sampleStageEtaMs, pending: true },
+    { key: 'regress',  label: 'Regression + consumer contract tests', result: '340 passed · 4 of 4',        detail: 'The full payments regression suite plus the recorded contracts for all four downstream consumers.', stageKey: 'validate', etaMs: T.sampleStageEtaMs, pending: true },
+    { key: 'gate2',    label: 'Sign-off before staging',          result: 'signed off by you',           detail: 'Second gate. Real money moves through staging, so a human confirms the regression results before the canary goes anywhere.', stageKey: 'validate', pending: true, gate: 'gate2' },
+    { key: 'canary',   label: 'Canary release to staging',        result: '5% · 1 hour',           detail: 'Five percent of refund traffic on v2, the rest on v1, for one hour.', stageKey: 'rollout', etaMs: T.sampleStageEtaMs, pending: true },
+    { key: 'verify',   label: 'Verify live consumer traffic',     result: 'no drift',           detail: 'Compare v1 and v2 settlement totals on the canary. Any drift and the flag goes back off.', stageKey: 'rollout', etaMs: T.sampleStageEtaMs, pending: true },
+    { key: 'prs',      label: 'Raise the PRs',                    result: '3 raised',           detail: 'Three pull requests, one per service, all linked to PAY-3120. Opening a PR puts the work in front of other people, so the last call is yours too.', stageKey: 'rollout', pending: true, gate: 'gate3' },
   ],
 
   evidence: {

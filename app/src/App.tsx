@@ -30,6 +30,8 @@ import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
 import { useTheme } from './state/useTheme'
 import { PROFILES, PROFILE_ORDER } from './data/user'
+import { getScenario } from './scenarios'
+import { deriveTaskBoard, formatStageProgress, formatStageProgressAccessible, type ScenarioTaskRun } from './state/taskProgress'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
@@ -40,6 +42,16 @@ export default function App() {
   const j = useJourney()
   const { theme, toggle: toggleTheme } = useTheme()
   const profile = PROFILES[j.state.profileId]
+  const taskRuns: Record<string, ScenarioTaskRun> = {}
+  for (const snapshot of Object.values(j.state.stashed)) {
+    const taskId = snapshot.activeTaskId
+    const scenario = taskId ? getScenario(taskId) : null
+    if (taskId && scenario) taskRuns[taskId] = { scenario, prepAt: snapshot.playground.prepAt }
+  }
+  if (j.state.activeTaskId && j.scenario) {
+    taskRuns[j.state.activeTaskId] = { scenario: j.scenario, prepAt: j.state.playground.prepAt }
+  }
+  const boardTasks = deriveTaskBoard(j.state.tasks, taskRuns)
   /* The account switch cycles the profiles in order, so "the other profile" is
      simply the next one round the ring. */
   /* Every profile except the one signed in — the account menu lists them all. */
@@ -49,8 +61,8 @@ export default function App() {
      completed work. Ajay's home is always empty — he builds from intent, there
      is no board of assigned work. Deepak keeps his full seeded board. */
   const homeTasks = j.state.profileId === 'raman'
-    ? j.state.tasks.filter((t) => t.tag !== 'done')
-    : j.state.tasks
+    ? boardTasks.filter((t) => t.tag !== 'done')
+    : boardTasks
   const homeSubtitle = homeTasks.length === 0
     ? j.state.profileId === 'ajay'
       ? 'Describe the agent or artifact you want, and I will find the golden match.'
@@ -176,7 +188,31 @@ export default function App() {
      (RunStrip), driven by the scenario's prep steps. `waiting` (amber, pulsing)
      when the current step is a gate the run is parked on; otherwise blue. */
   const taskProgress = j.scenario
-    ? { steps: j.scenario.prep, at: j.state.playground.prepAt, waiting: !!j.scenario.prep[j.state.playground.prepAt]?.gate }
+    ? {
+        steps: j.scenario.prep,
+        at: j.state.playground.prepAt,
+        waiting: !!j.scenario.prep[j.state.playground.prepAt]?.gate,
+        stageSummary: (() => {
+          const current = j.scenario.prep[j.state.playground.prepAt]
+          const stages = j.scenario.stages ?? []
+          const stageIndex = stages.findIndex((stage) => stage.key === current?.stageKey)
+          return formatStageProgress({
+            stage: stageIndex >= 0 ? stageIndex + 1 : undefined,
+            totalStages: stages.length || undefined,
+            etaMs: current?.etaMs,
+          }, !!current?.gate)
+        })(),
+        accessibleStageSummary: (() => {
+          const current = j.scenario.prep[j.state.playground.prepAt]
+          const stages = j.scenario.stages ?? []
+          const stageIndex = stages.findIndex((stage) => stage.key === current?.stageKey)
+          return formatStageProgressAccessible({
+            stage: stageIndex >= 0 ? stageIndex + 1 : undefined,
+            totalStages: stages.length || undefined,
+            etaMs: current?.etaMs,
+          }, !!current?.gate)
+        })(),
+      }
     : null
 
   /* The generated-app card shows the running app rather than a picture of it.
@@ -361,7 +397,7 @@ export default function App() {
                     composer={composerFor()} />
                 )}
                 {j.state.arrangement === 'tasks' && (
-                  <TasksView key="tasks" tasks={j.state.tasks} onOpenTask={j.openTask} />
+                  <TasksView key="tasks" tasks={boardTasks} onOpenTask={j.openTask} />
                 )}
                 {(j.state.arrangement === 'conversation' || j.state.arrangement === 'split') && (
                   <ConversationView

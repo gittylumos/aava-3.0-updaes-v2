@@ -53,12 +53,14 @@ function useMeasure() {
   return [ref, bounds] as const
 }
 
-export function RunStrip({ steps, at, waiting, onOpenStep }: {
+export function RunStrip({ steps, at, waiting, onOpenStep, stageSummary, accessibleStageSummary }: {
   steps: PrepStep[]
   at: number
   /** True only at a gate — drives amber vs blue, the shimmer, and the label. */
   waiting: boolean
   onOpenStep: (key: string) => void
+  stageSummary?: string
+  accessibleStageSummary?: string
 }) {
   const [open, setOpen] = useState(false)
   const [contentRef, bounds] = useMeasure()
@@ -146,7 +148,10 @@ export function RunStrip({ steps, at, waiting, onOpenStep }: {
             screens; w-max lets a short one hug its content. */}
         <div ref={contentRef} className="w-max max-w-[min(360px,86vw)]">
           {/* The strip — one line, always visible. */}
-          <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-label={[label, `${doneCount}/${steps.length} steps`, accessibleStageSummary ?? stageSummary].filter(Boolean).join(' · ')}
             className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-[var(--wash-2)]">
             {allDone ? (
               <span className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full" style={{ background: 'var(--ok)' }}>
@@ -172,6 +177,12 @@ export function RunStrip({ steps, at, waiting, onOpenStep }: {
               <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+
+          {stageSummary && (
+            <div className="px-3.5 pb-2.5 text-[11px] leading-none" style={{ color: 'var(--muted)' }}>
+              {stageSummary}
+            </div>
+          )}
 
           {/* The full phase list — the same surface, grown downward. It fades up
               into place as the shell springs open. */}
