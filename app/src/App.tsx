@@ -31,7 +31,7 @@ import { useJourney } from './state/useJourney'
 import { useTheme } from './state/useTheme'
 import { PROFILES, PROFILE_ORDER } from './data/user'
 import { getScenario } from './scenarios'
-import { deriveTaskBoard, formatStageProgress, type ScenarioTaskRun } from './state/taskProgress'
+import { deriveTaskBoard, formatStageProgress, formatStageProgressAccessible, type ScenarioTaskRun } from './state/taskProgress'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
@@ -197,6 +197,16 @@ export default function App() {
           const stages = j.scenario.stages ?? []
           const stageIndex = stages.findIndex((stage) => stage.key === current?.stageKey)
           return formatStageProgress({
+            stage: stageIndex >= 0 ? stageIndex + 1 : undefined,
+            totalStages: stages.length || undefined,
+            etaMs: current?.etaMs,
+          }, !!current?.gate)
+        })(),
+        accessibleStageSummary: (() => {
+          const current = j.scenario.prep[j.state.playground.prepAt]
+          const stages = j.scenario.stages ?? []
+          const stageIndex = stages.findIndex((stage) => stage.key === current?.stageKey)
+          return formatStageProgressAccessible({
             stage: stageIndex >= 0 ? stageIndex + 1 : undefined,
             totalStages: stages.length || undefined,
             etaMs: current?.etaMs,

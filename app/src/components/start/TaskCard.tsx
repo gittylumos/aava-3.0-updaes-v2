@@ -6,7 +6,8 @@ import { taskProgressText } from '../../state/taskProgress'
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const tag = TAG_META[task.tag]
   const progress = taskProgressText(task)
-  const accessibleName = [task.title, tag.label, progress, task.note].filter(Boolean).join('. ')
+  const accessibleProgress = taskProgressText(task, true)
+  const accessibleName = [task.title, tag.label, accessibleProgress, task.note].filter(Boolean).join('. ')
 
   return (
     /* No layoutId. It had no partner to morph into — the start view is swapped

@@ -2,16 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { TASKS } from './reducer'
 import { t1 } from '../scenarios/t1'
 import { t7 } from '../scenarios/t7'
-import { deriveTaskBoard, formatEta, formatStageProgress, taskProgressText } from './taskProgress'
+import { deriveTaskBoard, formatEta, formatStageProgress, formatStageProgressAccessible, taskProgressText } from './taskProgress'
 
 describe('task progress', () => {
   it('formats minute and half-hour ETAs', () => {
-    expect(formatEta(59_999)).toBe('<1 min')
+    expect(formatEta(59_000)).toBe('<1 min')
     expect(formatEta(60_000)).toBe('1 min')
     expect(formatEta(59 * 60_000)).toBe('59 min')
     expect(formatEta(59.5 * 60_000)).toBe('60 min')
     expect(formatEta(60 * 60_000)).toBe('1 hr')
     expect(formatEta(75 * 60_000)).toBe('1.5 hrs')
+  })
+
+  it('uses a screen-reader friendly phrase below one minute', () => {
+    expect(formatStageProgressAccessible({ stage: 3, totalStages: 5, etaMs: 59_000 }))
+      .toBe('Stage 3 of 5, less than 1 minute to next review')
+    expect(formatStageProgressAccessible({ stage: 3, totalStages: 5, etaMs: 60_000 }))
+      .toBe('Stage 3 of 5, about 1 min to next review')
   })
 
   it('shows estimating when a running stage has no estimate', () => {

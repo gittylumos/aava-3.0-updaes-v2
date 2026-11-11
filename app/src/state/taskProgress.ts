@@ -30,11 +30,28 @@ export function formatStageProgress(
   return `${stage}${eta === 'estimating…' ? eta : `~${eta} to next review`}`
 }
 
-export function taskProgressText(task: Task): string | null {
+export function formatStageProgressAccessible(
+  progress: { stage?: number; totalStages?: number; etaMs?: number },
+  waiting = false,
+): string {
+  const stage = progress.stage && progress.totalStages
+    ? `Stage ${progress.stage} of ${progress.totalStages}, `
+    : ''
+  if (waiting) return `${stage}needs your input`
+  if (!progress.stage || !progress.totalStages) return 'estimating'
+  if (progress.etaMs !== undefined && progress.etaMs >= 0 && progress.etaMs < 60_000) {
+    return `${stage}less than 1 minute to next review`
+  }
+  const eta = formatEta(progress.etaMs)
+  return `${stage}${eta === 'estimating…' ? 'estimating' : `about ${eta} to next review`}`
+}
+
+export function taskProgressText(task: Task, accessible = false): string | null {
+  const format = accessible ? formatStageProgressAccessible : formatStageProgress
   if (task.status === 'pending') return `Queued · #${task.queuePosition ?? '—'}`
-  if (task.status === 'wip') return formatStageProgress(task.runProgress ?? {})
+  if (task.status === 'wip') return format(task.runProgress ?? {})
   if (task.status === 'clarify' && task.runProgress) {
-    return formatStageProgress(task.runProgress, true)
+    return format(task.runProgress, true)
   }
   return null
 }
