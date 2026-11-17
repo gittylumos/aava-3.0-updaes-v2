@@ -256,7 +256,12 @@ export function useCli() {
   if (note) lines.push(dim(`ℹ ${note}`), [])
 
   /* ── Slash commands ───────────────────────────────────────────── */
-  const needTask = (f: () => Line[]): Line[] => (j.scenario ? f() : [dim('No task open — /resume to pick one.')])
+  /* Needs an open task; `scripted` also needs a scenario (T2 has none — its
+     context still prints, its steps / changes / validation do not exist). */
+  const needTask = (f: () => Line[], scripted = true): Line[] =>
+    !s.activeTaskId ? [dim('No task open — /resume to pick one.')]
+      : scripted && !j.scenario ? [dim('Nothing to show for this task yet.')]
+        : f()
 
   const resetAll = () => {
     setExtras({}); setPreviewOn({}); seenReq.current = {}
@@ -285,7 +290,7 @@ export function useCli() {
         return
       }
       case '/steps': out(needTask(() => printSteps(ctx))); return
-      case '/context': out(needTask(() => printContext(ctx))); return
+      case '/context': out(needTask(() => printContext(ctx), false)); return
       case '/diff': out(needTask(() => printDiff(ctx))); return
       case '/validation': out(needTask(() => printValidation(ctx))); return
       case '/tasks': out(previewRunning ? ngServeLines() : [dim('No background tasks')]); return
