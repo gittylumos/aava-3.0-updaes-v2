@@ -1,0 +1,104 @@
+/* LOW-FIDELITY WIREFRAME — branch feat/low-fidelity only.
+ *
+ * Same screens, layout, motion and interactions as the product build; only the
+ * colour is gone. Two layers do it:
+ *
+ *   1. Tokens. Every colour token (surfaces, text, borders, status, zones,
+ *      aurora, gradients, shadows) is redefined as a neutral grey. The light /
+ *      dark split collapses into one wireframe look — `useTheme` is locked and
+ *      the toggles are hidden (THEME_LOCKED).
+ *   2. A grayscale filter on the root. Around a hundred colours are hardcoded
+ *      in components (graph nodes, file-type icons, the preview app, logos,
+ *      Monaco). The filter drains those too, so nothing coloured can leak in
+ *      from a value the tokens do not reach. On the root element a filter does
+ *      not create a containing block, so fixed-position overlays are unaffected.
+ *
+ * Imported after tokens.css; the selector list matches both theme states so it
+ * wins over the light-theme block at equal-or-higher specificity.
+ */
+
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'] {
+  color-scheme: light;
+
+  /* Primary = ink. */
+  --brand: #1A1A1A;
+  --brand-hover: #000000;
+  --brand-pressed: #424242;
+
+  /* Paper and boxes. */
+  --ground: #F4F4F4;
+  --slab: #FFFFFF;
+  --slab-raised: #FFFFFF;
+  --card: #FFFFFF;
+  --card-hover: #F0F0F0;
+
+  /* Ink ramp — every step still clears AA on white. */
+  --text: #1A1A1A;
+  --text-dim: #333333;
+  --muted: #5C5C5C;
+  --muted-deep: #737373;
+
+  /* Wireframe lines: a touch heavier than the product so boxes read as boxes. */
+  --border: #BDBDBD;
+  --glass-line: #C4C4C4;
+  --glass-line-soft: #DDDDDD;
+
+  --glass: rgba(0, 0, 0, .03);
+  --glass-strong: rgba(0, 0, 0, .06);
+
+  --wash-1: rgba(0, 0, 0, .02);
+  --wash-2: rgba(0, 0, 0, .04);
+  --wash-3: rgba(0, 0, 0, .06);
+  --wash-4: rgba(0, 0, 0, .085);
+  --wash-5: rgba(0, 0, 0, .11);
+  --wash-6: rgba(0, 0, 0, .2);
+
+  /* Flat: no depth, an outline where a shadow used to lift a surface. */
+  --shadow-panel: 0 0 0 1px #BDBDBD;
+  --shadow-pop: 0 0 0 1px #BDBDBD;
+  --shadow-composer: 0 0 0 1px #BDBDBD;
+  --shadow-drawer: 0 0 0 1px #BDBDBD;
+
+  /* Primary buttons: solid ink instead of the teal→blue gradient. */
+  --primary-grad: linear-gradient(#1A1A1A, #1A1A1A);
+
+  /* No ambient glow. */
+  --lobe-1: 0;
+  --lobe-2: 0;
+  --lobe-3: 0;
+
+  --scrim: rgba(0, 0, 0, .28);
+
+  /* Code / terminal stay a dark block — their text colours are hardcoded for a
+     dark ground, and a dark box is the conventional wireframe "code" mark. */
+  --code-bg: #262626;
+  --preview-bg: #FFFFFF;
+  --on-text: #FFFFFF;
+  --focus-ring: #1A1A1A;
+
+  /* Status: one grey family. The labels carry the meaning in a wireframe. */
+  --ok: #333333;      --ok-surface: #EBEBEB;
+  --warn: #333333;    --warn-surface: #EBEBEB;
+  --danger: #333333;  --danger-surface: #EBEBEB;
+  --done: #333333;    --done-surface: #EBEBEB;
+  --pending: #9E9E9E;
+
+  /* Zones: same structure, no hue. */
+  --zone-sidebar-tint: #FAFAFA;       --zone-sidebar-accent: #5C5C5C;
+  --zone-conversation-tint: #FAFAFA;  --zone-conversation-accent: #5C5C5C;
+  --zone-canvas-tint: #FAFAFA;        --zone-canvas-accent: #5C5C5C;
+  --zone-toolbar-tint: #FAFAFA;       --zone-toolbar-accent: #5C5C5C;
+  --zone-watch-tint: #FAFAFA;         --zone-watch-accent: #5C5C5C;
+
+  /* Aurora keeps its motion (the recommended-card ring still turns) in greys. */
+  --aurora-1: #9E9E9E;
+  --aurora-2: #5C5C5C;
+  --aurora-3: #BDBDBD;
+}
+
+/* The catch-all for hardcoded colour, images and embedded editors. */
+html {
+  filter: grayscale(1);
+}

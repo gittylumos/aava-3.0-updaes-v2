@@ -3,6 +3,11 @@ import { flushSync } from 'react-dom'
 
 export type Theme = 'dark' | 'light'
 
+/** Low-fidelity build: one wireframe look, no theme switching. The toggles are
+ *  hidden wherever they render, and the hook always reports 'light' — the
+ *  wireframe palette in design/wireframe.css overrides both themes anyway. */
+export const THEME_LOCKED = true
+
 const KEY = 'aava-theme'
 
 /* The theme swap plays as a blur-fade crossfade: the old look dissolves into a
@@ -15,6 +20,7 @@ const EASE = 'ease-in-out'
 /** Dark is the product's own look and the default everywhere — the OS is not
  *  consulted. An explicit choice overrides it and persists. */
 function initial(): Theme {
+  if (THEME_LOCKED) return 'light'
   if (typeof window === 'undefined') return 'dark'
   const saved = window.localStorage.getItem(KEY)
   return saved === 'light' ? 'light' : 'dark'
@@ -34,6 +40,7 @@ export function useTheme() {
   }, [theme])
 
   const toggle = useCallback(() => {
+    if (THEME_LOCKED) return
     const next: Theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
     const apply = () => {
       document.documentElement.dataset.theme = next

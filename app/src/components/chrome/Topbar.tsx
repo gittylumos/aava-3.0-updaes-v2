@@ -1,4 +1,5 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
+import { THEME_LOCKED } from '../../state/useTheme'
 import { IconBell, IconMoon, IconSun } from './icons'
 
 interface Props {
@@ -111,12 +112,14 @@ export function Topbar({ onHome, onNotifications, theme, onToggleTheme, unread =
             border: '1px solid var(--glass-line-soft)',
           }}
         >
+          {!THEME_LOCKED && (
           <IconButton
             label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             onClick={onToggleTheme}
           >
             {theme === 'dark' ? <IconSun /> : <IconMoon />}
           </IconButton>
+          )}
           <IconButton label="Notifications" onClick={onNotifications} dot={!!unread}>
             <IconBell />
           </IconButton>

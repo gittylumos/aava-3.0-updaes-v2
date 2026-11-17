@@ -28,7 +28,7 @@ import { Search } from './components/overlays/Search'
 import { Toast } from './components/overlays/Toast'
 import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
-import { useTheme } from './state/useTheme'
+import { THEME_LOCKED, useTheme } from './state/useTheme'
 import { PROFILES, PROFILE_ORDER } from './data/user'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
@@ -306,6 +306,7 @@ export default function App() {
                   the screens this corner does not appear on. */}
               {j.state.arrangement === 'start' && (
                 <div className="absolute right-4 top-4 z-[60] flex items-center gap-2">
+                  {!THEME_LOCKED && (
                   <Tooltip label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} side="bottom" align="end">
                     <button
                       type="button"
@@ -332,6 +333,7 @@ export default function App() {
                       </span>
                     </button>
                   </Tooltip>
+                  )}
                   <Tooltip label="Notifications" side="bottom" align="end">
                     <button
                       type="button"

@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './design/fonts.css';
 @import './design/tokens.css';
+@import './design/wireframe.css';
 
 /* Everything here MUST stay inside @layer base.
    Tailwind v4 emits utilities into a cascade layer, and unlayered CSS always

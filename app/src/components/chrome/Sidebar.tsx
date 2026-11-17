@@ -9,6 +9,7 @@ import { Tooltip, TooltipProvider } from './Tooltip'
 import { BrandMark, IconChat, IconChevron, IconFilter, IconMoon, IconPanel, IconPinned, IconPlus, IconSearch, IconSun, IconTasks } from './icons'
 import type { Profile } from '../../data/user'
 import { useDismiss } from '../../state/useDismiss'
+import { THEME_LOCKED } from '../../state/useTheme'
 
 /* One list, not two lanes — the filter narrows it, it does not switch it. */
 type Filter = 'all' | 'tasks' | 'chat'
@@ -416,12 +417,14 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
             <span>Settings</span>
           </MenuRow>
 
+          {!THEME_LOCKED && (
           <MenuRow onClick={onToggleTheme}>
             <span className="grid h-[15px] w-[15px] place-items-center">
               {theme === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
             </span>
             <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </MenuRow>
+          )}
         </div>,
         document.body,
       )}
