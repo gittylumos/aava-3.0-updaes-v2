@@ -554,6 +554,9 @@ export interface AppState {
   /** Unread count for the topbar bell. Cleared when the notifications panel opens. */
   /** Task ids whose notification has been opened. Everything else reads as new. */
   readNotifications: string[]
+  /** Low-fi demo switch: a first-time user has no tasks, threads, pins or
+      notifications — the home is the empty greeting + prompt bar. */
+  firstTime: boolean
   chipStage: string | null
   /** Sidebar. Open by default; collapses to an icon rail and pushes content back. */
   sidebarOpen: boolean
@@ -630,6 +633,7 @@ export type Action =
   | { type: 'SET_AGENT_DOC' }
   /** Switch directly to a named profile (the account menu lists all of them). */
   | { type: 'SET_PROFILE'; profileId: ProfileId }
+  | { type: 'SET_FIRST_TIME'; on: boolean }
   /** Record what the user typed into a gate's inline textarea, and retire the
       gate — the note is shown back inside the answered card. */
   | { type: 'RECORD_ANSWER'; messageId: string; text: string }

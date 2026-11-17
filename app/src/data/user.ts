@@ -16,7 +16,7 @@ export interface Profile {
 export type ProfileId = 'deepak' | 'raman' | 'ajay' | 'meera'
 
 export const PROFILES: Record<ProfileId, Profile> = {
-  deepak: { id: 'deepak', name: 'Deepak', role: 'Admin', org: 'HP', initials: 'D' },
+  deepak: { id: 'deepak', name: 'Alex', role: 'Admin', org: 'HP', initials: 'A' },
   raman: { id: 'raman', name: 'Raman', role: 'Product Manager', org: 'HP', initials: 'R' },
   ajay: { id: 'ajay', name: 'Ajay', role: 'Agent Designer', org: 'HP', initials: 'A' },
   /* User B in the cross-persona handoff — she picks up the backlog Raman

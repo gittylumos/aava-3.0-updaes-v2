@@ -353,7 +353,6 @@ function PinnedGate({ block, live, revising, children }: {
         className="press mb-6 mt-3 flex w-full items-center gap-2.5 rounded-[var(--r-md)] px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--warn)_12%,var(--glass))]"
         style={{ background: 'color-mix(in srgb, var(--warn) 7%, var(--glass))', border: '1px solid var(--warn)' }}>
         <span className="relative grid h-2 w-2 shrink-0 place-items-center">
-          <span className="absolute inset-0 animate-ping rounded-full motion-reduce:animate-none" style={{ background: 'var(--warn)', opacity: 0.6 }} />
           <span className="relative h-2 w-2 rounded-full" style={{ background: 'var(--warn)' }} />
         </span>
         <span className="shrink-0 text-[9.5px] font-semibold uppercase tracking-[.13em]" style={{ color: 'var(--warn)' }}>

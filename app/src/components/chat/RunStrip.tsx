@@ -246,16 +246,8 @@ function StripMarker({ state, accent }: { state: 'done' | 'current' | 'ahead'; a
   )
 }
 
+/* Low-fi: the strip is static — no pulsing dot, no shimmering label. The
+   classes stay so the markup is unchanged; they just hold still. */
 const stripCss = `
-.strip-pulse { animation: strip-pulse 1.4s ease-in-out infinite; }
-@keyframes strip-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.6); } }
-.strip-shimmer {
-  background: linear-gradient(90deg, var(--sc) 0%, var(--sc-hi) 22%, var(--sc) 46%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
-  color: transparent; animation: strip-sheen 1.8s linear infinite;
-}
-@keyframes strip-sheen { to { background-position: -220% 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .strip-pulse, .strip-shimmer { animation: none; }
-  .strip-shimmer { color: var(--sc); -webkit-text-fill-color: var(--sc); }
-}`
+.strip-pulse { animation: none; }
+.strip-shimmer { color: var(--sc); -webkit-text-fill-color: var(--sc); }`

@@ -29,7 +29,8 @@ import { Toast } from './components/overlays/Toast'
 import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
 import { THEME_LOCKED, useTheme } from './state/useTheme'
-import { PROFILES, PROFILE_ORDER } from './data/user'
+import { PROFILES } from './data/user'
+import { UserTypeSwitch } from './components/start/UserTypeSwitch'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
    size — so they read as a pair rather than as two unrelated buttons. */
@@ -43,7 +44,8 @@ export default function App() {
   /* The account switch cycles the profiles in order, so "the other profile" is
      simply the next one round the ring. */
   /* Every profile except the one signed in — the account menu lists them all. */
-  const otherProfiles = PROFILE_ORDER.filter((id) => id !== j.state.profileId).map((id) => PROFILES[id])
+  /* Low-fi: one profile, no switching — the account menu lists no others. */
+  const otherProfiles: typeof profile[] = []
   /* Raman's home stays empty until something he started needs him: it surfaces
      only active work (a PRD in flight, shown as "needs your input"), never
      completed work. Ajay's home is always empty — he builds from intent, there
@@ -51,7 +53,9 @@ export default function App() {
   const homeTasks = j.state.profileId === 'raman'
     ? j.state.tasks.filter((t) => t.tag !== 'done')
     : j.state.tasks
-  const homeSubtitle = homeTasks.length === 0
+  const homeSubtitle = j.state.firstTime
+    ? "I'm AAVA. Tell me what you'd like to build, and I'll take it from there."
+    : homeTasks.length === 0
     ? j.state.profileId === 'ajay'
       ? 'Describe the agent or artifact you want, and I will find the golden match.'
       : 'What would you like to work on?'
@@ -304,6 +308,11 @@ export default function App() {
                   and an inbox is a standing invitation to leave the thing you
                   just opened. The account menu keeps its own theme entry for
                   the screens this corner does not appear on. */}
+              {j.state.arrangement === 'start' && (
+                <div className="absolute left-1/2 top-4 z-[60] -translate-x-1/2">
+                  <UserTypeSwitch firstTime={j.state.firstTime} onChange={j.setFirstTime} />
+                </div>
+              )}
               {j.state.arrangement === 'start' && (
                 <div className="absolute right-4 top-4 z-[60] flex items-center gap-2">
                   {!THEME_LOCKED && (

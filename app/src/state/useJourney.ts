@@ -484,6 +484,7 @@ export function useJourney() {
     goHome: () => { cancel(); dispatch({ type: 'GO_HOME' }) },
     switchProfile: () => { cancel(); dispatch({ type: 'SWITCH_PROFILE' }) },
     setProfile: (profileId: ProfileId) => { cancel(); dispatch({ type: 'SET_PROFILE', profileId }) },
+    setFirstTime: (on: boolean) => { cancel(); dispatch({ type: 'SET_FIRST_TIME', on }) },
     showTasks: () => dispatch({ type: 'SHOW_TASKS' }),
     closeTasks: () => dispatch({ type: 'CLOSE_TASKS' }),
     closePlayground: () => dispatch({ type: 'CLOSE_PLAYGROUND' }),

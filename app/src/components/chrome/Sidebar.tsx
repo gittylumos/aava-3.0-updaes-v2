@@ -382,6 +382,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
               </p>
             </div>
           </div>
+          {otherProfiles.length > 0 && (<>
           {/* Switch to any other profile — every persona the demo ships is listed
               here so you can jump straight to one. */}
           <div className="mb-0.5 mt-1 px-1 text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>Switch profile</div>
@@ -409,6 +410,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
           ))}
 
           <div className="my-1.5 h-px" style={{ background: 'var(--glass-line-soft)' }} />
+          </>)}
 
           {/* Settings — placeholder for the demo. */}
           <MenuRow onClick={() => setMenu(false)}>

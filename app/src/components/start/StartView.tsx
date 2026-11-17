@@ -15,7 +15,7 @@ interface Props {
   composer: React.ReactNode
 }
 
-export function StartView({ name, tasks, subtitle, onOpenTask, onViewAllTasks, composer }: Props) {
+export function StartView({ name, tasks, subtitle, onOpenTask, composer }: Props) {
   /* No tasks, no board — the home collapses to a greeting and the prompt bar,
      centred. This is the product manager's opening screen: he starts by asking,
      not by reviewing a queue. The board reappears the moment something he
@@ -31,25 +31,6 @@ export function StartView({ name, tasks, subtitle, onOpenTask, onViewAllTasks, c
 
       {hasBoard && (
         <>
-          {/* The full board lives one click away, next to the three it's
-              surfacing — not behind an icon in the chrome. */}
-          <div className="mb-3 flex justify-end">
-            <button
-              onClick={onViewAllTasks}
-              className="press group flex items-center gap-1.5 rounded-[8px] px-2 py-1.5 text-[12.5px] hover:bg-[var(--glass)]"
-              style={{ color: 'var(--muted)' }}
-            >
-              View all my tasks
-              <svg
-                viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-                strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-                className="transition-transform duration-150 group-hover:translate-x-[2px]"
-              >
-                <path d="m9.5 5 6.5 7-6.5 7" />
-              </svg>
-            </button>
-          </div>
-
           {/* Content-driven reflow rather than a device breakpoint: the cards
               collapse 3 → 2 → 1 as their own minimum width stops fitting, so
               there's a graceful two-up stage instead of jumping straight to one.

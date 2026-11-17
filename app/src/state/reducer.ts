@@ -448,6 +448,7 @@ export const initialState: AppState = {
   overlay: 'none',
   // The two finished tasks are old news; the four live ones have not been read.
   readNotifications: ['T5', 'T6'],
+  firstTime: false,
   chipStage: null,
   sidebarOpen: true,
   pinnedThreadIds: ['th-t4'],
@@ -838,6 +839,7 @@ export function reducer(state: AppState, action: Action): AppState {
         pinnedThreadIds: state.pinnedThreadIds,
         sidebarOpen: state.sidebarOpen,
         readNotifications: state.readNotifications,
+        firstTime: state.firstTime,
         backlogReady: state.backlogReady,
         refinementRequested: state.refinementRequested,
         stashed: state.activeThreadId
@@ -850,6 +852,20 @@ export function reducer(state: AppState, action: Action): AppState {
        threads/stash reset because a profile is a different person's session. */
     case 'SWITCH_PROFILE':
       return profileReset(PROFILE_ORDER[(PROFILE_ORDER.indexOf(state.profileId) + 1) % PROFILE_ORDER.length], state)
+
+    /* The home's user-type switch. General = the seeded board (the product as
+       it stands); first time = nothing yet — no tasks, no recents, no pins, no
+       notifications — so the home falls back to the empty greeting. Either way
+       the session restarts on the home screen. */
+    case 'SET_FIRST_TIME':
+      return action.on === state.firstTime ? state : {
+        ...initialState,
+        firstTime: action.on,
+        tasks: action.on ? [] : initialState.tasks,
+        threads: action.on ? [] : initialState.threads,
+        pinnedThreadIds: action.on ? [] : initialState.pinnedThreadIds,
+        sidebarOpen: state.sidebarOpen,
+      }
 
     /* The account menu lists every other profile — switch straight to one. */
     case 'SET_PROFILE':
