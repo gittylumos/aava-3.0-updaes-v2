@@ -37,6 +37,10 @@ export function DiffTab({ j, scenario, file }: {
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         <DiffEditor
+          /* Stable model paths; keeping the models avoids monaco's
+             "TextModel got disposed" error when the tab unmounts. */
+          keepCurrentOriginalModel
+          keepCurrentModifiedModel
           height="100%"
           original={original}
           modified={modified}

@@ -45,6 +45,13 @@ export function useGateNotices(j: Journey, onReview: () => void): { notices: Ide
     ? `${sessionKey ?? 'home'}|${gate.block?.kind}|${title}|${j.state.playground.prepAt}`
     : null
 
+  /* A General / First-time switch restarts the demo, so gates announced in
+     the previous run should announce again when the presenter replays them. */
+  useEffect(() => {
+    seen.current.clear()
+    suppressed.current = false
+  }, [j.state.firstTime])
+
   useEffect(() => {
     // Session changed: drop any toast from the old one.
     if (session.current !== sessionKey) {
