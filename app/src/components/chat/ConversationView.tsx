@@ -8,6 +8,7 @@ import { ContextPane } from '../playground/ContextPane'
 import { IconFolder, IconRightPanel } from '../chrome/icons'
 import { Tooltip } from '../chrome/Tooltip'
 import { prefersReducedMotion } from '../../state/timing'
+import { liveGate } from '../../state/gates'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
 import type { ReportView } from '../../prd/report'
@@ -89,9 +90,7 @@ export function ConversationView({
      place, in edit mode, the same way it did the first time it was ever live. */
   const pinnedGate = state.revisingId
     ? state.messages.find((m) => m.id === state.revisingId)
-    : [...state.messages].reverse().find(
-        (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
-      )
+    : liveGate(state.messages)
 
   /* The run-progress bar for the backlog flow — pinned below the session header,
      shown only once the run is underway (after Proceed). */

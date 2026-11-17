@@ -7,9 +7,9 @@
      session → collapsible Task context card, then the same ConversationView
                the web app uses, in its compact (narrow host) mode
    Same journey engine; only the placement changes (docs/surfaces-plan.md §1). */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { useJourney } from '../state/useJourney'
-import type { Chip, PrepStep, TabId, Task, TaskContext, TaskTag, Thread } from '../state/types'
+import type { Chip, EvidenceBlock, PrepStep, Scenario, TabId, Task, TaskContext, TaskTag, Thread } from '../state/types'
 import { TAG_META, threadIdForTask } from '../state/reducer'
 import { PROFILES } from '../data/user'
 import { ConversationView } from '../components/chat/ConversationView'
@@ -46,6 +46,13 @@ export function AavaPanel({ j, composer, chips, taskProgress, preview, onOpenFil
     ?? 'New session'
 
   const goHome = () => { setHistoryOpen(false); j.goHome() }
+
+  /* A run-strip step opens its evidence in the Task context card — the IDE has
+     no evidence tab (§1.3). `n` re-scrolls on a repeat click of the same step. */
+  const [stepFocus, setStepFocus] = useState<{ taskId: string; key: string; n: number } | null>(null)
+  const openStep = (key: string) => {
+    if (task) setStepFocus((f) => ({ taskId: task.id, key, n: (f?.n ?? 0) + 1 }))
+  }
 
   /* Escape closes the history list first — the cheapest layer. */
   useEffect(() => {
@@ -109,20 +116,26 @@ export function AavaPanel({ j, composer, chips, taskProgress, preview, onOpenFil
           onTogglePin={j.togglePinThread}
           onOpen={(t) => {
             setHistoryOpen(false)
-            if (t.taskId) j.openTask(t.taskId)
-            else j.openThread(t)
+            /* A real thread (chat or task) resumes through openThread; a
+               stand-in row for a never-opened task opens the task. */
+            if (state.threads.some((th) => th.id === t.id)) j.openThread(t)
+            else if (t.taskId) j.openTask(t.taskId)
           }}
         />
       ) : inSession ? (
         <>
-          {task && <TaskContextCard key={task.id} ctx={task.context} />}
+          {task && (
+            <TaskContextCard key={task.id} ctx={task.context} scenario={j.scenario ?? null}
+              focus={stepFocus?.taskId === task.id ? stepFocus : null}
+              onClearFocus={() => setStepFocus(null)} />
+          )}
           <div className="flex min-h-0 flex-1 flex-col">
             <ConversationView
               compact
               state={state}
               chips={chips}
               taskProgress={taskProgress}
-              onOpenStep={j.focusEvidence}
+              onOpenStep={openStep}
               preview={preview}
               onChip={j.send}
               onAccept={j.runBeat}
@@ -229,8 +242,12 @@ function HistoryList({ threads, tasks, pinnedIds, activeThreadId, activeTaskId, 
   onOpen: (t: Thread) => void
 }) {
   const [query, setQuery] = useState('')
-  const [cursor, setCursor] = useState(0)
+  /* The highlight follows a row, not a position — pinning moves the row
+     between groups and the highlight goes with it. */
+  const [cursorId, setCursorId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listId = useId()
+  const optionId = (t: Thread) => `${listId}-opt-${t.id}`
   useEffect(() => { inputRef.current?.focus() }, [])
 
   /* Exactly the web sidebar's list: the thread timeline, then a stand-in row
@@ -249,18 +266,19 @@ function HistoryList({ threads, tasks, pinnedIds, activeThreadId, activeTaskId, 
   }, [threads, tasks, pinnedIds, query])
 
   const flat = [...pinned, ...recents]
-  const at = Math.min(cursor, Math.max(0, flat.length - 1))
+  const at = Math.max(0, flat.findIndex((t) => t.id === cursorId))
+  const current = flat[at]
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(c + 1, flat.length - 1)) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)) }
-    else if (e.key === 'Enter' && flat[at]) { e.preventDefault(); onOpen(flat[at]) }
+    if (e.key === 'ArrowDown') { e.preventDefault(); const t = flat[Math.min(at + 1, flat.length - 1)]; if (t) setCursorId(t.id) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); const t = flat[Math.max(at - 1, 0)]; if (t) setCursorId(t.id) }
+    else if (e.key === 'Enter' && current) { e.preventDefault(); onOpen(current) }
   }
 
   const isActive = (t: Thread) => (t.taskId ? t.taskId === activeTaskId : t.id === activeThreadId)
   const row = (t: Thread, i: number) => (
-    <HistoryRow key={t.id} thread={t} pinned={pinnedIds.includes(t.id)} focused={i === at}
-      active={isActive(t)} onOpen={onOpen} onTogglePin={onTogglePin} onHover={() => setCursor(i)} />
+    <HistoryRow key={t.id} id={optionId(t)} thread={t} pinned={pinnedIds.includes(t.id)} focused={i === at}
+      active={isActive(t)} onOpen={onOpen} onTogglePin={onTogglePin} onHover={() => setCursorId(t.id)} />
   )
 
   return (
@@ -270,14 +288,16 @@ function HistoryList({ threads, tasks, pinnedIds, activeThreadId, activeTaskId, 
           style={{ background: 'var(--card)', border: '1px solid var(--focus-ring)' }}>
           <span style={{ color: 'var(--muted)' }}><IconSearch size={13} /></span>
           <input ref={inputRef} value={query} onKeyDown={onKeyDown}
-            onChange={(e) => { setQuery(e.target.value); setCursor(0) }}
+            onChange={(e) => { setQuery(e.target.value); setCursorId(null) }}
             placeholder="Search sessions" aria-label="Search sessions"
+            role="combobox" aria-expanded aria-autocomplete="list"
+            aria-controls={listId} aria-activedescendant={current ? optionId(current) : undefined}
             className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-[var(--muted-deep)]"
             style={{ color: 'var(--text)' }} />
         </label>
       </div>
 
-      <div role="listbox" aria-label="Sessions" className="min-h-0 flex-1 overflow-y-auto pb-2">
+      <div id={listId} role="listbox" aria-label="Sessions" className="min-h-0 flex-1 overflow-y-auto pb-2">
         <GroupHeader label="Pinned" />
         {pinned.length === 0
           ? <EmptyRow>{query ? 'No matches' : 'Nothing pinned yet'}</EmptyRow>
@@ -307,7 +327,8 @@ function EmptyRow({ children }: { children: ReactNode }) {
   return <p className="px-3 py-1.5 text-[12px]" style={{ color: 'var(--muted-deep)' }}>{children}</p>
 }
 
-function HistoryRow({ thread, pinned, focused, active, onOpen, onTogglePin, onHover }: {
+function HistoryRow({ id, thread, pinned, focused, active, onOpen, onTogglePin, onHover }: {
+  id: string
   thread: Thread
   pinned: boolean
   focused: boolean
@@ -319,7 +340,7 @@ function HistoryRow({ thread, pinned, focused, active, onOpen, onTogglePin, onHo
   return (
     <div className="group relative flex items-center" onMouseEnter={onHover}
       style={{ background: focused ? 'var(--wash-4)' : undefined }}>
-      <button type="button" role="option" aria-selected={focused} onClick={() => onOpen(thread)}
+      <button type="button" id={id} role="option" aria-selected={focused} onClick={() => onOpen(thread)}
         className="flex h-[24px] min-w-0 flex-1 items-center gap-2 pl-3 pr-1 text-left">
         <span className="shrink-0" style={{ color: 'var(--muted)' }} aria-hidden>
           {thread.kind === 'task' ? <IconTasks size={14} /> : <IconChat size={14} />}
@@ -349,15 +370,36 @@ function HistoryRow({ thread, pinned, focused, active, onOpen, onTogglePin, onHo
 
 /* ── Task context (the web Overview tab, kept in the panel — §1.3) ─────── */
 
-function TaskContextCard({ ctx }: { ctx: TaskContext }) {
+function TaskContextCard({ ctx, scenario, focus, onClearFocus }: {
+  ctx: TaskContext
+  scenario: Scenario | null
+  /** A run-strip step whose evidence to show; opening one expands the card. */
+  focus: { key: string; n: number } | null
+  onClearFocus: () => void
+}) {
   const [open, setOpen] = useState(false)
   const met = ctx.criteria.filter((c) => c.met).length
+  const step = focus ? scenario?.prep.find((p) => p.key === focus.key) ?? null : null
+  const expanded = open || !!step
+  const toggle = () => {
+    if (expanded) { setOpen(false); onClearFocus() } else setOpen(true)
+  }
+
+  const stepRef = useRef<HTMLElement>(null)
+  const n = step ? focus?.n : undefined
+  useEffect(() => {
+    if (n === undefined) return
+    stepRef.current?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'nearest',
+    })
+  }, [n])
 
   return (
     <div className="shrink-0" style={{ borderBottom: '1px solid var(--glass-line-soft)' }}>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+      <button type="button" onClick={toggle} aria-expanded={expanded}
         className="flex h-[26px] w-full items-center gap-1.5 pl-1.5 pr-3 text-left hover:bg-[var(--wash-2)]">
-        <span style={{ color: 'var(--muted)' }}><Chevron dir={open ? 'down' : 'right'} /></span>
+        <span style={{ color: 'var(--muted)' }}><Chevron dir={expanded ? 'down' : 'right'} /></span>
         <span className="text-[11px] font-semibold uppercase tracking-[.08em]" style={{ color: 'var(--text-dim)' }}>
           Task context
         </span>
@@ -366,8 +408,12 @@ function TaskContextCard({ ctx }: { ctx: TaskContext }) {
         </span>
       </button>
 
-      {open && (
+      {expanded && (
         <div className="max-h-[42vh] overflow-y-auto px-3 pb-3 pt-1 text-[12px] leading-[1.45]">
+          {step && (
+            <StepEvidence key={step.key} ref={stepRef} step={step}
+              block={scenario?.evidence[step.key]} onClose={onClearFocus} />
+          )}
           <div className="flex items-baseline gap-2">
             <span className="mono text-[11.5px] font-semibold" style={{ color: 'var(--text)' }}>{ctx.ticket}</span>
             <span className="truncate text-[11px]" style={{ color: 'var(--muted)' }}>{ctx.ticketSource}</span>
@@ -414,6 +460,79 @@ function TaskContextCard({ ctx }: { ctx: TaskContext }) {
         </div>
       )}
     </div>
+  )
+}
+
+/* One run step's evidence — the web Evidence tab's card for that step, in the
+   panel's black-and-white wireframe style. */
+function StepEvidence({ ref, step, block, onClose }: {
+  ref: React.Ref<HTMLElement>
+  step: PrepStep
+  block: EvidenceBlock | undefined
+  onClose: () => void
+}) {
+  return (
+    <section ref={ref} aria-label={`Evidence: ${step.label}`} className="mb-2 mt-1 rounded-[3px] px-2.5 pb-2.5 pt-1.5"
+      style={{ background: 'var(--wash-1)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>
+          Step evidence
+        </h3>
+        <button type="button" onClick={onClose} aria-label="Close step evidence" title="Close"
+          className={`${ACTION_BTN} ml-auto`} style={{ color: 'var(--muted)' }}>
+          <span aria-hidden className="text-[13px] leading-none">×</span>
+        </button>
+      </div>
+      <p className="text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>{step.label}</p>
+      {step.result && <p className="mono text-[11px]" style={{ color: 'var(--muted)' }}>{step.result}</p>}
+      {step.detail && <p className="mt-1" style={{ color: 'var(--text-dim)' }}>{step.detail}</p>}
+
+      {block && (
+        <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
+          <div className="mb-1.5 flex items-baseline justify-between gap-2">
+            <span className="min-w-0 truncate text-[12px] font-semibold" style={{ color: 'var(--text)' }}>{block.name}</span>
+            <span className="shrink-0 text-[9.5px] font-semibold uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>
+              {block.source}
+            </span>
+          </div>
+          {block.body.kind === 'kv' && (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11.5px]">
+              {block.body.pairs.map(([k, v], i) => (
+                <div key={`${k}-${i}`} className="contents">
+                  <dt style={{ color: 'var(--muted-deep)' }}>{k}</dt>
+                  <dd className="mono m-0 min-w-0 break-words" style={{ color: 'var(--text-dim)' }}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {block.body.kind === 'text' && <p style={{ color: 'var(--muted)' }}>{block.body.text}</p>}
+          {block.body.kind === 'columns' && (
+            <>
+              <p className="mb-1.5" style={{ color: 'var(--muted)' }}>{block.body.lead}</p>
+              <div className="grid grid-cols-2 gap-3 text-[11.5px]">
+                {([['Found', block.body.found], ['Missing', block.body.missing]] as const).map(([label, items]) => (
+                  <div key={label}>
+                    <h4 className="mb-0.5 text-[9.5px] uppercase tracking-[.12em]" style={{ color: 'var(--muted-deep)' }}>{label}</h4>
+                    <ul className="mono grid gap-0.5" style={{ color: 'var(--text-dim)' }}>
+                      {items.map((c) => <li key={c}>{c}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {block.body.kind === 'figma' && (
+            <figure>
+              <div aria-hidden className="grid h-[96px] place-items-center rounded-[3px] text-[11px]"
+                style={{ border: '1px dashed var(--border)', color: 'var(--muted-deep)' }}>
+                Figma frame
+              </div>
+              <figcaption className="mt-1 text-[11px]" style={{ color: 'var(--muted-deep)' }}>{block.body.caption}</figcaption>
+            </figure>
+          )}
+        </div>
+      )}
+    </section>
   )
 }
 

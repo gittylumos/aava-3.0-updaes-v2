@@ -1,7 +1,8 @@
-/* The host editor group: tab strip, breadcrumb, and the active tab's body
-   (rendered by the workbench). With nothing open, VS Code's empty editor. */
+/* The host editor group: tab strip and the active tab's body (rendered by
+   the workbench; code and diff tabs carry their own path row). With nothing
+   open, VS Code's empty editor. */
 import type { ReactNode } from 'react'
-import type { EditorTab, EditorTabKind, Workbench } from './types'
+import type { EditorTabKind, Workbench } from './types'
 
 export function EditorGroup({ wb }: { wb: Workbench }) {
   const active = wb.tabs.find((t) => t.id === wb.activeTabId) ?? null
@@ -45,30 +46,10 @@ export function EditorGroup({ wb }: { wb: Workbench }) {
         </div>
       )}
 
-      {active && (active.kind === 'code' || active.kind === 'diff') && (
-        <Breadcrumb tab={active} />
-      )}
-
       <div className="relative min-h-0 flex-1 overflow-hidden" style={{ background: 'var(--slab)' }}>
         {active && active.kind !== 'welcome' ? wb.renderTab(active) : <Welcome />}
       </div>
     </div>
-  )
-}
-
-function Breadcrumb({ tab }: { tab: EditorTab }) {
-  const parts = ['product-web', ...(tab.file ?? tab.title).split('/').filter(Boolean)]
-  return (
-    <nav aria-label="Breadcrumb" className="flex h-[22px] shrink-0 items-center gap-1 overflow-hidden px-3 text-[12px]"
-      style={{ color: 'var(--muted)', background: 'var(--slab)' }}>
-      {parts.map((p, i) => (
-        <span key={`${p}-${i}`} className="flex min-w-0 items-center gap-1">
-          {i > 0 && <span aria-hidden="true" style={{ color: 'var(--muted-deep)' }}>›</span>}
-          <span className="truncate">{p}</span>
-        </span>
-      ))}
-      {tab.kind === 'diff' && <span className="ml-1 shrink-0" style={{ color: 'var(--muted-deep)' }}>(original ↔ AAVA)</span>}
-    </nav>
   )
 }
 

@@ -45,7 +45,7 @@ function NavBtn({ label, disabled, onClick, children }: {
   label: string; disabled?: boolean; onClick?: () => void; children: ReactNode
 }) {
   return (
-    <button aria-label={label} title={label} disabled={disabled} onClick={onClick}
+    <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick}
       className="grid h-6 w-6 place-items-center rounded-[3px] transition-colors enabled:hover:bg-[var(--wash-3)] disabled:opacity-40"
       style={{ color: 'var(--muted)' }}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"

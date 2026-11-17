@@ -6,20 +6,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { useJourney } from '../state/useJourney'
 import type { Message } from '../state/types'
+import { liveGate } from '../state/gates'
 import type { IdeNotice } from './types'
+import { sessionKeyOf } from './session'
 
 type Journey = ReturnType<typeof useJourney>
 
 const AUTO_DISMISS_MS = 8000
 
-/** The live gate — the same rule ConversationView uses for its pinned gate
-    (minus the user-initiated revise case): the latest message whose block is a
-    decision or confirm and that has not been answered (`live !== false`). */
-function liveGate(messages: Message[]): Message | undefined {
-  return [...messages].reverse().find(
-    (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
-  )
-}
+const none = (ns: IdeNotice[]): IdeNotice[] => (ns.length ? [] : ns)
 
 function gateTitle(m: Message): string {
   const b = m.block
@@ -30,6 +25,9 @@ function gateTitle(m: Message): string {
 // oxlint-disable-next-line react/only-export-components
 export function useGateNotices(j: Journey, onReview: () => void): { notices: IdeNotice[]; dismiss: (id: string) => void } {
   const [notices, setNotices] = useState<IdeNotice[]>([])
+  /* Gates already announced in this page session, by session + gate identity.
+     The engine re-appends the same gate (a new message id) after every reply
+     while it waits, so the message id cannot be the identity. */
   const seen = useRef(new Set<string>())
   const suppressed = useRef(false)
   const session = useRef<string | null | undefined>(undefined)
@@ -40,21 +38,24 @@ export function useGateNotices(j: Journey, onReview: () => void): { notices: Ide
     setNotices((ns) => ns.filter((n) => n.id !== id))
   }, [])
 
-  const sessionKey = j.state.activeThreadId ?? j.state.activeTaskId
+  const sessionKey = sessionKeyOf(j.state)
   const gate = liveGate(j.state.messages)
-  const gateId = gate?.id ?? null
   const title = gate ? gateTitle(gate) : ''
+  const gateKey = gate
+    ? `${sessionKey ?? 'home'}|${gate.block?.kind}|${title}|${j.state.playground.prepAt}`
+    : null
 
   useEffect(() => {
-    // Session changed: forget what was seen, drop any toast from the old one.
+    // Session changed: drop any toast from the old one.
     if (session.current !== sessionKey) {
       session.current = sessionKey
-      seen.current = new Set()
-      setNotices([])
+      setNotices(none)
     }
-    if (!gateId || suppressed.current || seen.current.has(gateId)) return
-    seen.current.add(gateId)
-    const id = `gate:${gateId}`
+    // Nothing waiting on the user: nothing to keep on screen.
+    if (!gateKey) { setNotices(none); return }
+    if (suppressed.current || seen.current.has(gateKey)) return
+    seen.current.add(gateKey)
+    const id = `gate:${gateKey}`
     // One at a time — a new gate replaces whatever was showing.
     setNotices([{
       id,
@@ -64,10 +65,10 @@ export function useGateNotices(j: Journey, onReview: () => void): { notices: Ide
         { label: 'Open AAVA', primary: true, run: () => { reviewRef.current(); setNotices((ns) => ns.filter((n) => n.id !== id)) } },
       ],
     }])
-  }, [sessionKey, gateId, title])
+  }, [sessionKey, gateKey, title])
 
-  // Auto-dismiss the visible notice.
-  const visibleId = notices[0]?.id
+  // Auto-dismiss the visible notice — the latest, the one NoticeStack shows.
+  const visibleId = notices.at(-1)?.id
   useEffect(() => {
     if (!visibleId) return
     const t = window.setTimeout(() => dismiss(visibleId), AUTO_DISMISS_MS)

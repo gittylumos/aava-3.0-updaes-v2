@@ -62,7 +62,7 @@ export default function IdeApp() {
   return (
     <TooltipProvider delayDuration={320} skipDelayDuration={140}>
       <VsCodeShell
-        title={j.scenario ? 'product-web — Visual Studio Code' : 'product-web — Visual Studio Code'}
+        title="product-web — Visual Studio Code"
         activityBadge={j.unreadCount}
         auxOpen={auxOpen}
         onAavaActivity={() => setAuxOpen((o) => !o)}

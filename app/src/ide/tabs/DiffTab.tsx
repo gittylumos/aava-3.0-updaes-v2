@@ -64,7 +64,7 @@ export function DiffTab({ j, scenario, file }: {
 
 function ToolbarBtn({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button onClick={onClick}
+    <button type="button" onClick={onClick}
       className="h-[22px] rounded-[3px] px-2 text-[11.5px] transition-colors hover:bg-[var(--wash-3)]"
       style={{ color: 'var(--text-dim)', border: '1px solid var(--glass-line)' }}>
       {children}
