@@ -509,6 +509,10 @@ export interface PlaygroundState {
    *  tab works even after the user closed it. Incidental re-renders do not bump,
    *  which is what keeps a closed tab closed. */
   openRequest: number
+  /** Every tab request, in order — one entry per `openRequest` bump. Lets a
+   *  surface that prints each request (the CLI) recover requests that landed
+   *  in the same render. Optional so older snapshots stay valid. */
+  tabLog?: TabId[]
   /** Which right-canvas view a beat last asked for (document / graph / files), and
    *  a nonce bumped on every such request so App can mirror it into canvasMode even
    *  when the same view is asked for twice in a row. */

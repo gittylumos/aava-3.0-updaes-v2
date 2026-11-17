@@ -7,10 +7,8 @@
  * choice does exactly what the web gate's button does.
  */
 import type { BlockSpec, Citation, Message } from '../state/types'
+import { JIRA_BROWSE, LOCAL_URL, scenarioPath as pathOf, seg } from './text'
 import type { Choice, Line, RenderCtx, Seg, Tone } from './types'
-
-export const JIRA_BROWSE = 'https://aava-demo.atlassian.net/browse/'
-export const LOCAL_URL = 'http://localhost:4200'
 
 /* ── Inline text ─────────────────────────────────────────────────────────── */
 
@@ -28,9 +26,6 @@ export function inline(text: string, tone: Tone = 'normal'): Seg[] {
   }
   return segs.length ? segs : [{ text: '', tone }]
 }
-
-const seg = (text: string, tone?: Tone, link?: Seg['link']): Seg =>
-  link ? { text, tone, link } : tone ? { text, tone } : { text }
 
 /** `⎿` sub-row under a `⏺` row. */
 const sub = (rest: Seg[] | string, first = true): Line => [
@@ -50,7 +45,9 @@ export function renderMessage(m: Message, ctx: RenderCtx): Line[] {
   if (m.from === 'user') {
     return [[seg('› ', 'dim'), seg(m.lines.join(' '), 'bold')]]
   }
-  if (m.typing && !m.lines.length && !m.block) return [[seg('✻ Thinking…', 'dim')]]
+  /* A typing placeholder only means something while a run is going — after an
+     interrupt it is a leftover, not a reply on its way. */
+  if (m.typing && !m.lines.length && !m.block) return ctx.j.busy ? [[seg('✻ Thinking…', 'dim')]] : []
 
   const out: Line[] = []
   m.lines.forEach((l, i) => {
@@ -75,10 +72,7 @@ function citationLines(cs: Citation[]): Line[] {
   })
 }
 
-function scenarioPath(ctx: RenderCtx, file: string): string {
-  const root = ctx.j.scenario?.fileRoot
-  return root ? `${root}/${file}` : file
-}
+const scenarioPath = (ctx: RenderCtx, file: string): string => pathOf(ctx.j.scenario, file)
 
 function renderBlock(m: Message, b: BlockSpec, ctx: RenderCtx): Line[] {
   const live = m.live !== false
@@ -270,7 +264,7 @@ export function gateChoices(m: Message, ctx: RenderCtx): Choice[] {
       /* ButtonsGate: a plain option records its label, then fires; a `collect`
          option records the typed note (ignored when blank), then fires. */
       drafts = b.options.map((opt) => opt.collect
-        ? { label: opt.label, primary: opt.primary, collect: true, run: (text?: string) => {
+        ? { label: opt.label, primary: opt.primary, collect: true, placeholder: b.placeholder, run: (text?: string) => {
             const note = text?.trim()
             if (!note) return
             j.recordAnswer(m.id, note)

@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { FeedbackApp, previewTemplate, readTemplate } from '../components/playground/FeedbackApp'
 import { INK, INK_DIM, LineView, TerminalWindow } from './Terminal'
+import { LOCAL_URL } from './text'
+import type { Seg } from './types'
 import { useCli } from './useCli'
 
 /** AAVA as a CLI: a terminal window running `aava`, on the same journey engine. */
@@ -9,27 +11,43 @@ export default function CliApp() {
   const { j, list, preview } = cli
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeBtnRef = useRef<HTMLButtonElement>(null)
 
   /* Follow the output, like a terminal does. Keyed on a cheap signature of the
      tail so it fires while a reply streams, not on unrelated renders. */
   const last = cli.lines[cli.lines.length - 1]
-  const sig = `${cli.lines.length}|${last?.map((s) => s.text).join('') ?? ''}|${list?.key ?? ''}|${cli.promptLabel ?? ''}|${cli.busy}`
+  const sig = `${cli.lines.length}|${last?.map((s) => s.text).join('') ?? ''}|${list?.key ?? ''}|${cli.promptLabel ?? ''}|${cli.promptHint ?? ''}|${cli.busy}`
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [sig])
 
-  /* The "browser window" closes on Esc wherever focus is; then the prompt
+  /* The "browser window" is modal: it takes focus (its close button), closes
+     on Esc wherever focus is, and swallows every other key aimed outside it,
+     so nothing reaches the prompt or a gate behind it. On close the prompt
      takes focus back. */
   const close = preview.close
   const closeRef = useRef(close)
   useEffect(() => { closeRef.current = close })
   useEffect(() => {
     if (!preview.open) { inputRef.current?.focus(); return }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    closeBtnRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); closeRef.current(); return }
+      if (!(e.target instanceof Node && dialogRef.current?.contains(e.target))) {
+        e.preventDefault(); e.stopPropagation()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [preview.open])
+
+  /* Clicking a link must not leave the caret behind on the link. */
+  const onLink = (l: NonNullable<Seg['link']>) => {
+    cli.onLink(l)
+    inputRef.current?.focus()
+  }
 
   /* A click anywhere in the window puts the caret back in the prompt — unless
      the user is selecting text to copy. */
@@ -46,7 +64,9 @@ export default function CliApp() {
           className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
           style={{ fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 1.5, color: INK }}
         >
-          {cli.lines.map((line, i) => <LineView key={i} line={line} onLink={cli.onLink} />)}
+          <div role="log" aria-live="polite" aria-label="aava output">
+            {cli.lines.map((line, i) => <LineView key={i} line={line} onLink={onLink} />)}
+          </div>
 
           {list && (
             <div className="mb-1">
@@ -63,7 +83,7 @@ export default function CliApp() {
                   </div>
                 )
               })}
-              <div style={{ color: INK_DIM }}>{'  ↑/↓ to move · enter or number to choose · esc to close'}</div>
+              <div style={{ color: INK_DIM }}>{'  ↑/↓ or type a number · enter to choose · esc to close'}</div>
               <div aria-hidden>{' '}</div>
             </div>
           )}
@@ -71,6 +91,7 @@ export default function CliApp() {
           {cli.busy && <div style={{ color: INK_DIM }}>✻ Working… <span style={{ opacity: 0.7 }}>(esc to interrupt)</span></div>}
 
           {cli.promptLabel && <div style={{ fontWeight: 600 }}>{cli.promptLabel}</div>}
+          {cli.promptHint && <div style={{ color: INK_DIM }}>{cli.promptHint}</div>}
           <div className="flex items-center py-[3px]"
             style={{ borderTop: `1px solid ${INK_DIM}55`, borderBottom: `1px solid ${INK_DIM}55` }}>
             <span className="shrink-0 whitespace-pre" style={{ color: INK_DIM }}>{'› '}</span>
@@ -88,7 +109,7 @@ export default function CliApp() {
             />
           </div>
           {cli.status
-            ? <LineView line={cli.status} onLink={cli.onLink} />
+            ? <LineView line={cli.status} onLink={onLink} />
             : <div style={{ color: INK_DIM }}>{'  ? /help for commands · ↑/↓ to select · enter to open'}</div>}
         </div>
       </TerminalWindow>
@@ -96,7 +117,7 @@ export default function CliApp() {
       {preview.open && j.scenario && (
         <div className="fixed inset-0 z-50 grid place-items-center p-6" style={{ background: 'var(--scrim)' }}
           onClick={preview.close}>
-          <div role="dialog" aria-label="Browser — localhost:4200"
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Browser — localhost:4200"
             className="flex h-[78dvh] w-full max-w-[880px] flex-col overflow-hidden rounded-[10px]"
             style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-pop)' }}
             onClick={(e) => e.stopPropagation()}>
@@ -107,9 +128,9 @@ export default function CliApp() {
               </div>
               <div className="min-w-0 flex-1 truncate rounded-[6px] px-3 py-[3px] text-[12px]"
                 style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-                http://localhost:4200/feedback
+                {`${LOCAL_URL}/feedback`}
               </div>
-              <button type="button" aria-label="Close browser" onClick={preview.close}
+              <button ref={closeBtnRef} type="button" aria-label="Close browser" onClick={preview.close}
                 className="grid h-[24px] w-[24px] place-items-center rounded-[6px] text-[16px] hover:bg-[var(--wash-4)]"
                 style={{ color: 'var(--muted)' }}>×</button>
             </div>

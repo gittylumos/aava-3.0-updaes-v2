@@ -39,6 +39,8 @@ export interface Choice {
   /** True when picking it needs free text first (e.g. "Refine changes"):
       the CLI then prompts "› What should change?" and passes the text. */
   collect?: boolean
+  /** The prompt shown while collecting (the gate's own placeholder text). */
+  placeholder?: string
   run: (text?: string) => void
 }
 

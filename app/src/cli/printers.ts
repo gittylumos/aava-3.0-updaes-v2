@@ -7,11 +7,9 @@
  */
 import type { DiffGroup, Message, PlaygroundState, Scenario } from '../state/types'
 import { fileText } from '../state/workspace'
-import { JIRA_BROWSE, LOCAL_URL, kvRows } from './render'
+import { kvRows } from './render'
+import { JIRA_BROWSE, LOCAL_URL, seg } from './text'
 import type { Line, RenderCtx, Seg, Tone } from './types'
-
-const seg = (text: string, tone?: Tone, link?: Seg['link']): Seg =>
-  link ? { text, tone, link } : tone ? { text, tone } : { text }
 
 const dimLine = (text: string): Line => [seg(text, 'dim')]
 
@@ -266,7 +264,8 @@ export function statusLine(ctx: RenderCtx): Line {
     if (busy) { label = 'Working'; tone = 'accent' }
     else if (at >= total) { label = 'Done'; tone = 'success' }
     else if (gate) { label = 'Waiting on you'; tone = 'warn' }
-    else { label = 'Working'; tone = 'accent' }
+    /* Not running and not on a gate — e.g. after an interrupt. */
+    else { label = 'Idle'; tone = 'dim' }
   } else if (busy) {
     label = 'Working'; tone = 'accent'
   } else if (task && (task.tag === 'input' || task.tag === 'review' || task.tag === 'blocked')) {
