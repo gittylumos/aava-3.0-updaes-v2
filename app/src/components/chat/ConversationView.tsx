@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import type { AppState, Chip, PrepStep, TabId } from '../../state/types'
+import type { AppState, BlockSpec, Chip, PrepStep, TabId } from '../../state/types'
 import { Thread } from './Thread'
 import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
@@ -311,7 +311,8 @@ export function ConversationView({
                  chrome (outside the scroll), so bound its height and let a tall
                  gate scroll internally — otherwise on a short viewport the gate's
                  action buttons could clip below the fold with no way to reach them. */
-              <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
+              <PinnedGate key={pinnedGate.id} block={pinnedGate.block} live={pinnedGate.live !== false}
+                revising={pinnedGate.id === revisingId}>
                 <Block block={pinnedGate.block} live={pinnedGate.live !== false} preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
                   onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
@@ -320,12 +321,63 @@ export function ConversationView({
                   onRevise={onRevise ? () => onRevise(pinnedGate.id) : undefined}
                   onReviseSend={onReviseSend ? (note, beat) => onReviseSend(pinnedGate.id, note, beat) : undefined}
                   onReviseCancel={onReviseCancel} />
-              </div>
+              </PinnedGate>
             ) : composer}
           </div>
         </div>
       </div>
     </motion.div>
+  )
+}
+
+/* The live gate in the composer's place. It can fold to a one-line bar so the
+   thread above is readable while it waits — still amber-bordered, tinted and
+   pulsing, so a folded gate never reads as dismissed. Keyed by message id, so
+   each new gate arrives open. */
+function PinnedGate({ block, live, revising, children }: {
+  block: BlockSpec; live: boolean; revising: boolean; children: React.ReactNode
+}) {
+  const [folded, setFolded] = useState(false)
+  const title = block.kind === 'decision' || block.kind === 'confirm' ? block.title : undefined
+  const waiting = live || revising
+  const chevron = (up: boolean) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden
+      style={{ transform: up ? 'rotate(180deg)' : undefined }}>
+      <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+
+  if (folded) {
+    return (
+      <button onClick={() => setFolded(false)} aria-expanded={false}
+        className="press mb-6 mt-3 flex w-full items-center gap-2.5 rounded-[var(--r-md)] px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--warn)_12%,var(--glass))]"
+        style={{ background: 'color-mix(in srgb, var(--warn) 7%, var(--glass))', border: '1px solid var(--warn)' }}>
+        <span className="relative grid h-2 w-2 shrink-0 place-items-center">
+          <span className="absolute inset-0 animate-ping rounded-full motion-reduce:animate-none" style={{ background: 'var(--warn)', opacity: 0.6 }} />
+          <span className="relative h-2 w-2 rounded-full" style={{ background: 'var(--warn)' }} />
+        </span>
+        <span className="shrink-0 text-[9.5px] font-semibold uppercase tracking-[.13em]" style={{ color: 'var(--warn)' }}>
+          Waiting on you
+        </span>
+        {title && <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: 'var(--text)' }}>{title}</span>}
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-[11.5px]" style={{ color: 'var(--muted)' }}>
+          Open{chevron(true)}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="relative mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
+      {children}
+      {waiting && (
+        <button onClick={() => setFolded(true)} aria-label="Collapse" title="Collapse"
+          className="press absolute right-2 top-5 grid h-7 w-7 place-items-center rounded-[7px] transition-colors hover:bg-[var(--wash-3)]"
+          style={{ color: 'var(--muted)' }}>
+          {chevron(false)}
+        </button>
+      )}
+    </div>
   )
 }
 

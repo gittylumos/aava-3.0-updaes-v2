@@ -116,8 +116,11 @@ export function useJourney() {
     const at = moved?.type === 'prepAt' ? moved.index : from ?? state.playground.prepAt
     const gate = sc.prep[at]?.gate
     const asks = gate ? sc.beats[gate] : undefined
+    /* A beat that already ends on a question (the review gate before the PR
+       gate, say) owns its own ask — appending a second would jump the order. */
+    const asksItself = beats.some((e) => e.type === 'say' && (e.block?.kind === 'confirm' || e.block?.kind === 'decision'))
     // The gate replaying itself would append itself forever.
-    return !asks || asks === beats ? beats : [...beats, ...asks]
+    return !asks || asks === beats || asksItself ? beats : [...beats, ...asks]
   }, [state.playground.prepAt])
 
   /* Plays a beat on a real clock.

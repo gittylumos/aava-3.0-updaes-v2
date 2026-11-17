@@ -32,7 +32,7 @@ export const prepStart = (prep: PrepStep[]) => {
 export const TASKS: Task[] = [
   {
     id: 'T1', title: 'Add product feedback form',
-    status: 'clarify', tag: 'review', est: '2 hrs', dep: 'None', recommended: true,
+    status: 'clarify', tag: 'input', est: '2 hrs', dep: 'None', recommended: true,
     note: 'Completed development of UI screen.', updated: '8 min ago',
     opening: [
       'Analyzed the task.',
@@ -391,7 +391,7 @@ function ramanBoard(base: Task[], refinementRequested: boolean): Task[] {
    "I finished, review it" from "I am stuck and cannot proceed". */
 export const TAG_META: Record<TaskTag, { label: string; fg: string; bg: string }> = {
   review:  { label: 'Ready for review', fg: 'var(--ok)',      bg: 'var(--ok-surface)' },
-  input:   { label: 'Needs your input', fg: 'var(--warn)',    bg: 'var(--warn-surface)' },
+  input:   { label: 'Need your input' , fg: 'var(--warn)',    bg: 'var(--warn-surface)' },
   blocked: { label: 'Blocked',          fg: 'var(--danger)',  bg: 'var(--danger-surface)' },
   working: { label: 'Working',          fg: 'var(--done)',    bg: 'var(--done-surface)' },
   done:    { label: 'Completed',        fg: 'var(--muted)',   bg: 'var(--wash-3)' },

@@ -41,8 +41,8 @@ describe('t1 scenario', () => {
   it('every file link opens a file the scenario actually has', () => {
     const links = t1.beats.files.flatMap((e) =>
       e.type === 'say' && e.block?.kind === 'links' ? e.block.links : [])
-    expect(links).not.toHaveLength(0)
-    for (const l of links) {
+    expect(links.filter((l) => l.file)).not.toHaveLength(0)
+    for (const l of links.filter((l) => !l.tab)) {
       expect(l.file, `"${l.label}" is not openable`).toBeDefined()
       expect(t1.files[l.file!], `no such file: ${l.file}`).toBeDefined()
     }

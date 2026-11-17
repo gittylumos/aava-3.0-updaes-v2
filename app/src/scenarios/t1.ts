@@ -1,4 +1,4 @@
-import type { Scenario } from '../state/types'
+import type { Effect, Scenario } from '../state/types'
 import { T } from '../state/timing'
 
 const formHtml = `<form [formGroup]="form" (ngSubmit)="submit()">
@@ -36,6 +36,27 @@ export class FeedbackService {
     return this.http.post<FeedbackResponse>('/api/v1/feedback', payload);
   }
 }`
+
+/* Step 10's gate — raised after the changes have been reviewed, and again if
+   the user asks for the PRs outright. */
+const SHIP_GATE: Effect = { type: 'say', stream: false, lines: [],
+  block: { kind: 'confirm', step: 10, title: 'Raise both pull requests',
+    acceptLabel: 'Raise both PRs', cancelLabel: 'Not yet', acceptBeat: 'shipped', rows: [
+    { repo: 'PLAY', branch: 'feat/play-formfield-charactercounter → main', what: 'FormField, CharacterCounter' },
+    { repo: 'Product', branch: 'feat/MOB-2841-feedback-form → develop', what: 'Feedback page, API integration, 11 specs passing' },
+  ] } }
+
+/* The review gate the run parks on before step 10 — the user reads what was
+   built (or says what to change) before any PR is offered. */
+const READY_GATE: Effect = { type: 'say', stream: false, lines: [], block: {
+  kind: 'decision', title: 'Feedback form is ready',
+  question: 'The implementation is completed and validation has passed. Review the generated changes before creating the PR.',
+  placeholder: 'What should change?',
+  options: [
+    { label: 'Refine changes', beat: 'feedback', collect: true },
+    { label: 'Review changes', beat: 'files', primary: true },
+  ],
+} }
 
 export const t1: Scenario = {
   capability: { name: 'UI Screen Generator', badge: 'USG-1.0' },
@@ -160,23 +181,15 @@ export const t1: Scenario = {
       // Deepak sat down. Prepared work is instant, new work costs real time — that
       // contrast is the whole "Work Finds You" argument, made physical.
       //
-      // Capability + plan first, as subtle collapsed records: this screen was
-      // taken end-to-end by the UI Screen Generator process — already matched,
-      // already run. Quiet context the user can open, not front-and-centre cards.
+      // The matched capability and its plan, as one quiet collapsed record: this
+      // screen was taken end-to-end by the UI Screen Generation process —
+      // already matched, already run. Context the user can open, not a card.
       { type: 'say', stream: false, lines: [], block: {
-        kind: 'capability', searching: false, collapsed: true, badge: 'USG-1.0',
-        maps: "This maps to the 'UI Screen Generator' agentic process — it took the screen end-to-end:",
-        chips: [
-          'Ticket & Figma parsing',
-          'PLAY component matching & build',
-          'API contract verification',
-          'Unit tests & coverage gate',
-        ],
-      } },
-      { type: 'say', stream: false, lines: [], block: {
-        kind: 'plan', collapsed: true, count: 5, title: 'UI Screen Generator Process',
+        kind: 'plan', collapsed: true, count: 5, title: 'UI Screen Generation Process',
+        matched: 'UI Screen Generation Process',
+        intro: 'This process can take this task from design through implementation and verification.',
         steps: [
-          { title: 'Read the ticket & design', detail: 'Pull MOB-2841 and match it to the Feedback Form v3 frame in Figma' },
+          { title: 'Understand the ticket & design', detail: 'Pull MOB-2841 and match it to the Feedback Form v3 frame in Figma' },
           { title: 'Match PLAY components', detail: 'Break the design into components; reuse what exists, build what does not' },
           { title: 'Verify the API contract', detail: 'Check POST /api/v1/feedback matches what the form needs' },
           { title: 'Build & wire the screen', detail: 'Generate the Angular page, wire the endpoint, register the route' },
@@ -228,33 +241,41 @@ export const t1: Scenario = {
       // The completion line + the running app, front and centre.
       { type: 'say', stream: false,
         lines: ['All the requirements were clear — I read the ticket, matched the design against the PLAY library, and implemented the feedback screen end-to-end. It is running in the preview on the right, ready for your review.'],
+        block: { kind: 'links', links: [{ label: 'Validation results', tab: 'tests' }] } },
+      { type: 'say', stream: false, lines: [],
         block: { kind: 'app', name: 'feedback-form', status: 'localhost:4200 · Running' } },
       // The running app is not something to ask for — it is the first thing you
       // should see. No build to sit through: the work was done on the Jira
       // webhook before Deepak sat down, so the preview is already up.
+      // Validation second, the running page third — both open on arrival.
+      { type: 'showTab', tab: 'tests' },
+      /* Two opens in one tick land as one render, and the workspace only sees
+         the second — a beat apart, each gets its own tab. */
+      { type: 'wait', ms: T.contract },
       { type: 'showTab', tab: 'preview' },
       { type: 'runState', kind: 'live', label: 'Running' },
-      /* The preview is right there — describing it is what the panel already
-         does. What it cannot show is the work behind it, so the offer is the
-         two ways in: the files that changed, or the steps that changed them. */
-      { type: 'say', stream: false, lines: [
-        'Would you like to review the code changes?',
-      ] },
-      { type: 'chips', stage: 'developed' },
+      READY_GATE,
     ],
 
     /* The files are the answer, not a summary of them — each one opens in the
        workspace, so "review the code changes" ends in the code. */
     files: [
-      { type: 'say', lines: ['Here is what changed. Open any of them in the workspace.'],
+      // Validation first: it is the evidence the changes are safe to read.
+      { type: 'showTab', tab: 'tests' },
+      { type: 'say', lines: ['Here is what changed. Open any file in the workspace, or check the validation results.'],
         block: { kind: 'links', links: [
           { label: 'feedback-form.component.html', file: 'feedback-form.component.html' },
           { label: 'feedback-form.component.ts', file: 'feedback-form.component.ts' },
           { label: 'feedback.service.ts', file: 'feedback.service.ts' },
+          { label: 'View validation results', tab: 'tests' },
         ] } },
       { type: 'wait', ms: 300 },
-      { type: 'say', lines: ['What would you like to do next?'] },
-      { type: 'chips', stage: 'filed' },
+      SHIP_GATE,
+    ],
+
+    feedback: [
+      { type: 'say', lines: ['Noted — I will fold that into the feedback screen before the PR goes up. You can still review the current changes.'] },
+      READY_GATE,
     ],
 
     // Kept for a later "show me the preview" — it never stopped running.
@@ -311,14 +332,7 @@ export const t1: Scenario = {
       { type: 'say', lines: ['Two repos. The PLAY components are a separate PR from the product change.'] },
     ],
 
-    ship: [
-      { type: 'say', stream: false, lines: [],
-        block: { kind: 'confirm', step: 10, title: 'Raise both pull requests',
-          acceptLabel: 'Raise both PRs', cancelLabel: 'Not yet', acceptBeat: 'shipped', rows: [
-          { repo: 'PLAY', branch: 'feat/play-formfield-charactercounter → main', what: 'FormField, CharacterCounter' },
-          { repo: 'Product', branch: 'feat/MOB-2841-feedback-form → develop', what: 'Feedback page, API integration, 11 specs passing' },
-        ] } },
-    ],
+    ship: [SHIP_GATE],
 
     shipped: [
       { type: 'prepAt', index: 10 },

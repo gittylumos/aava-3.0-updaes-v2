@@ -483,8 +483,8 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
                 <path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
               </svg>
             </a>
-          ) : l.file ? (
-            <button key={l.label} onClick={() => onOpenFile?.(l.file!)}
+          ) : l.file || l.tab ? (
+            <button key={l.label} onClick={() => (l.file ? onOpenFile?.(l.file) : onOpenTab?.(l.tab!))}
               className="mono press text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               {l.label}
@@ -1065,8 +1065,17 @@ function Plan({ block, live, onAccept, onDismiss }: {
   // a subtle one-liner (no Proceed; the work is done) that opens to the steps.
   if (block.collapsed) {
     return (
-      <SubtleRecord icon={<PlanGlyph />} title={`${block.title ?? 'Plan'} · ${block.count} steps`}>
-        <div className="grid gap-2.5 pt-1.5">
+      <SubtleRecord icon={<PlanGlyph />} title={block.matched ? block.title ?? 'Plan' : `${block.title ?? 'Plan'} · ${block.count} steps`}>
+        {block.matched && (
+          <div className="pt-2.5">
+            <div className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
+              <span style={{ color: 'var(--muted)' }}>Matched capability · </span>
+              <span className="font-medium">{block.matched}</span>
+            </div>
+            {block.intro && <p className="mt-1 text-[12px] leading-[1.5]" style={{ color: 'var(--muted)' }}>{block.intro}</p>}
+          </div>
+        )}
+        <div className={`grid gap-2.5 ${block.matched ? 'pt-3' : 'pt-1.5'}`}>
           {block.steps.map((s, i) => (
             <div key={s.title} className="flex gap-2.5">
               <span className="mono mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]"

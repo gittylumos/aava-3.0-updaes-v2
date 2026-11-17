@@ -132,7 +132,9 @@ export type BlockSpec =
   /** `file` makes a link openable — it opens that source file in the workspace.
       `href` makes it an external link (a raised ticket in Jira, say), rendered
       as a blue hyperlink. Without either the link is a flat reference. */
-  | { kind: 'links'; links: { label: string; file?: string; href?: string }[] }
+  | { kind: 'links'; links: { label: string; file?: string; href?: string
+      /** Opens a workspace tab (e.g. the validation results) instead of a file. */
+      tab?: TabId }[] }
   /** A handoff note — reads exactly like normal conversation copy (no special
       panel), with **bold** support and one filename mention (`docLink`) wired
       to open its canvas artifact inline, the way `links` opens a raised
@@ -173,7 +175,12 @@ export type BlockSpec =
       editLabel?: string
       /** Render as a subtle, collapsed one-liner (expandable) rather than the
           full card — used when the plan is a record of what AAVA already ran. */
-      collapsed?: boolean }
+      collapsed?: boolean
+      /** The capability the plan belongs to — shown as "Matched capability ·
+          <name>" inside the collapsed record, so capability and plan are one. */
+      matched?: string
+      /** One line on what the matched process covers, above the steps. */
+      intro?: string }
   /** A "push to Jira" card — one primary action carrying the Jira logo (`beat`).
       An optional secondary action ("Proceed for now") continues the run without
       pushing; both advance to the next phase. Shown after every phase gate. */
