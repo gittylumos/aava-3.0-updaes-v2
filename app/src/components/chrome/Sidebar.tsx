@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import type { Task, TaskTag, Thread } from '../../state/types'
-import { TAG_META, threadIdForTask } from '../../state/reducer'
+import { TAG_META } from '../../state/reducer'
+import { sessionRows } from '../../state/sessions'
 
 import { ArrowLeftRight } from 'lucide-react'
 import { Tooltip, TooltipProvider } from './Tooltip'
@@ -13,10 +14,6 @@ import { THEME_LOCKED } from '../../state/useTheme'
 
 /* One list, not two lanes — the filter narrows it, it does not switch it. */
 type Filter = 'all' | 'tasks' | 'chat'
-
-/* Whose turn is it, descending. With the status headings gone, order is what
-   replaces them — anything waiting on you is at the top, finished work sinks. */
-const BY_TURN: Record<TaskTag, number> = { input: 0, blocked: 1, review: 2, working: 3, done: 4 }
 
 /* The sidebar dot answers one question: is it moving, or is it waiting on you.
    Five colours down a narrow column is a legend to memorise; two is a glance.
@@ -470,25 +467,10 @@ export function Sidebar({
 
   const taskById = new Map(tasks.map((t) => [t.id, t]))
 
-  /* `threads` is already the timeline — the reducer unshifts a task's thread the
-     moment it is opened. A task you have never opened has no thread yet, so it
-     gets a stand-in row so the list is the full picture, ordered by whose turn
-     it is and sitting under the real history. */
-  const unopened: Thread[] = tasks
-    .filter((t) => !threads.some((th) => th.id === threadIdForTask(t.id)))
-    .sort((a, b) => BY_TURN[a.tag] - BY_TURN[b.tag])
-    .map((t) => ({
-      id: threadIdForTask(t.id),
-      kind: 'task',
-      taskId: t.id,
-      title: t.title,
-      when: TAG_META[t.tag].label,
-    }))
-
-  const all = [...threads, ...unopened]
-  const pinned = all.filter((t) => pinnedIds.includes(t.id))
-  const recents = all
-    .filter((t) => !pinnedIds.includes(t.id))
+  /* Never-opened tasks get stand-in rows; see sessionRows. */
+  const rowsOf = sessionRows(threads, tasks, pinnedIds)
+  const pinned = rowsOf.pinned
+  const recents = rowsOf.recents
     .filter((t) => filter === 'all' || (filter === 'tasks' ? t.kind === 'task' : t.kind === 'chat'))
 
   // A task row reopens the task, not the parked thread — that is what restores

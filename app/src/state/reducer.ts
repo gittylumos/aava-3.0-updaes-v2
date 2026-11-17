@@ -579,6 +579,7 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
             : [...pg.enabledTabs, effect.tab],
           diffBadge: effect.tab === 'diff' ? null : pg.diffBadge,
           openRequest: pg.openRequest + 1,
+          tabLog: [...(pg.tabLog ?? []), effect.tab],
         },
       }
 
@@ -1152,6 +1153,7 @@ export function reducer(state: AppState, action: Action): AppState {
             : [...state.playground.enabledTabs, action.tab],
           diffBadge: action.tab === 'diff' ? null : state.playground.diffBadge,
           openRequest: state.playground.openRequest + 1,
+          tabLog: [...(state.playground.tabLog ?? []), action.tab],
         },
       }
 
@@ -1183,6 +1185,7 @@ export function reducer(state: AppState, action: Action): AppState {
           focusedEvidence: action.key,
           panelOpen: true,
           openRequest: state.playground.openRequest + 1,
+          tabLog: [...(state.playground.tabLog ?? []), 'evidence'],
         },
       }
 

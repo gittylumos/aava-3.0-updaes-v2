@@ -188,6 +188,19 @@ describe('reducer', () => {
     expect(matchHits(hits, '   ')).toHaveLength(hits.length)
   })
 
+  /* Two tab requests folded into one batch (a reduced-motion run plays its
+     effects with no delay) both survive, in order, in the request log. */
+  it('logs every tab request in order, even within one batch', () => {
+    let s = reducer(initialState, { type: 'OPEN_TASK', taskId: 'T1', scenario: null })
+    const before = s.playground.openRequest
+    s = applyEffects(s, [{ type: 'showTab', tab: 'tests' }, { type: 'showTab', tab: 'preview' }])
+    expect(s.playground.tabLog).toEqual(['tests', 'preview'])
+    expect(s.playground.openRequest).toBe(before + 2)
+    expect(s.playground.activeTab).toBe('preview')
+    s = reducer(s, { type: 'SET_TAB', tab: 'diff' })
+    expect(s.playground.tabLog).toEqual(['tests', 'preview', 'diff'])
+  })
+
   it('builds one notification per task, unread until read', () => {
     const items = taskNotifications(initialState.tasks, initialState.readNotifications)
     expect(items).toHaveLength(initialState.tasks.length)
