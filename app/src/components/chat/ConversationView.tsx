@@ -52,6 +52,11 @@ interface Props {
   onDiscardChanges?: () => void
   onRemoveChange?: (index: number) => void
   composer: React.ReactNode
+  /** Narrow host (the IDE's ~380px AAVA panel): drop the left context pane and
+      the session header with its web-only canvas toggles (the host shows the
+      title and task context itself), and tighten the column padding.
+      Default false — the web app is unchanged. */
+  compact?: boolean
 }
 
 /* The centre column: the conversation, and — when a task is open — the task
@@ -64,7 +69,7 @@ interface Props {
  */
 export function ConversationView({
   state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
-  changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
+  changes = [], onApplyChanges, onDiscardChanges, onRemoveChange, compact = false,
 }: Props) {
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
   const object = state.activeObject
@@ -121,7 +126,9 @@ export function ConversationView({
 
   /* The reading column widens when the workspace folds away. Not unbounded —
      prose past ~110 characters is hard to track back to the next line. */
-  const colMax = task || object ? (panelOpen ? 620 : 880) : 760
+  const colMax = compact ? undefined : task || object ? (panelOpen ? 620 : 880) : 760
+  const colPad = compact ? 'px-3' : 'px-8'
+  const dockPad = compact ? 'px-3' : 'px-6'
   const colStyle = {
     maxWidth: colMax,
     transition: reduced ? undefined : 'max-width 320ms cubic-bezier(.16,1,.3,1)',
@@ -129,10 +136,10 @@ export function ConversationView({
 
   return (
     <motion.div className="flex h-full min-h-0 w-full">
-      {task && <ContextPane open={contextOpen} ctx={task.context} />}
+      {task && !compact && <ContextPane open={contextOpen} ctx={task.context} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {task && (
+        {task && !compact && (
           /* A subtle bottom hairline turns the header into a bar the run dock can
              hang from — the dock's flat top merges into this line. */
           <div className="flex shrink-0 items-center border-b border-[var(--glass-line-soft)] px-6 pb-3 pt-4">
@@ -195,7 +202,7 @@ export function ConversationView({
         {/* An intent-opened object (a PRD) has no ticket and no task context, so
             its header is just the session name, the attached source and the one
             control that matters here — the way back into the workspace. */}
-        {!task && object && (
+        {!task && object && !compact && (
           /* A subtle bottom hairline turns the session header into a bar the run
              dock can hang from — the dock's flat top merges into this line. */
           <div className="flex shrink-0 items-center border-b border-[var(--glass-line-soft)] px-6 pb-3 pt-4">
@@ -247,28 +254,28 @@ export function ConversationView({
             and centered, it floats over the conversation on expand. Shown only
             once the backlog run is underway. */}
         {bp?.started && (
-          <div className="relative z-20 shrink-0 px-6 -mt-px">
+          <div className={`relative z-20 shrink-0 -mt-px ${dockPad}`}>
             <RunStrip steps={bp.steps} at={bp.at} waiting={bp.waiting} onOpenStep={openPhaseDoc} />
           </div>
         )}
 
         {/* The insight run's progress dock — one step per analytics view. */}
         {ip?.started && (
-          <div className="relative z-20 shrink-0 px-6 -mt-px">
+          <div className={`relative z-20 shrink-0 -mt-px ${dockPad}`}>
             <RunStrip steps={ip.steps} at={ip.at} waiting={ip.waiting} onOpenStep={openPhaseView} />
           </div>
         )}
 
         {/* The report run's progress dock. */}
         {rp?.started && (
-          <div className="relative z-20 shrink-0 px-6 -mt-px">
+          <div className={`relative z-20 shrink-0 -mt-px ${dockPad}`}>
             <RunStrip steps={rp.steps} at={rp.at} waiting={rp.waiting} onOpenStep={openPhaseReport} />
           </div>
         )}
 
         {/* The agent-designer run's dock — the five artifact-identification steps. */}
         {ap?.started && (
-          <div className="relative z-20 shrink-0 px-6 -mt-px">
+          <div className={`relative z-20 shrink-0 -mt-px ${dockPad}`}>
             <RunStrip steps={ap.steps} at={ap.at} waiting={ap.waiting} onOpenStep={() => {}} />
           </div>
         )}
@@ -276,13 +283,13 @@ export function ConversationView({
         {/* Scenario run progress — the same hanging dock, driven by the
             scenario's prep steps. (Backlog and scenario are mutually exclusive.) */}
         {taskProgress && (
-          <div className="relative z-20 shrink-0 px-6 -mt-px">
+          <div className={`relative z-20 shrink-0 -mt-px ${dockPad}`}>
             <RunStrip steps={taskProgress.steps} at={taskProgress.at} waiting={taskProgress.waiting}
               onOpenStep={(key) => onOpenStep?.(key)} />
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-3">
+        <div className={`min-h-0 flex-1 overflow-y-auto pt-3 ${colPad}`}>
           <div className="mx-auto w-full" style={colStyle}>
             <Thread messages={state.messages} chips={chips} preview={preview}
               onChip={onChip} onAccept={onAccept} onDismiss={onDismiss} onOpenFile={onOpenFile}
@@ -298,7 +305,7 @@ export function ConversationView({
             stands is not something you should have to scroll back to find.
             One tinted surface holds both; the composer is a card ON it, which
             is what lets its corners stay curved all the way round. */}
-        <div className="px-8">
+        <div className={colPad}>
           <div className="mx-auto w-full" style={colStyle}>
             {/* Pending inline-comment changes stack here, right above the prompt
                 bar — the way generative editors surface edits before applying. */}
