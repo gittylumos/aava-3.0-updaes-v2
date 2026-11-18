@@ -30,6 +30,7 @@ import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
 import { THEME_LOCKED, useTheme } from './state/useTheme'
 import { PROFILES } from './data/user'
+import { FLAGS } from './config/flags'
 import { UserTypeSwitch } from './components/start/UserTypeSwitch'
 
 /* The two chips in the corner are the same object twice — one shape, one hit
@@ -50,9 +51,17 @@ export default function App() {
      only active work (a PRD in flight, shown as "needs your input"), never
      completed work. Ajay's home is always empty — he builds from intent, there
      is no board of assigned work. Deepak keeps his full seeded board. */
-  const homeTasks = j.state.profileId === 'raman'
+  const boardTasks = j.state.profileId === 'raman'
     ? j.state.tasks.filter((t) => t.tag !== 'done')
     : j.state.tasks
+  /* Web only: with HOME_TASK3_AS_PROCESSING_CARD on, the progress-bar task shows
+     as an inert "Task card -3 · Processing" card. The shared task data is left
+     alone, so the IDE and CLI surfaces still see the real task. */
+  const homeTasks = FLAGS.HOME_TASK3_AS_PROCESSING_CARD
+    ? boardTasks.map((t) => t.id === 'T2'
+        ? { ...t, title: 'Task card -3', status: 'wip' as const, tag: 'working' as const, tagLabel: 'Processing', placeholder: true }
+        : t)
+    : boardTasks
   const homeSubtitle = j.state.firstTime
     ? "I'm AAVA. Tell me what you'd like to build, and I'll take it from there."
     : homeTasks.length === 0
@@ -153,6 +162,7 @@ export default function App() {
       onAddFiles={(names) => setFiles((f) => [...new Set([...f, ...names])])}
       onRemoveFile={(name) => setFiles((f) => f.filter((x) => x !== name))}
       busy={j.busy} onStop={j.stop}
+      showConnectorsNote={!j.state.firstTime || FLAGS.SHOW_CONNECTORS_NOTE_FIRST_TIME}
     />
   )
 
@@ -343,6 +353,7 @@ export default function App() {
                     </button>
                   </Tooltip>
                   )}
+                  {FLAGS.SHOW_NOTIFICATIONS && (
                   <Tooltip label="Notifications" side="bottom" align="end">
                     <button
                       type="button"
@@ -354,6 +365,7 @@ export default function App() {
                       <NotificationBell count={j.unreadCount} />
                     </button>
                   </Tooltip>
+                  )}
                 </div>
               )}
 

@@ -40,6 +40,8 @@ interface Props {
      is always interruptible, the way it works everywhere else. */
   busy?: boolean
   onStop?: () => void
+  /** The "N connectors active" line under the bar. */
+  showConnectorsNote?: boolean
 }
 
 type MenuId = 'none' | 'plus' | 'model' | 'effort'
@@ -48,7 +50,7 @@ export function Composer({
   onSend, value, onChange, className = '', joined = false,
   placeholder = 'Ask AAVA anything…',
   model, onModel, effort, onEffort, connectors, onToggleConnector,
-  files, onAddFiles, onRemoveFile, busy = false, onStop,
+  files, onAddFiles, onRemoveFile, busy = false, onStop, showConnectorsNote = true,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -264,7 +266,7 @@ export function Composer({
           </div>
         </div>
       </form>
-      {enabledConnectors > 0 && (
+      {showConnectorsNote && enabledConnectors > 0 && (
         <p className="mt-1.5 pl-1 text-[11px]" style={{ color: 'var(--muted-deep)' }}>
           {enabledConnectors} connector{enabledConnectors > 1 ? 's' : ''} active
         </p>

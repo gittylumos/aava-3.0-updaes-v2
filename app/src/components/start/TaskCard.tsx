@@ -4,6 +4,7 @@ import { TAG_META } from '../../state/reducer'
 
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const tag = TAG_META[task.tag]
+  const inert = !!task.placeholder
 
   return (
     /* No layoutId. It had no partner to morph into — the start view is swapped
@@ -11,8 +12,9 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
        a layout animation, which is why collapsing the nav sent the cards swinging
        80px the wrong way before they settled. */
     <motion.button
-      onClick={() => onOpen(task.id)}
-      className="press group flex h-full w-full flex-col rounded-[var(--r-lg)] px-5 pb-[18px] pt-[18px] text-left backdrop-blur-[20px] hover:bg-[var(--card-hover)]"
+      onClick={inert ? undefined : () => onOpen(task.id)}
+      aria-disabled={inert || undefined}
+      className={`${inert ? 'cursor-default' : 'press hover:bg-[var(--card-hover)]'} group flex h-full w-full flex-col rounded-[var(--r-lg)] px-5 pb-[18px] pt-[18px] text-left backdrop-blur-[20px]`}
       style={{ background: 'var(--card)', border: '1px solid var(--glass-line)', minHeight: 152 }}
     >
       <h2 className="text-[15px] font-semibold leading-[1.35] tracking-[-.014em] text-pretty">{task.title}</h2>
@@ -28,11 +30,13 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
           style={{ background: tag.bg, color: tag.fg }}
         >
           <span className="h-[5px] w-[5px] rounded-full" style={{ background: 'currentColor' }} />
-          {tag.label}
+          {task.tagLabel ?? tag.label}
         </span>
-        <span className="text-[12px] leading-[1.45] text-pretty" style={{ color: 'var(--muted)' }}>
-          {task.note}
-        </span>
+        {task.note && !inert && (
+          <span className="text-[12px] leading-[1.45] text-pretty" style={{ color: 'var(--muted)' }}>
+            {task.note}
+          </span>
+        )}
       </div>
     </motion.button>
   )

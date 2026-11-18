@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { AppState, BlockSpec, Chip, PrepStep, TabId } from '../../state/types'
+import { FLAGS } from '../../config/flags'
 import { Thread } from './Thread'
 import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
@@ -179,9 +180,11 @@ export function ConversationView({
             <div className="ml-auto flex items-center gap-1">
               {taskProgress && (
                 <>
-                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
-                    <IconWorkflow size={15} />
-                  </EdgeToggle>
+                  {FLAGS.SHOW_EXECUTION_ACTIVITY && (
+                    <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
+                      <IconWorkflow size={15} />
+                    </EdgeToggle>
+                  )}
                   <EdgeToggle on={false} onClick={onShowFiles} label="Files in this session">
                     <IconFileSearch size={15} />
                   </EdgeToggle>
@@ -228,9 +231,11 @@ export function ConversationView({
                   The agent-builder run has its own canvas, no graph/files. */}
               {object.kind !== 'insight' && object.kind !== 'agent' && (
                 <>
-                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
-                    <IconWorkflow size={15} />
-                  </EdgeToggle>
+                  {FLAGS.SHOW_EXECUTION_ACTIVITY && (
+                    <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
+                      <IconWorkflow size={15} />
+                    </EdgeToggle>
+                  )}
                   <EdgeToggle on={false} onClick={onShowFiles} label="All files in this session">
                     <IconFileSearch size={15} />
                   </EdgeToggle>

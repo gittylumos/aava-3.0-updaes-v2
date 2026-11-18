@@ -11,6 +11,7 @@ import { BrandMark, IconChat, IconChevron, IconFilter, IconMoon, IconPanel, Icon
 import type { Profile } from '../../data/user'
 import { useDismiss } from '../../state/useDismiss'
 import { THEME_LOCKED } from '../../state/useTheme'
+import { FLAGS } from '../../config/flags'
 
 /* One list, not two lanes — the filter narrows it, it does not switch it. */
 type Filter = 'all' | 'tasks' | 'chat'
@@ -447,6 +448,16 @@ function MenuRow({ onClick, children }: { onClick: () => void; children: React.R
   )
 }
 
+/* A plain outlined square — the icon on a placeholder row. */
+function PlaceholderGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+    </svg>
+  )
+}
+
 /* One sidebar, two widths, one list. Open it is brand, the three primary
    actions, Pinned — which holds whatever you pinned, task or chat — and then
    Recents: tasks and chats interleaved newest-first, told apart by the leading
@@ -561,15 +572,27 @@ export function Sidebar({
                 <IconPanel />
               </NavRow>
             )}
-            <NavRow label="New Session" open={open} onClick={onNewChat}>
-              <IconPlus />
-            </NavRow>
-            <NavRow label="My Tasks" open={open} onClick={onMyTasks} active={tasksActive}>
-              <IconTasks />
-            </NavRow>
-            <NavRow label="Search" open={open} onClick={onSearch} active={searchActive}>
-              <IconSearch />
-            </NavRow>
+            {/* Low-fi: inert stand-ins for the real navigation (see config/flags). */}
+            {FLAGS.SIDEBAR_PLACEHOLDERS && [1, 2, 3, 4].map((n) => (
+              <NavRow key={n} label={`Placeholder-${n}`} open={open} onClick={() => {}}>
+                <PlaceholderGlyph />
+              </NavRow>
+            ))}
+            {FLAGS.SHOW_NEW_SESSION && (
+              <NavRow label="New Session" open={open} onClick={onNewChat}>
+                <IconPlus />
+              </NavRow>
+            )}
+            {FLAGS.SHOW_MY_TASKS && (
+              <NavRow label="My Tasks" open={open} onClick={onMyTasks} active={tasksActive}>
+                <IconTasks />
+              </NavRow>
+            )}
+            {FLAGS.SHOW_SEARCH && (
+              <NavRow label="Search" open={open} onClick={onSearch} active={searchActive}>
+                <IconSearch />
+              </NavRow>
+            )}
           </div>
 
           {/* Lists only exist in the open state — a 70px rail cannot show a title,
@@ -577,7 +600,7 @@ export function Sidebar({
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             {/* Pinned sits above Recents and holds whatever you pinned, task or
                 chat. Capped, so a long pin list cannot squeeze Recents out. */}
-            {open && (
+            {open && FLAGS.SHOW_PINNED && (
               <div className="max-h-[40%] shrink-0 overflow-y-auto">
                 <Section label="Pinned" count={pinned.length} open={pinnedOpen} onOpenChange={setPinnedOpen}>
                   {rows(pinned, 'Nothing pinned yet — hover a task or a chat and hit the pin.')}
@@ -586,13 +609,13 @@ export function Sidebar({
             )}
 
             {/* The header sits directly on top of the list it names and narrows. */}
-            {open && (
+            {open && FLAGS.SHOW_RECENTS && (
               <div className="shrink-0 pt-1">
                 <RecentsHeader value={filter} onChange={setFilter} />
               </div>
             )}
 
-            {open && (
+            {open && FLAGS.SHOW_RECENTS && (
               <div className="min-h-0 flex-1 overflow-y-auto pb-2">
                 {rows(
                   recents,

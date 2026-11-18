@@ -71,6 +71,10 @@ export interface Task {
   title: string
   status: TaskStatus
   tag: TaskTag
+  /** Replaces the tag's usual label on cards (e.g. "Processing"). */
+  tagLabel?: string
+  /** An inert card: shown on the home board, but it opens nothing. */
+  placeholder?: boolean
   est: string
   dep: string
   recommended?: boolean
