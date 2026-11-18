@@ -20,6 +20,8 @@ export const FLAGS = {
   SHOW_PINNED: false,
   /** The "Recents" section and its filter. */
   SHOW_RECENTS: true,
+  /** The filter button (All / Tasks / Chats) beside the "Recents" heading. */
+  SHOW_RECENTS_FILTER: false,
   /** Recents lists only the sessions on the home cards (plus anything the user
    *  starts), instead of the full seeded history. Set false for every seeded
    *  task and chat. */

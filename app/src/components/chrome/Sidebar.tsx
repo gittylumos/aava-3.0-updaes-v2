@@ -246,7 +246,7 @@ function RecentsHeader({ value, onChange }: { value: Filter; onChange: (f: Filte
     <div ref={root} className="relative flex items-center gap-2 px-2.5 py-1.5">
       <span className="text-[12.5px]" style={{ color: 'var(--muted)' }}>Recents</span>
 
-      <Tooltip label="Filter recents" side="bottom" disabled={menu}>
+      {FLAGS.SHOW_RECENTS_FILTER && <Tooltip label="Filter recents" side="bottom" disabled={menu}>
         <button
           type="button"
           aria-label={on ? `Filter recents — ${FILTERS.find((f) => f.id === value)?.label}` : 'Filter recents'}
@@ -261,7 +261,7 @@ function RecentsHeader({ value, onChange }: { value: Filter; onChange: (f: Filte
         >
           <IconFilter size={15} />
         </button>
-      </Tooltip>
+      </Tooltip>}
 
       {menu && (
         <div
