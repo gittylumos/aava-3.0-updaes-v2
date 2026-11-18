@@ -11,12 +11,14 @@ export interface Profile {
   org: string
   /** Shown inside the avatar circle. */
   initials: string
+  /** Shown under the name in the account row when SHOW_EMAIL_IN_PROFILE is on. */
+  email?: string
 }
 
 export type ProfileId = 'deepak' | 'raman' | 'ajay' | 'meera'
 
 export const PROFILES: Record<ProfileId, Profile> = {
-  deepak: { id: 'deepak', name: 'Alex', role: 'Admin', org: 'HP', initials: 'A' },
+  deepak: { id: 'deepak', name: 'Alex', role: 'Admin', org: 'HP', initials: 'A', email: 'Alex.apex@ascendion.com' },
   raman: { id: 'raman', name: 'Raman', role: 'Product Manager', org: 'HP', initials: 'R' },
   ajay: { id: 'ajay', name: 'Ajay', role: 'Agent Designer', org: 'HP', initials: 'A' },
   /* User B in the cross-persona handoff — she picks up the backlog Raman

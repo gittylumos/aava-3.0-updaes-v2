@@ -162,7 +162,7 @@ function ThreadRow({
           a column of noise to every row. Once pinned it stays lit and filled so
           the row reads as pinned at a glance. Focus-visible keeps it
           keyboard-reachable. */}
-      <Tooltip label={pinned ? 'Unpin' : 'Pin'} side="top">
+      {FLAGS.SHOW_ROW_PIN && <Tooltip label={pinned ? 'Unpin' : 'Pin'} side="top">
         <button
           onClick={() => onTogglePin(thread.id)}
           aria-label={pinned ? `Unpin ${thread.title}` : `Pin ${thread.title}`}
@@ -174,7 +174,7 @@ function ThreadRow({
         >
           <IconPinned size={14} filled={pinned} />
         </button>
-      </Tooltip>
+      </Tooltip>}
     </div>
   )
 }
@@ -349,7 +349,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
           >
             <span className="block truncate text-[12.5px] font-semibold leading-tight">{profile.name}</span>
             <span className="block truncate text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>
-              {profile.role}
+              {(FLAGS.SHOW_EMAIL_IN_PROFILE && profile.email) || profile.role}
             </span>
           </span>
         </button>
@@ -376,7 +376,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold leading-tight">{profile.name}</p>
               <p className="truncate text-[11.5px] leading-tight" style={{ color: 'var(--muted)' }}>
-                {profile.role}
+                {(FLAGS.SHOW_EMAIL_IN_PROFILE && profile.email) || profile.role}
               </p>
             </div>
           </div>
@@ -486,7 +486,11 @@ export function Sidebar({
 
   // A task row reopens the task, not the parked thread — that is what restores
   // the split view and its playground.
-  const open_ = (t: Thread) => (t.taskId ? onOpenTask(t.taskId) : onOpenThread(t))
+  // An inert placeholder card (Task card -3) opens nothing.
+  const open_ = (t: Thread) => {
+    if (t.taskId && taskById.get(t.taskId)?.placeholder) return
+    if (t.taskId) onOpenTask(t.taskId); else onOpenThread(t)
+  }
 
   const rows = (list: Thread[], empty: string) =>
     list.length === 0 ? <Empty>{empty}</Empty> : (

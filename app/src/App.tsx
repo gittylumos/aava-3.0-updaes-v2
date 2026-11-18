@@ -28,6 +28,7 @@ import { Search } from './components/overlays/Search'
 import { Toast } from './components/overlays/Toast'
 import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
+import { TASKS } from './state/reducer'
 import { THEME_LOCKED, useTheme } from './state/useTheme'
 import { PROFILES } from './data/user'
 import { FLAGS } from './config/flags'
@@ -62,6 +63,17 @@ export default function App() {
         ? { ...t, title: 'Task card -3', status: 'wip' as const, tag: 'working' as const, tagLabel: 'Processing', placeholder: true }
         : t)
     : boardTasks
+  /* Recents mirrors the home cards: the three sessions on the board (same labels)
+     and anything the user starts, not the whole seeded history. It stays live —
+     a new intent session is a thread in state, so it shows up here at once. */
+  /* The seeded tasks that are not on the home board (T3–T6) stay out of Recents;
+     anything the user starts (a PRD, a chat) is not seeded, so it always shows. */
+  const hiddenTaskIds = new Set(TASKS.slice(3).map((t) => t.id))
+  const SEEDED_CHATS = new Set(['th-sprint-scope'])
+  const sidebarTasks = FLAGS.RECENTS_HOME_SESSIONS_ONLY ? homeTasks.filter((t) => !hiddenTaskIds.has(t.id)) : j.state.tasks
+  const sidebarThreads = FLAGS.RECENTS_HOME_SESSIONS_ONLY
+    ? j.state.threads.filter((t) => (t.taskId ? !hiddenTaskIds.has(t.taskId) : !SEEDED_CHATS.has(t.id)))
+    : j.state.threads
   const homeSubtitle = j.state.firstTime
     ? "I'm AAVA. Tell me what you'd like to build, and I'll take it from there."
     : homeTasks.length === 0
@@ -289,8 +301,8 @@ export default function App() {
               /* Follows the collapse state directly now: expanded when open,
                  icon rail when not. In the playground it opens collapsed. */
               open={j.state.sidebarOpen}
-              threads={j.state.threads}
-              tasks={j.state.tasks}
+              threads={sidebarThreads}
+              tasks={sidebarTasks}
               pinnedIds={j.state.pinnedThreadIds}
               activeThreadId={j.state.activeThreadId}
               activeTaskId={j.state.activeTaskId}

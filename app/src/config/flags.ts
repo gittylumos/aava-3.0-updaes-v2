@@ -19,7 +19,16 @@ export const FLAGS = {
   /** The "Pinned" section. */
   SHOW_PINNED: false,
   /** The "Recents" section and its filter. */
-  SHOW_RECENTS: false,
+  SHOW_RECENTS: true,
+  /** Recents lists only the sessions on the home cards (plus anything the user
+   *  starts), instead of the full seeded history. Set false for every seeded
+   *  task and chat. */
+  RECENTS_HOME_SESSIONS_ONLY: true,
+  /** The hover pin button on a Recents row. Off while Pinned is hidden, since a
+   *  pinned row would vanish from the list. */
+  SHOW_ROW_PIN: false,
+  /** Show the account email under the name instead of the role. */
+  SHOW_EMAIL_IN_PROFILE: true,
 
   /* ── Home ─────────────────────────────────────────────────────────────── */
   /** The bell in the top-right corner of the home screen. */
