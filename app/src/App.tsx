@@ -29,6 +29,8 @@ import { Toast } from './components/overlays/Toast'
 import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
 import { TASKS } from './state/reducer'
+import { OpenUrlContext } from './state/openUrl'
+import { webTitle } from './state/web'
 import { THEME_LOCKED, useTheme } from './state/useTheme'
 import { PROFILES } from './data/user'
 import { FLAGS } from './config/flags'
@@ -96,6 +98,18 @@ export default function App() {
      counter makes asking twice for the same view ask twice. */
   const [canvasReq, setCanvasReq] = useState<{ view: 'doc' | 'files' | 'graph'; n: number }>({ view: 'doc', n: 0 })
   const askCanvas = (view: 'doc' | 'files' | 'graph') => setCanvasReq((r) => ({ view, n: r.n + 1 }))
+  /* A Jira / GitHub / Figma link anywhere in the session opens its page as a
+     browser tab in the canvas — never a new window, never a toast. */
+  const [webReq, setWebReq] = useState<{ url: string; label: string; n: number }>({ url: '', label: '', n: 0 })
+  const openUrl = useMemo(() => ({
+    open: (url: string) => {
+      setWebReq((r) => ({ url, label: webTitle(url, TASKS), n: r.n + 1 }))
+      j.setPanelOpen(true)
+    },
+    ticket: j.state.tasks.find((t) => t.id === j.state.activeTaskId)?.context.ticket,
+    // `j` is rebuilt every render; only the active ticket changes what this returns.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }), [j.state.activeTaskId, j.state.tasks])
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
   const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
@@ -277,6 +291,7 @@ export default function App() {
       : null
 
   return (
+    <OpenUrlContext.Provider value={openUrl}>
     <TooltipProvider delayDuration={320} skipDelayDuration={140}>
       <AmbientField />
       {/* Landmarks for assistive tech and crawlers. The workspace itself is a
@@ -453,6 +468,7 @@ export default function App() {
               processName={session?.processName}
               activity={session?.activity}
               canvasRequest={canvasReq}
+              webRequest={webReq}
               changes={docChanges}
               onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
               onSelectDoc={openDoc}
@@ -504,6 +520,7 @@ export default function App() {
       )}
       <Toast text={j.state.toast} />
     </TooltipProvider>
+    </OpenUrlContext.Provider>
   )
 }
 

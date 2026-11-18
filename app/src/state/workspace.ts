@@ -47,6 +47,9 @@ export type WorkspaceTabType =
   | 'agent'
   /** The agent run's Sample Run document. */
   | 'agent-sample'
+  /** An external page (Jira, GitHub, Figma) shown in a canvas browser tab. The
+      resource id is the URL, so opening the same link twice lands on one tab. */
+  | 'web'
 
 export interface WorkspaceTab {
   id: string
@@ -254,4 +257,9 @@ export function recordRecent(taskId: string, tab: WorkspaceTab): WorkspaceTab[] 
   const next = [tab, ...recentTabs(taskId).filter((t) => t.id !== tab.id)].slice(0, 12)
   taskRecents.set(taskId, next)
   return next
+}
+
+/* An external page in its own browser tab — keyed by URL. */
+export function webTab(url: string, label: string): WorkspaceTab {
+  return { id: makeTabId('web', url), type: 'web', resourceId: url, label }
 }

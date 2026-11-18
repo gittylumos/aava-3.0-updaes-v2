@@ -1,4 +1,6 @@
 import { Fragment, useState } from 'react'
+import { useOpenUrl } from '../../state/openUrl'
+import { urlForSource } from '../../state/web'
 import type { ArtifactMatch, BlockSpec, TabId } from '../../state/types'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
@@ -253,10 +255,15 @@ interface Props {
 }
 
 export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, answer, revising, onRevise, onReviseSend, onReviseCancel }: Props) {
+  const openUrl = useOpenUrl()
   if (block.kind === 'tools') {
     return (
       <ToolSteps steps={block.steps} done={block.done} title={block.title}
-        onOpenSource={onToast ? (step) => onToast(`Opening ${step.result} in ${step.source}`) : undefined}
+        onOpenSource={(step) => {
+          const url = openUrl && urlForSource(step.source, step.result, openUrl.ticket)
+          if (url) openUrl!.open(url)
+          else onToast?.(`Opening ${step.result} in ${step.source}`)
+        }}
         onOpenTab={onOpenTab} />
     )
   }
@@ -476,6 +483,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
              nowhere to go in a prototype, so it stays a pill. */
           l.href ? (
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+              onClick={openUrl && l.href ? (e) => { e.preventDefault(); openUrl.open(l.href!) } : undefined}
               className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               {l.label}
@@ -492,7 +500,11 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           ) : /\bPR\s?#/i.test(l.label) ? (
             /* A raised PR reads as a real link — the repo → PR reference, a
                GitHub mark and an open-in-new affordance — not a flat pill. */
-            <button key={l.label} onClick={() => onToast?.(`Opening ${l.label} on GitHub`)}
+            <button key={l.label} onClick={() => {
+              const url = openUrl && urlForSource('GitHub', l.label.match(/#\d+/)?.[0] ?? '', openUrl.ticket)
+              if (url) openUrl!.open(url)
+              else onToast?.(`Opening ${l.label} on GitHub`)
+            }}
               className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               <GitHubMark />
@@ -540,6 +552,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1.5">
             {block.links.map((l) => (
               <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+              onClick={openUrl && l.href ? (e) => { e.preventDefault(); openUrl.open(l.href!) } : undefined}
                 className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
                 style={{ color: 'var(--done)' }}>
                 {l.label}

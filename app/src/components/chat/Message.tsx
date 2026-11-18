@@ -5,6 +5,8 @@ import { TypingDots } from './TypingDots'
 import { StreamedText } from './StreamedText'
 import { Block } from './Blocks'
 import { CitationPills } from './InlineSource'
+import { useOpenUrl } from '../../state/openUrl'
+import { urlForCitation } from '../../state/web'
 import { Fragment } from 'react'
 import { fadeUp } from '../../design/motion'
 import type { BacklogDoc } from '../../prd/backlog'
@@ -34,6 +36,7 @@ interface Props {
 }
 
 export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, onRevise, revisingId, onReviseSend, onReviseCancel, pinned }: Props) {
+  const openCitation = useCitationOpener(onToast)
   if (msg.from === 'user') {
     return (
       <motion.div {...fadeUp(6)}
@@ -62,7 +65,7 @@ export function Message({ msg, preview, onAccept, onDismiss, onOpenFile, onOpenT
                 <Line key={i}>
                   {highlight(line)}
                   {i === msg.lines.length - 1 && msg.citations && (
-                    <CitationPills sources={msg.citations} onOpen={onToast ? (s) => onToast(`Opening ${s.title}`) : undefined} />
+                    <CitationPills sources={msg.citations} onOpen={openCitation} />
                   )}
                 </Line>
               ))}
@@ -108,6 +111,7 @@ function highlight(text: string): React.ReactNode {
    that has already streamed resolves on mount, so a remounted thread cascades
    through in a few frames rather than replaying. */
 function StreamingLines({ msg, onToast }: { msg: Msg; onToast?: (text: string) => void }) {
+  const openCitation = useCitationOpener(onToast)
   const [at, setAt] = useState(0)
   const lastIdx = msg.lines.length - 1
 
@@ -126,7 +130,7 @@ function StreamingLines({ msg, onToast }: { msg: Msg; onToast?: (text: string) =
               not just i === at mid-stream) — a citation trailing text that is
               still typing would read as answered before it is. */}
           {i === lastIdx && i < at && msg.citations && (
-            <CitationPills sources={msg.citations} onOpen={onToast ? (s) => onToast(`Opening ${s.title}`) : undefined} />
+            <CitationPills sources={msg.citations} onOpen={openCitation} />
           )}
         </Line>
       ))}
@@ -140,4 +144,15 @@ function Line({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   )
+}
+
+/* A citation pill's "Open in …" — opens the cited page as a canvas browser tab
+   when the app provides one, otherwise falls back to the old notice. */
+function useCitationOpener(onToast?: (text: string) => void) {
+  const openUrl = useOpenUrl()
+  return (s: { kind: string; label: string; title: string }) => {
+    const url = openUrl && urlForCitation(s as Parameters<typeof urlForCitation>[0], openUrl.ticket)
+    if (url) openUrl!.open(url)
+    else onToast?.(`Opening ${s.title}`)
+  }
 }

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { AppState, BlockSpec, Chip, PrepStep, TabId } from '../../state/types'
 import { FLAGS } from '../../config/flags'
+import { useOpenUrl } from '../../state/openUrl'
+import { jiraUrl } from '../../state/web'
 import { Thread } from './Thread'
 import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
@@ -73,6 +75,7 @@ export function ConversationView({
   state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange, compact = false,
 }: Props) {
+  const openUrl = useOpenUrl()
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
   const object = state.activeObject
   const contextOpen = state.playground.contextOpen
@@ -162,6 +165,7 @@ export function ConversationView({
               href={task.context.ticketUrl ?? `https://aava-demo.atlassian.net/browse/${task.context.ticket}`}
               target="_blank"
               rel="noreferrer"
+              onClick={openUrl ? (e) => { e.preventDefault(); openUrl.open(jiraUrl(task.context.ticket)) } : undefined}
               title={`Open ${task.context.ticket} in ${task.context.ticketSource.split(' · ')[0]}`}
               /* Colours live in classes, not style — an inline background would
                  outrank the hover rule and nothing would light up. */

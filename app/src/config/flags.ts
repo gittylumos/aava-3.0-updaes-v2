@@ -29,8 +29,11 @@ export const FLAGS = {
   /** The hover pin button on a Recents row. Off while Pinned is hidden, since a
    *  pinned row would vanish from the list. */
   SHOW_ROW_PIN: false,
-  /** Show the account email under the name instead of the role. */
+  /** Show the account email under the name in the account popover (the
+   *  sidebar row shows PROFILE_SUBTITLE instead). */
   SHOW_EMAIL_IN_PROFILE: true,
+  /** The line under the name in the sidebar account row. Empty = the role. */
+  PROFILE_SUBTITLE: 'Base user',
 
   /* ── Home ─────────────────────────────────────────────────────────────── */
   /** The bell in the top-right corner of the home screen. */

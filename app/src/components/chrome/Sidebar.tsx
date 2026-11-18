@@ -349,7 +349,7 @@ function Profile({ open, profile, otherProfiles, onSwitchTo, theme, onToggleThem
           >
             <span className="block truncate text-[12.5px] font-semibold leading-tight">{profile.name}</span>
             <span className="block truncate text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>
-              {(FLAGS.SHOW_EMAIL_IN_PROFILE && profile.email) || profile.role}
+              {FLAGS.PROFILE_SUBTITLE || profile.role}
             </span>
           </span>
         </button>
