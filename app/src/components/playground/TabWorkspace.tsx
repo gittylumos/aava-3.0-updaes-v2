@@ -4,7 +4,7 @@ import { Actions, DockLocation, Layout, Model, TabNode } from 'flexlayout-react'
 import type { Action, IJsonModel } from 'flexlayout-react'
 import type { ActiveObject, Message, PlaygroundState, Scenario, Task, WatchEntry } from '../../state/types'
 import {
-  activityTab, agentSampleTab, agentTab, docTab, hasPreview, insightTab, makeTabId, openableTabs, overviewTab,
+  activityTab, agentSampleTab, webTab, agentTab, docTab, hasPreview, insightTab, makeTabId, openableTabs, overviewTab,
   parseTabId, recentTabs, recordRecent, reportTab, saveTaskLayout, taskLayout, workspaceTabFor,
   type SessionFile, type WorkspaceTab,
 } from '../../state/workspace'
@@ -133,6 +133,8 @@ interface Props {
   /** The header's "execution activity" / "files" asks, and a beat's. Bumping
       `n` opens the view named — the graph, the Overview, or the artifact. */
   canvasRequest: { view: 'doc' | 'graph' | 'files'; n: number }
+  /** A link asked to open here: bumping `n` opens `url` as a browser tab. */
+  webRequest?: { url: string; label: string; n: number }
   /** Pending inline comments on the open document. */
   changes?: Change[]
   onAddChange?: (change: Change) => void
@@ -154,7 +156,7 @@ interface Props {
 
 export function TabWorkspace({
   sessionKey, pg, scenario, taskId, task = null, object = null, messages, files = [], processName, activity,
-  canvasRequest, changes = [], onAddChange, onSelectDoc, onSelectInsight, onSelectReport, onClone,
+  canvasRequest, webRequest, changes = [], onAddChange, onSelectDoc, onSelectInsight, onSelectReport, onClone,
   watch: _watch, theme, active, onCollapse, onToast, onFile, onEdit,
 }: Props) {
   const [model, setModel] = useState<Model>(() => modelFor(sessionKey))
@@ -171,6 +173,7 @@ export function TabWorkspace({
   const lastObjectAsk = useRef<string | null>(null)
   const lastSampleAsk = useRef(false)
   const lastCanvasAsk = useRef(canvasRequest.n)
+  const lastWebAsk = useRef(webRequest?.n ?? 0)
   const prevKey = useRef(sessionKey)
   const browsers = useRef(0)
 
@@ -285,6 +288,14 @@ export function TabWorkspace({
     // Only the label moving is a rename; the id is the artifact's identity.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [artifactLabel, model])
+
+  /* A Jira / GitHub / Figma link from the conversation: its page opens as a
+     browser tab here instead of leaving the prototype. */
+  useEffect(() => {
+    if (!webRequest || lastWebAsk.current === webRequest.n) return
+    lastWebAsk.current = webRequest.n
+    openTab(webTab(webRequest.url, webRequest.label))
+  }, [webRequest, openTab])
 
   /* The agent run's Sample Run document, opened from the conversation's card. */
   useEffect(() => {

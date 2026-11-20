@@ -1,4 +1,7 @@
 import { Fragment, useState } from 'react'
+import { RunTimeline } from './RunTimeline'
+import { useOpenUrl } from '../../state/openUrl'
+import { urlForSource } from '../../state/web'
 import type { ArtifactMatch, BlockSpec, TabId } from '../../state/types'
 import type { BacklogDoc } from '../../prd/backlog'
 import type { InsightView } from '../../prd/insight'
@@ -253,10 +256,15 @@ interface Props {
 }
 
 export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onToast, answer, revising, onRevise, onReviseSend, onReviseCancel }: Props) {
+  const openUrl = useOpenUrl()
   if (block.kind === 'tools') {
     return (
       <ToolSteps steps={block.steps} done={block.done} title={block.title}
-        onOpenSource={onToast ? (step) => onToast(`Opening ${step.result} in ${step.source}`) : undefined}
+        onOpenSource={(step) => {
+          const url = openUrl && urlForSource(step.source, step.result, openUrl.ticket)
+          if (url) openUrl!.open(url)
+          else onToast?.(`Opening ${step.result} in ${step.source}`)
+        }}
         onOpenTab={onOpenTab} />
     )
   }
@@ -408,6 +416,8 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
   /* What was generated: the thing itself on top, named underneath, with the way
      in beside the name. The thumbnail is the running app rendered small and
      inert — not a screenshot — so an edit in the workspace shows up here too. */
+  if (block.kind === 'timeline') return <RunTimeline />
+
   if (block.kind === 'app') {
     return (
       /* Capped: a card is an object you can take in at a glance, and stretching
@@ -476,6 +486,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
              nowhere to go in a prototype, so it stays a pill. */
           l.href ? (
             <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+              onClick={openUrl && l.href ? (e) => { e.preventDefault(); openUrl.open(l.href!) } : undefined}
               className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               {l.label}
@@ -483,8 +494,8 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
                 <path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
               </svg>
             </a>
-          ) : l.file ? (
-            <button key={l.label} onClick={() => onOpenFile?.(l.file!)}
+          ) : l.file || l.tab ? (
+            <button key={l.label} onClick={() => (l.file ? onOpenFile?.(l.file) : onOpenTab?.(l.tab!))}
               className="mono press text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               {l.label}
@@ -492,7 +503,11 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           ) : /\bPR\s?#/i.test(l.label) ? (
             /* A raised PR reads as a real link — the repo → PR reference, a
                GitHub mark and an open-in-new affordance — not a flat pill. */
-            <button key={l.label} onClick={() => onToast?.(`Opening ${l.label} on GitHub`)}
+            <button key={l.label} onClick={() => {
+              const url = openUrl && urlForSource('GitHub', l.label.match(/#\d+/)?.[0] ?? '', openUrl.ticket)
+              if (url) openUrl!.open(url)
+              else onToast?.(`Opening ${l.label} on GitHub`)
+            }}
               className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
               style={{ color: 'var(--done)' }}>
               <GitHubMark />
@@ -540,6 +555,7 @@ export function Block({ block, live, preview, onAccept, onDismiss, onOpenFile, o
           <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1.5">
             {block.links.map((l) => (
               <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+              onClick={openUrl && l.href ? (e) => { e.preventDefault(); openUrl.open(l.href!) } : undefined}
                 className="mono press inline-flex items-center gap-1.5 text-[12px] underline underline-offset-[3px] transition-colors hover:text-[var(--text)]"
                 style={{ color: 'var(--done)' }}>
                 {l.label}
@@ -1065,8 +1081,17 @@ function Plan({ block, live, onAccept, onDismiss }: {
   // a subtle one-liner (no Proceed; the work is done) that opens to the steps.
   if (block.collapsed) {
     return (
-      <SubtleRecord icon={<PlanGlyph />} title={`${block.title ?? 'Plan'} · ${block.count} steps`}>
-        <div className="grid gap-2.5 pt-1.5">
+      <SubtleRecord icon={<PlanGlyph />} title={block.matched ? block.title ?? 'Plan' : `${block.title ?? 'Plan'} · ${block.count} steps`}>
+        {block.matched && (
+          <div className="pt-2.5">
+            <div className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
+              <span style={{ color: 'var(--muted)' }}>Matched capability · </span>
+              <span className="font-medium">{block.matched}</span>
+            </div>
+            {block.intro && <p className="mt-1 text-[12px] leading-[1.5]" style={{ color: 'var(--muted)' }}>{block.intro}</p>}
+          </div>
+        )}
+        <div className={`grid gap-2.5 ${block.matched ? 'pt-3' : 'pt-1.5'}`}>
           {block.steps.map((s, i) => (
             <div key={s.title} className="flex gap-2.5">
               <span className="mono mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]"

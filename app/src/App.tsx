@@ -5,9 +5,16 @@ import { Tooltip, TooltipProvider } from './components/chrome/Tooltip'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmbientField } from './components/ambient/AmbientField'
 import { Sidebar } from './components/chrome/Sidebar'
+import { NavRail, type ListView } from './components/chrome/NavRail'
+import { SessionList } from './components/home/SessionList'
+import { HomeEmpty } from './components/home/HomeEmpty'
+import { needsOf, sessionTasks } from './components/home/sessionGroups'
+import { FLAGS } from './config/flags'
+import { RunTimelineContext } from './state/runTimeline'
 import { WorkspaceShell } from './components/layout/WorkspaceShell'
 
 import { Composer, MODELS, type Connector, type Effort } from './components/chrome/Composer'
+import { livePinnedGate } from './state/gates'
 import { StartView } from './components/start/StartView'
 import { ConversationView } from './components/chat/ConversationView'
 import { TabWorkspace } from './components/playground/TabWorkspace'
@@ -28,6 +35,8 @@ import { Search } from './components/overlays/Search'
 import { Toast } from './components/overlays/Toast'
 import { ReviseModal } from './components/overlays/ReviseModal'
 import { useJourney } from './state/useJourney'
+import { OpenUrlContext } from './state/openUrl'
+import { webTitle } from './state/web'
 import { useTheme } from './state/useTheme'
 import { PROFILES, PROFILE_ORDER } from './data/user'
 
@@ -64,6 +73,19 @@ export default function App() {
      whichever column it belongs to, so it remounts when the arrangement
      changes — holding the text here makes that remount invisible. */
   const [draft, setDraft] = useState('')
+  /* Two-sidebar layout: which list the secondary sidebar shows, and whether it
+     is showing at all (it can be tucked away for a wider session). */
+  /* The first-time-user view is a lo-fi demo mode; Hoffman has one user. */
+  const firstTime = false
+  const [listView, setListView] = useState<ListView>('home')
+  const [listOpen, setListOpen] = useState(true)
+  const [vw, setVw] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const on = () => setVw(window.innerWidth)
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  const needsCount = needsOf(sessionTasks(homeTasks, firstTime)).length
 
   /* The header's execution-activity / files toggles, and a beat that moves the
      canvas, ask the workspace for a view — the graph opens as its own tab,
@@ -71,6 +93,18 @@ export default function App() {
      counter makes asking twice for the same view ask twice. */
   const [canvasReq, setCanvasReq] = useState<{ view: 'doc' | 'files' | 'graph'; n: number }>({ view: 'doc', n: 0 })
   const askCanvas = (view: 'doc' | 'files' | 'graph') => setCanvasReq((r) => ({ view, n: r.n + 1 }))
+  /* A Jira / GitHub / Figma link anywhere in the session opens its page as a
+     browser tab in the canvas — never a new window, never a toast. */
+  const [webReq, setWebReq] = useState<{ url: string; label: string; n: number }>({ url: '', label: '', n: 0 })
+  const openUrl = useMemo(() => ({
+    open: (url: string) => {
+      setWebReq((r) => ({ url, label: webTitle(url, j.state.tasks), n: r.n + 1 }))
+      j.setPanelOpen(true)
+    },
+    ticket: j.state.tasks.find((t) => t.id === j.state.activeTaskId)?.context.ticket,
+    // `j` is rebuilt every render; only the active ticket changes what this returns.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }), [j.state.activeTaskId, j.state.tasks])
   /* Pending inline-comment changes — lifted here so the tray renders above the
      composer (in the conversation column) while comments are made in the canvas. */
   const [docChanges, setDocChanges] = useState<{ quote: string; note: string; range?: Range }[]>([])
@@ -137,9 +171,23 @@ export default function App() {
     { id: 'confluence', name: 'Confluence', hue: '#1868DB', on: false },
   ])
 
+  /* While a task is parked on a gate, typing asks about the session — the
+     gate's own buttons are how the run moves on. No mode to pick. */
+  const openGate = j.state.activeTaskId && !j.state.revisingId ? livePinnedGate(j.state.messages) : undefined
+  const sendOrAsk = (text: string) => (openGate ? j.ask(text) : j.send(text))
+  /* Chips are not typed text: an Ask follow-up is always a question, and every
+     other chip is a run move whatever the mode. Ignored while AAVA is still
+     playing, so two beats never interleave. */
+  const onChip = (text: string) => {
+    if (j.busy) return
+    if (j.state.chipStage === 'ask' && openGate) j.ask(text)
+    else j.send(text)
+  }
+
   const composerFor = (joined = false) => (
     <Composer
-      onSend={(text) => { j.send(text); setFiles([]) }}
+      sessionNote={openGate ? "I'll answer from this session only. The task stays paused until you respond above." : undefined}
+      onSend={(text) => { sendOrAsk(text); setFiles([]) }}
       value={draft} onChange={setDraft} joined={joined}
       model={model} onModel={setModel}
       effort={effort} onEffort={setEffort}
@@ -188,7 +236,9 @@ export default function App() {
 
   /* An offered new thread replaces the task chips — it is the only thing worth
      answering while the question is parked. */
-  const stageChips = j.scenario && j.state.chipStage
+  /* Ask follow-ups belong to the gate they were asked at — once it is
+     answered they go too. */
+  const stageChips = j.scenario && j.state.chipStage && !(j.state.chipStage === 'ask' && !livePinnedGate(j.state.messages))
     ? j.scenario.chips[j.state.chipStage] ?? []
     : []
 
@@ -209,9 +259,20 @@ export default function App() {
     j.state.messages.filter((m) => m.from === 'user').map((m) => m.lines.join(' ')),
   )
 
+  /* A follow-up question is spent once anything asked in this thread got the
+     same scripted answer, whatever the wording ("why is this validation
+     right?" retires "Why is the validation right?"). */
+  const askEntries = j.scenario?.ask ?? []
+  const answered = new Set(
+    j.state.messages.filter((m) => m.from === 'user' && m.ask)
+      .map((m) => askEntries.findIndex((a) => a.match.test(m.lines.join(' ')))),
+  )
+  const spent = (c: { sends: string; followup?: boolean }) =>
+    asked.has(c.sends) || (!!c.followup && answered.has(askEntries.findIndex((a) => a.match.test(c.sends))))
+
   const chips = j.state.pendingTopic
     ? [{ label: 'Start a new thread', sends: 'alright' }]
-    : [...stageChips, ...objectChips].filter((c) => !asked.has(c.sends))
+    : [...stageChips, ...objectChips].filter((c) => !spent(c))
 
   const inTask = !!j.state.activeTaskId
     && (j.state.arrangement === 'conversation' || j.state.arrangement === 'split')
@@ -250,7 +311,20 @@ export default function App() {
         }
       : null
 
+  /* Room for the four regions (nav, list, conversation, workspace). The panel
+     library cannot honour minimums that add up to more than the window, so
+     main's minimum is what is left once the nav and an open workspace have
+     theirs — capped at list + a readable conversation. On a small window with
+     the workspace open, the list steps aside; any nav item brings it back. */
+  const sessionOpen = (inTask || inObject) && j.state.playground.panelOpen
+  const navPx = j.state.sidebarOpen ? 268 : 70
+  const showList = FLAGS.SESSION_LIST_LAYOUT && listOpen && !(sessionOpen && vw < 1100)
+  const mainMinPx = showList
+    ? Math.max(380, Math.min(296 + 400, vw - navPx - (sessionOpen ? 380 : 0) - 8))
+    : 380
+
   return (
+    <OpenUrlContext.Provider value={openUrl}>
     <TooltipProvider delayDuration={320} skipDelayDuration={140}>
       <AmbientField />
       {/* Landmarks for assistive tech and crawlers. The workspace itself is a
@@ -267,10 +341,32 @@ export default function App() {
              icon rail by default (opening a task/object sets sidebarOpen=false),
              not hidden behind a hover edge. So it is never an auto-hide drawer. */
           autoHideSidebar={false}
+          mainMinPx={mainMinPx}
           rightOpen={j.state.playground.panelOpen}
           onSidebarOpenChange={j.setSidebarOpen}
           onRightOpenChange={j.setPanelOpen}
-          sidebar={
+          sidebar={FLAGS.SESSION_LIST_LAYOUT ? (
+            <NavRail
+              open={j.state.sidebarOpen}
+              onToggle={() => j.setSidebarOpen(!j.state.sidebarOpen)}
+              view={listView}
+              onView={(v) => { setListView(v); setListOpen(true) }}
+              onNewChat={() => { j.goHome(); setListView('home'); setListOpen(true) }}
+              onHome={() => { j.goHome(); setListView('home'); setListOpen(true) }}
+              needsCount={needsCount}
+              counts={{
+                mytasks: firstTime ? 0 : 3 + 2 + 3 + 3,
+                conversations: j.state.threads.filter((t) => t.kind === 'chat').length + (firstTime ? 0 : 2),
+                completed: firstTime ? 0 : 3,
+              }}
+              profileName={profile.name}
+              profileRole={profile.role}
+              otherProfiles={otherProfiles}
+              onSwitchTo={j.setProfile}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+            />
+          ) : (
             <Sidebar
               /* Follows the collapse state directly now: expanded when open,
                  icon rail when not. In the playground it opens collapsed. */
@@ -296,9 +392,26 @@ export default function App() {
               theme={theme}
               onToggleTheme={toggleTheme}
             />
-          }
+          )}
           main={
-            <main className="relative min-h-0 flex-1 overflow-y-auto">
+            <div className="flex h-full min-h-0 w-full">
+            {showList && (
+              <SessionList
+                view={listView}
+                onView={setListView}
+                tasks={homeTasks}
+                threads={j.state.threads}
+                firstTime={firstTime}
+                activeTaskId={j.state.activeTaskId}
+                activeThreadId={j.state.activeThreadId}
+                onOpenTask={j.openTask}
+                onOpenThread={(id) => { const th = j.state.threads.find((t) => t.id === id); if (th) j.openThread(th) }}
+                onNewChat={() => { j.goHome(); setListView('home') }}
+                onSample={(title) => j.toast(`“${title}” is sample data in this prototype. Open a task under Needs you to try a run.`)}
+                onHide={() => setListOpen(false)}
+              />
+            )}
+            <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto">
               {/* Theme switch and notification bell — the home screen only.
                   Inside a task the top-right corner belongs to the workspace,
                   and an inbox is a standing invitation to leave the thing you
@@ -355,7 +468,9 @@ export default function App() {
                   subsequent arrangement switches should transition. */}
               <AnimatePresence mode="popLayout" initial={false}>
                 {j.state.arrangement === 'start' && (
-                  <StartView key="start" name={profile.name} tasks={homeTasks} subtitle={homeSubtitle}
+                  FLAGS.SESSION_LIST_LAYOUT
+                    ? <HomeEmpty key="start" name={profile.name} subtitle={homeSubtitle} composer={composerFor()} />
+                    : <StartView key="start" name={profile.name} tasks={homeTasks} subtitle={homeSubtitle}
                     onOpenTask={j.openTask}
                     onViewAllTasks={j.showTasks}
                     composer={composerFor()} />
@@ -364,6 +479,10 @@ export default function App() {
                   <TasksView key="tasks" tasks={j.state.tasks} onOpenTask={j.openTask} />
                 )}
                 {(j.state.arrangement === 'conversation' || j.state.arrangement === 'split') && (
+                  <RunTimelineContext.Provider key="conversation" value={{
+                    scenario: j.scenario, prepAt: j.state.playground.prepAt,
+                    waiting: !!taskProgress?.waiting, preview, onOpenTab: j.setTab, onToast: j.toast,
+                  }}>
                   <ConversationView
                     key="conversation"
                     state={j.state}
@@ -371,7 +490,7 @@ export default function App() {
                     taskProgress={taskProgress}
                     onOpenStep={j.focusEvidence}
                     preview={preview}
-                    onChip={j.send}
+                    onChip={onChip}
                     onAccept={j.runBeat}
                     onDismiss={j.dismissBlock}
                     onOpenFile={j.openFile}
@@ -397,9 +516,11 @@ export default function App() {
                        composer is always free-standing here. */
                     composer={composerFor()}
                   />
+                  </RunTimelineContext.Provider>
                 )}
               </AnimatePresence>
             </main>
+            </div>
           }
           /* One workspace for every session — a task, a PRD, a backlog, an
              analytics or report run, an agent build. Mounted for the whole life
@@ -418,6 +539,7 @@ export default function App() {
               processName={session?.processName}
               activity={session?.activity}
               canvasRequest={canvasReq}
+              webRequest={webReq}
               changes={docChanges}
               onAddChange={(c) => setDocChanges((cs) => [...cs, c])}
               onSelectDoc={openDoc}
@@ -469,6 +591,7 @@ export default function App() {
       )}
       <Toast text={j.state.toast} />
     </TooltipProvider>
+    </OpenUrlContext.Provider>
   )
 }
 

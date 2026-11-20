@@ -35,6 +35,8 @@ interface Props {
   autoHideSidebar?: boolean
   onSidebarOpenChange: (open: boolean) => void
   onRightOpenChange: (open: boolean) => void
+  /** Main's minimum width. Wider when something (the session list) shares it. */
+  mainMinPx?: number
 }
 
 export function WorkspaceShell({
@@ -46,6 +48,7 @@ export function WorkspaceShell({
   onSidebarOpenChange,
   onRightOpenChange,
   autoHideSidebar = false,
+  mainMinPx = 380,
 }: Props) {
   const groupRef = useGroupRef()
   const sidebarRef = usePanelRef()
@@ -135,7 +138,12 @@ export function WorkspaceShell({
   useEffect(() => {
     const panel = sidebarRef.current
     if (!panel) return
-    if (sidebarOpen && panel.isCollapsed()) command(false, () => panel.expand())
+    if (sidebarOpen && panel.isCollapsed()) command(false, () => {
+      panel.expand()
+      /* Mounted as a rail it has no width to return to, so expand() would
+         land on the minimum. First time open, give it the design width. */
+      if (!latestPx.current) panel.resize('268px')
+    })
     else if (!sidebarOpen && !panel.isCollapsed()) command(true, () => panel.collapse())
   }, [sidebarOpen, sidebarRef])
 
@@ -176,7 +184,7 @@ export function WorkspaceShell({
       try {
         if (rightOpen && panel.isCollapsed()) {
           panel.expand()
-          if (!rightSized.current) panel.resize('60%')
+          if (!rightSized.current) panel.resize('52%')
         } else if (!rightOpen && !panel.isCollapsed()) panel.collapse()
         if (rightOpen) rightSized.current = true
       } catch {
@@ -217,7 +225,10 @@ export function WorkspaceShell({
         collapsedSize={`${RAIL_PX}px`}
         minSize="220px"
         maxSize="420px"
-        defaultSize="268px"
+        /* Mounts the way intent says, like the right panel: a sidebar that is
+           meant to start as a rail must not mount wide and fold a frame later —
+           that first resize reads as the user dragging it open. */
+        defaultSize={sidebarOpen ? '268px' : `${RAIL_PX}px`}
         /* Opening the right panel takes its space from main, not from the nav.
            Without this the sidebar shrinks proportionally every time a task
            opens, which reads as the layout drifting. */
@@ -255,7 +266,7 @@ export function WorkspaceShell({
       </>
       )}
 
-      <Panel id="main" minSize="380px" className="flex min-w-0 flex-col">
+      <Panel id="main" minSize={`${mainMinPx}px`} className="flex min-w-0 flex-col">
         {main}
       </Panel>
 
@@ -272,7 +283,9 @@ export function WorkspaceShell({
             /* Mounts the way intent says: open, or folded to nothing. Mounting
                open and folding a frame later would read as the user dragging
                it open (onResize below) and reopen it. */
-            defaultSize={rightOpen ? '60%' : '0px'}
+            /* 52%, not 60%: the session list now sits beside the conversation,
+               so the workspace leaves it room to read. */
+            defaultSize={rightOpen ? '52%' : '0px'}
             onResize={(size) => {
               const collapsed = size.inPixels < 1
               if (collapsed === rightOpen) onRightOpenChange(!collapsed)

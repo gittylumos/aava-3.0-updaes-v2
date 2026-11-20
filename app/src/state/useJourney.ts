@@ -15,6 +15,7 @@ import type { InsightView } from '../prd/insight'
 import type { ReportView } from '../prd/report'
 import { searchHits, taskNotifications } from '../data/chrome'
 import type { Effect, Overlay, Scenario, TabId, Thread } from './types'
+import { gateTitle, livePinnedGate } from './gates'
 import { T, prefersReducedMotion, streamMs } from './timing'
 
 const REDUCED = prefersReducedMotion
@@ -116,8 +117,11 @@ export function useJourney() {
     const at = moved?.type === 'prepAt' ? moved.index : from ?? state.playground.prepAt
     const gate = sc.prep[at]?.gate
     const asks = gate ? sc.beats[gate] : undefined
+    /* A beat that already ends on a question (the review gate before the PR
+       gate, say) owns its own ask — appending a second would jump the order. */
+    const asksItself = beats.some((e) => e.type === 'say' && (e.block?.kind === 'confirm' || e.block?.kind === 'decision'))
     // The gate replaying itself would append itself forever.
-    return !asks || asks === beats ? beats : [...beats, ...asks]
+    return !asks || asks === beats || asksItself ? beats : [...beats, ...asks]
   }, [state.playground.prepAt])
 
   /* Plays a beat on a real clock.
@@ -359,8 +363,12 @@ export function useJourney() {
       const accept = acceptBeatAt(sc, state.playground.prepAt)
       if (accept && APPROVES.test(text.trim())) { play(withGate(sc, sc.beats[accept])); return }
 
+      /* Typed in Agent mode while a gate is still open: play what was asked,
+         but do not append the step's gate — the open gate stays the decision,
+         so a routed beat can never jump past it to the next one. */
+      const gateOpen = !!livePinnedGate(state.messages)
       const beat = routeBeat(sc, text)
-      if (beat && sc.beats[beat]) { play(withGate(sc, sc.beats[beat])); return }
+      if (beat && sc.beats[beat]) { play(gateOpen ? sc.beats[beat] : withGate(sc, sc.beats[beat])); return }
       // Nothing in the message belongs to this task's world. Say so and offer
       // the split rather than answering out of context inside a task thread.
       if (!IN_SCOPE.test(text)) {
@@ -371,12 +379,35 @@ export function useJourney() {
         ] }])
         return
       }
-      play(withGate(sc, [{ type: 'say', lines: sc.fallback }]))
+      const said: Effect[] = [{ type: 'say', lines: sc.fallback }]
+      play(gateOpen ? said : withGate(sc, said))
       return
     }
 
     play([{ type: 'say', lines: replyOffTask(text) }])
   }, [state.activeTaskId, state.activeObject, state.pendingTopic, state.messages, state.playground.prepAt, play, cancel, withGate])
+
+  /* A question typed while a gate is waiting. It is a read-only
+     side conversation: answered from this session's context only, it never
+     clears the gate, moves the run or changes an artefact. Every reply ends by
+     handing the user back to the decision that is still open. */
+  const ask = useCallback((text: string) => {
+    if (busy) return
+    const sc = state.activeTaskId ? getScenario(state.activeTaskId) : null
+    dispatch({ type: 'USER_SAY', text, ask: true })
+    const hit = sc?.ask?.find((a) => a.match.test(text))
+    const body: Effect[] = hit
+      ? hit.effects
+      : [{ type: 'say', lines: sc?.askFallback ?? ['I can only answer from what is in this session.'] }]
+    const title = gateTitle(livePinnedGate(state.messages))
+    const nudge: Effect[] = [
+      { type: 'say', stream: false, nudge: true, lines: [title
+        ? `Still waiting on your answer to **${title}**${/[?.!]$/.test(title) ? '' : '.'} Reply above when you're ready, and I'll carry on with the task.`
+        : "Still waiting on your answer above. Reply when you're ready, and I'll carry on with the task."] },
+      { type: 'chips', stage: 'ask' },
+    ]
+    play([...body, ...nudge].map((e) => (e.type === 'say' ? { ...e, ask: true } : e)))
+  }, [busy, state.activeTaskId, state.messages, play])
 
   const toast = useCallback((text: string | null) => {
     dispatch({ type: 'TOAST', text })
@@ -473,6 +504,7 @@ export function useJourney() {
     searchHits: searchHits(state.tasks, state.threads),
     readNotification: (taskId: string) => dispatch({ type: 'READ_NOTIFICATION', taskId }),
     send,
+    ask,
     busy,
     stop: cancel,
     openTask,

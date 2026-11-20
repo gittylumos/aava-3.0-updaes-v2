@@ -11,6 +11,7 @@
  * goes in each list is state/overview.ts's call; this only lays it out.
  */
 import { useState } from 'react'
+import { useOpenUrl } from '../../state/openUrl'
 import type { OverviewData, OverviewIcon, OverviewRow } from '../../state/overview'
 import type { WorkspaceTab } from '../../state/workspace'
 import { SOURCE_META } from '../chat/InlineSource'
@@ -93,6 +94,7 @@ function Section({ title, rows, defaultOpen, onOpen }: {
 }
 
 function RowItem({ row, onOpen }: { row: OverviewRow; onOpen: (tab: WorkspaceTab) => void }) {
+  const openUrl = useOpenUrl()
   const inner = (
     <>
       <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: 'var(--muted)' }}><RowIcon icon={row.icon} name={row.label} /></span>
@@ -106,7 +108,11 @@ function RowItem({ row, onOpen }: { row: OverviewRow; onOpen: (tab: WorkspaceTab
     </>
   )
   const cls = 'group -mx-2 flex min-w-0 items-center gap-2.5 rounded-[8px] px-2 py-[6px] text-left transition-colors'
-  if (row.href) return <a href={row.href} target="_blank" rel="noreferrer" className={`${cls} hover:bg-[var(--wash-2)]`}>{inner}</a>
+  if (row.href) {
+    const href = row.href
+    return <a href={href} target="_blank" rel="noreferrer" className={`${cls} hover:bg-[var(--wash-2)]`}
+      onClick={openUrl ? (e) => { e.preventDefault(); openUrl.open(href) } : undefined}>{inner}</a>
+  }
   if (row.tab) {
     const tab = row.tab
     return <button onClick={() => onOpen(tab)} className={`press ${cls} hover:bg-[var(--wash-2)]`}>{inner}</button>

@@ -109,6 +109,7 @@
   /* -- 2.4 Semantic colours (text + surface pairs) ---------------------- */
   --ok: #34D399;             --ok-surface: #064E3B;    /* success  9.82:1 AA   */
   --warn: #FBBF24;           --warn-surface: #451A03;  /* warning              */
+  --on-warn: #1B1405;        /* text/icons ON a solid --warn fill (badges), 11.6:1 */
   --danger: #FCA5A5;         --danger-surface: #450A0A;/* error    9.94:1 AA   */
   --done: #60A5FA;           --done-surface: #1E3A5F;  /* info                 */
   --pending: #64748B;        /* neutral / not-started, uses text.tertiary       */
@@ -218,6 +219,7 @@
 
   --ok: #047857;             --ok-surface: #ECFDF5;
   --warn: #B45309;           --warn-surface: #FFFBEB;
+  --on-warn: #FFFFFF;        /* text ON a solid --warn fill: 5.0:1 AA */
   --danger: #DC2626;         --danger-surface: #FEF2F2;
   --done: #1D4ED8;           --done-surface: #EFF6FF;
   --pending: #9CA3AF;

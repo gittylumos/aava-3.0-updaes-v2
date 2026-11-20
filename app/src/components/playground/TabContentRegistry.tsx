@@ -20,6 +20,11 @@ import { Evidence } from './Evidence'
 import { Overview } from './Overview'
 import { BrowserMiniHeader, FileMiniHeader } from './MiniHeader'
 import { TerminalBody } from './Terminal'
+import { WebPage } from './WebPage'
+import { TASKS } from '../../state/reducer'
+import { useOpenUrl } from '../../state/openUrl'
+import { webTab } from '../../state/workspace'
+import { webTitle } from '../../state/web'
 
 /* Resolves a workspace tab id to the thing that renders it — for every kind of
  * session. A task's page, code and diff; an object's documents, dashboards,
@@ -90,6 +95,10 @@ export function TabContentRegistry({ tabId, ctx }: { tabId: string; ctx: Workspa
     /* A new browser tab — a start page with the session's own places. */
     case 'browser':
       return <NewTab scenario={scenario} task={ctx.task} taskId={ctx.taskId} onOpenTab={ctx.onOpenTab} />
+
+    /* An external page — Jira, GitHub, Figma — as a browser tab. */
+    case 'web':
+      return <WebTabBody url={resourceId} ctx={ctx} />
 
     /* The terminal — no mini-header, just the console. */
     case 'terminal':
@@ -221,4 +230,12 @@ export function EmptySurface() {
       </div>
     </div>
   )
+}
+
+/* Links inside an external page open more canvas tabs — through the app's
+   open-URL hook when there is one, otherwise straight into this workspace. */
+function WebTabBody({ url, ctx }: { url: string; ctx: WorkspaceCtx }) {
+  const openUrl = useOpenUrl()
+  const open = (u: string) => (openUrl ? openUrl.open(u) : ctx.onOpenTab(webTab(u, webTitle(u, TASKS))))
+  return <WebPage url={url} tasks={TASKS} shipped={ctx.pg.runState.kind === 'shipped'} onOpenUrl={open} />
 }

@@ -58,6 +58,20 @@ export interface WatchEntry {
     connecting → connected. */
 export type ConnectState = 'searching' | 'offer' | 'connecting' | 'done'
 export type TaskStatus = 'wip' | 'clarify' | 'pending' | 'done'
+/* One stage of a run timeline: a group of the scenario's prep steps (by key),
+   shown as one node. Opened, it reads like the conversation used to — the tool
+   rows with their sources, then a short summary with its citations. */
+export interface TimelineStage {
+  title: string
+  keys: string[]
+  tools?: ToolStep[]
+  summary?: string[]
+  citations?: Citation[]
+  /** Show the running app card (the preview) in this stage. */
+  app?: boolean
+  tab?: { id: TabId; label: string }
+}
+
 export type TabId = 'evidence' | 'preview' | 'code' | 'tests' | 'diff'
 export type RunKind = 'prep' | 'live' | 'shipped'
 
@@ -132,7 +146,9 @@ export type BlockSpec =
   /** `file` makes a link openable — it opens that source file in the workspace.
       `href` makes it an external link (a raised ticket in Jira, say), rendered
       as a blue hyperlink. Without either the link is a flat reference. */
-  | { kind: 'links'; links: { label: string; file?: string; href?: string }[] }
+  | { kind: 'links'; links: { label: string; file?: string; href?: string
+      /** Opens a workspace tab (e.g. the validation results) instead of a file. */
+      tab?: TabId }[] }
   /** A handoff note — reads exactly like normal conversation copy (no special
       panel), with **bold** support and one filename mention (`docLink`) wired
       to open its canvas artifact inline, the way `links` opens a raised
@@ -151,6 +167,9 @@ export type BlockSpec =
   /** The thing that was just generated, with a way in. Open puts the preview
       tab in front — the same artefact the workspace already renders. */
   | { kind: 'app'; name: string; status: string }
+  /** The scenario's run as a numbered step timeline (RunTimeline.tsx), built
+      live from scenario.timeline, scenario.prep and playground.prepAt. */
+  | { kind: 'timeline' }
   /** A generated document artefact, shown in chat as a card with an Open button
       (Claude-artifact style). Open reveals the document canvas on the right;
       `doc` names which backlog document to open (else just reveal the panel). */
@@ -173,7 +192,12 @@ export type BlockSpec =
       editLabel?: string
       /** Render as a subtle, collapsed one-liner (expandable) rather than the
           full card — used when the plan is a record of what AAVA already ran. */
-      collapsed?: boolean }
+      collapsed?: boolean
+      /** The capability the plan belongs to — shown as "Matched capability ·
+          <name>" inside the collapsed record, so capability and plan are one. */
+      matched?: string
+      /** One line on what the matched process covers, above the steps. */
+      intro?: string }
   /** A "push to Jira" card — one primary action carrying the Jira logo (`beat`).
       An optional secondary action ("Proceed for now") continues the run without
       pushing; both advance to the next phase. Shown after every phase gate. */
@@ -310,10 +334,16 @@ export interface Message {
   /** Sources backing this message's last line — shown as trailing pills once
       that line finishes revealing. */
   citations?: Citation[]
+  /** Said in Ask mode — a read-only side conversation at a waiting gate. It
+      answers from this session's context and never moves the run. */
+  ask?: boolean
+  /** Hands the user back to the gate that is still waiting — lightly
+      highlighted so it is not lost under a long answer. */
+  nudge?: boolean
 }
 
 export type Effect =
-  | { type: 'say'; lines: string[]; block?: BlockSpec; stream?: boolean; citations?: Citation[] }
+  | { type: 'say'; lines: string[]; block?: BlockSpec; stream?: boolean; citations?: Citation[]; ask?: boolean; nudge?: boolean }
   /** Show tool calls resolving one by one before the answer arrives. `title`
       groups them into a collapsible accordion that folds once they finish. */
   | { type: 'tools'; steps: ToolStep[]; title?: string }
@@ -413,7 +443,9 @@ export interface DiffGroup {
   stats?: Record<string, [add: number, del: number]>
 }
 
-export interface Chip { label: string; sends: string }
+/** `followup` renders the chip as a "↳ question" row in a list under the
+    answer, rather than a pill — a suggested next question, not an action. */
+export interface Chip { label: string; sends: string; followup?: boolean }
 
 /* Everything the task-context pane shows, grouped the way it renders.
  *
@@ -476,6 +508,14 @@ export interface Scenario {
   router: { match: RegExp; beat: string }[]
   chips: Record<string, Chip[]>
   fallback: string[]
+  /** The run as timeline stages (FLAGS.RUN_TIMELINE). Each stage covers one or
+      more prep steps, so a 10-step run reads as a handful of stages. */
+  timeline?: TimelineStage[]
+  /** Ask mode: read-only answers to questions asked at a waiting gate. Matched
+      in order; nothing here may change the run (no runState, prepAt, tabs). */
+  ask?: { match: RegExp; effects: Effect[] }[]
+  /** Ask-mode reply when no `ask` entry matches — states the session's scope. */
+  askFallback?: string[]
 }
 
 export interface PlaygroundState {
@@ -581,7 +621,7 @@ export type Action =
   | { type: 'SHOW_TASKS' }
   /** Back off the board, into whatever was underneath it. */
   | { type: 'CLOSE_TASKS' }
-  | { type: 'USER_SAY'; text: string }
+  | { type: 'USER_SAY'; text: string; ask?: boolean }
   | { type: 'TYPING' }
   | { type: 'OPEN_TASK'; taskId: string; scenario: Scenario | null }
   /** Open a Canvas object by intent (no task card). `said` is the user's message.

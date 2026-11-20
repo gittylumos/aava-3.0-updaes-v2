@@ -1,5 +1,6 @@
 import type { Action, Arrangement, AppState, Effect, PlaygroundState, PrepStep, Task, TaskTag, Thread, ThreadSnapshot } from './types'
 import { hasPreview } from './workspace'
+import { FLAGS } from '../config/flags'
 import { DEFAULT_PROFILE, PROFILE_ORDER, type ProfileId } from '../data/user'
 
 /* The board task that mirrors a PRD object. Created when the PRD opens, so a
@@ -32,7 +33,7 @@ export const prepStart = (prep: PrepStep[]) => {
 export const TASKS: Task[] = [
   {
     id: 'T1', title: 'Add product feedback form',
-    status: 'clarify', tag: 'review', est: '2 hrs', dep: 'None', recommended: true,
+    status: 'clarify', tag: 'input', est: '2 hrs', dep: 'None', recommended: true,
     note: 'Completed development of UI screen.', updated: '8 min ago',
     opening: [
       'Analyzed the task.',
@@ -391,7 +392,7 @@ function ramanBoard(base: Task[], refinementRequested: boolean): Task[] {
    "I finished, review it" from "I am stuck and cannot proceed". */
 export const TAG_META: Record<TaskTag, { label: string; fg: string; bg: string }> = {
   review:  { label: 'Ready for review', fg: 'var(--ok)',      bg: 'var(--ok-surface)' },
-  input:   { label: 'Needs your input', fg: 'var(--warn)',    bg: 'var(--warn-surface)' },
+  input:   { label: 'Need your input' , fg: 'var(--warn)',    bg: 'var(--warn-surface)' },
   blocked: { label: 'Blocked',          fg: 'var(--danger)',  bg: 'var(--danger-surface)' },
   working: { label: 'Working',          fg: 'var(--done)',    bg: 'var(--done-surface)' },
   done:    { label: 'Completed',        fg: 'var(--muted)',   bg: 'var(--wash-3)' },
@@ -449,7 +450,8 @@ export const initialState: AppState = {
   // The two finished tasks are old news; the four live ones have not been read.
   readNotifications: ['T5', 'T6'],
   chipStage: null,
-  sidebarOpen: true,
+  /* With the session list on, the nav opens as an icon rail. */
+  sidebarOpen: !FLAGS.SESSION_LIST_LAYOUT,
   pinnedThreadIds: ['th-t4'],
   activeThreadId: null,
   stashed: {},
@@ -512,6 +514,8 @@ export function applyEffect(state: AppState, effect: Effect): AppState {
         live: true,
         stream: effect.stream !== false,
         citations: effect.citations,
+        ask: effect.ask,
+        nudge: effect.nudge,
       }
       const base = trailing?.typing ? state.messages.slice(0, -1) : state.messages
       /* One live decision at a time, and it is the newest one. A gate that
@@ -873,7 +877,7 @@ export function reducer(state: AppState, action: Action): AppState {
           : state.threads,
         messages: [
           ...state.messages,
-          { id: nextId(), from: 'user', lines: [action.text], typing: false },
+          { id: nextId(), from: 'user', lines: [action.text], typing: false, ask: action.ask },
         ],
       }
     }
@@ -1173,6 +1177,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'DISMISS_BLOCK':
       return {
         ...state,
+        /* Answering a gate retires the Ask follow-ups asked about it. */
+        chipStage: state.chipStage === 'ask' ? null : state.chipStage,
         messages: state.messages.map((m) =>
           m.id === action.messageId ? { ...m, live: false } : m,
         ),

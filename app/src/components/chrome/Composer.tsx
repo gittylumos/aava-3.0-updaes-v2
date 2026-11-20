@@ -40,6 +40,11 @@ interface Props {
      is always interruptible, the way it works everywhere else. */
   busy?: boolean
   onStop?: () => void
+
+  /* Set while a task is parked on a gate. Typing then asks about the session
+     rather than steering the run, and this note slides up from behind the bar
+     the moment the user starts to type, so they know before they send. */
+  sessionNote?: string
 }
 
 type MenuId = 'none' | 'plus' | 'model' | 'effort'
@@ -49,7 +54,13 @@ export function Composer({
   placeholder = 'Ask AAVA anything…',
   model, onModel, effort, onEffort, connectors, onToggleConnector,
   files, onAddFiles, onRemoveFile, busy = false, onStop,
+  sessionNote,
 }: Props) {
+  const [focused, setFocused] = useState(false)
+  /* Shown while the user is in the field or has a draft — not before, so a
+     glance at a waiting gate is not met with a warning. */
+  const noteUp = !!sessionNote && (focused || value.trim().length > 0)
+  const hint = sessionNote ? 'Ask a question about this task…' : placeholder
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<MenuId>('none')
@@ -79,10 +90,30 @@ export function Composer({
   const enabledConnectors = connectors.filter((c) => c.on).length
 
   return (
-    <div className={`w-full ${joined ? '' : 'pb-7 pt-2'} ${className}`}>
+    /* When the session note rises, the bar makes room for it rather than
+       covering what sits above (a waiting gate's buttons). */
+    <div className={`w-full transition-[padding] duration-200 ease-out motion-reduce:transition-none ${joined ? '' : 'pb-7 pt-2'} ${className}`}
+      style={noteUp ? { paddingTop: 48 } : undefined}>
+      <div className="relative">
+      {sessionNote && (
+        /* The note lives BEHIND the bar and slides up out of it, so it reads as
+           part of the prompt rather than a toast from elsewhere. Kept in the
+           DOM while hidden so the field's aria-describedby always resolves. */
+        <div id="prompt-session-note" role="note"
+          className="pointer-events-none absolute inset-x-4 bottom-[calc(100%-12px)] z-0 flex items-center gap-2 rounded-t-[14px] px-3.5 pb-[18px] pt-2.5 text-[12.5px] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none"
+          style={{
+            background: 'var(--slab-raised)', border: '1px solid var(--glass-line)', borderBottom: 'none',
+            color: 'var(--text-dim)',
+            transform: noteUp ? 'translateY(0)' : 'translateY(100%)',
+            opacity: noteUp ? 1 : 0,
+          }}>
+          <span style={{ color: 'var(--muted)' }}><Icon.Note /></span>
+          <span>{sessionNote}</span>
+        </div>
+      )}
       <form
         onSubmit={(e) => { e.preventDefault(); submit() }}
-        className="rounded-[var(--r-lg)] px-4 pb-2.5 pt-3.5 backdrop-blur-[24px]"
+        className="relative z-10 rounded-[var(--r-lg)] px-4 pb-2.5 pt-3.5 backdrop-blur-[24px]"
         style={{
           background: joined ? 'var(--slab)' : 'var(--glass-strong)',
           border: joined ? 'none' : '1px solid var(--glass-line)',
@@ -109,7 +140,10 @@ export function Composer({
         <label htmlFor="prompt" className="sr-only">Message AAVA</label>
         <textarea
           id="prompt" ref={ref} rows={1} value={value}
-          placeholder={placeholder}
+          placeholder={hint}
+          aria-describedby={sessionNote ? 'prompt-session-note' : undefined}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(e) => {
             onChange(e.target.value)
             e.target.style.height = 'auto'
@@ -264,6 +298,7 @@ export function Composer({
           </div>
         </div>
       </form>
+      </div>
       {enabledConnectors > 0 && (
         <p className="mt-1.5 pl-1 text-[11px]" style={{ color: 'var(--muted-deep)' }}>
           {enabledConnectors} connector{enabledConnectors > 1 ? 's' : ''} active
@@ -341,6 +376,7 @@ const Icon = {
   Connector: () => <svg {...svg} width="16" height="16"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.6" /></svg>,
   ChevronRight: () => <svg {...svg} width="14" height="14"><path d="m9 6 6 6-6 6" /></svg>,
   Gear: () => <svg {...svg} width="16" height="16"><path d="M4 8h9M17 8h3M4 16h3M11 16h9" /><circle cx="15" cy="8" r="2.1" /><circle cx="9" cy="16" r="2.1" /></svg>,
+  Note: () => <svg {...svg} width="16" height="16"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z" /><path d="M12 8v4.5M12 16h.01" /></svg>,
   Close: () => <svg {...svg} width="17" height="17" strokeWidth={2}><path d="M6 6l12 12M18 6 6 18" /></svg>,
 }
 

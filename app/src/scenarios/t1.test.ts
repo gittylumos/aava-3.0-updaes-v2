@@ -41,15 +41,17 @@ describe('t1 scenario', () => {
   it('every file link opens a file the scenario actually has', () => {
     const links = t1.beats.files.flatMap((e) =>
       e.type === 'say' && e.block?.kind === 'links' ? e.block.links : [])
-    expect(links).not.toHaveLength(0)
-    for (const l of links) {
+    expect(links.filter((l) => l.file)).not.toHaveLength(0)
+    for (const l of links.filter((l) => !l.tab)) {
       expect(l.file, `"${l.label}" is not openable`).toBeDefined()
       expect(t1.files[l.file!], `no such file: ${l.file}`).toBeDefined()
     }
   })
 
   it('every chip sends text that routes to a beat', () => {
-    for (const chips of Object.values(t1.chips)) {
+    for (const [stage, chips] of Object.entries(t1.chips)) {
+      // Ask-stage chips are asked, not sent — they match `ask`, tested below.
+      if (stage === 'ask') continue
       for (const chip of chips) {
         expect(routeBeat(t1, chip.sends), `chip "${chip.label}" routes nowhere`).not.toBeNull()
       }
@@ -76,5 +78,15 @@ describe('t1 scenario', () => {
   it('is registered under its task id', () => {
     expect(getScenario('T1')).toBe(t1)
     expect(getScenario('T3')).toBeNull()
+  })
+
+  it('every Ask chip has a scripted read-only answer that never moves the run', () => {
+    for (const chip of t1.chips.ask) {
+      const hit = t1.ask?.find((a) => a.match.test(chip.sends))
+      expect(hit, `ask chip "${chip.label}" has no answer`).toBeTruthy()
+      for (const e of hit!.effects) {
+        expect(['say', 'tools'], `ask answer uses a run-changing effect: ${e.type}`).toContain(e.type)
+      }
+    }
   })
 })

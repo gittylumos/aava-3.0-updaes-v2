@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import type { AppState, Chip, PrepStep, TabId } from '../../state/types'
+import type { AppState, BlockSpec, Chip, PrepStep, TabId } from '../../state/types'
+import { useOpenUrl } from '../../state/openUrl'
+import { jiraUrl } from '../../state/web'
 import { Thread } from './Thread'
+import { livePinnedGate } from '../../state/gates'
 import { Block } from './Blocks'
 import { RunStrip } from './RunStrip'
 import { ContextPane } from '../playground/ContextPane'
@@ -66,6 +69,7 @@ export function ConversationView({
   state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
+  const openUrl = useOpenUrl()
   const task = state.activeTaskId ? state.tasks.find((t) => t.id === state.activeTaskId) : null
   const object = state.activeObject
   const contextOpen = state.playground.contextOpen
@@ -84,9 +88,11 @@ export function ConversationView({
      place, in edit mode, the same way it did the first time it was ever live. */
   const pinnedGate = state.revisingId
     ? state.messages.find((m) => m.id === state.revisingId)
-    : [...state.messages].reverse().find(
-        (m) => m.live !== false && (m.block?.kind === 'decision' || m.block?.kind === 'confirm'),
-      )
+    : livePinnedGate(state.messages)
+  /* In a task, a waiting gate no longer replaces the prompt bar: the bar sits
+     under it in Agent / Ask mode, so the user can question the result before
+     deciding. Canvas objects (PRD, backlog…) keep the gate-only slot. */
+  const gateWithComposer = !!pinnedGate?.block && !!state.activeTaskId && !state.revisingId
 
   /* The run-progress bar for the backlog flow — pinned below the session header,
      shown only once the run is underway (after Proceed). */
@@ -154,6 +160,7 @@ export function ConversationView({
             <a
               href={task.context.ticketUrl ?? `https://aava-demo.atlassian.net/browse/${task.context.ticket}`}
               target="_blank"
+              onClick={openUrl ? (e) => { e.preventDefault(); openUrl.open(jiraUrl(task.context.ticket)) } : undefined}
               rel="noreferrer"
               title={`Open ${task.context.ticket} in ${task.context.ticketSource.split(' · ')[0]}`}
               /* Colours live in classes, not style — an inline background would
@@ -275,7 +282,9 @@ export function ConversationView({
 
         {/* Scenario run progress — the same hanging dock, driven by the
             scenario's prep steps. (Backlog and scenario are mutually exclusive.) */}
-        {taskProgress && (
+        {/* A run drawn as a timeline in the thread already shows where it
+            stands, so the dock would only repeat it. */}
+        {taskProgress && !state.messages.some((m) => m.block?.kind === 'timeline') && (
           <div className="relative z-20 shrink-0 px-6 -mt-px">
             <RunStrip steps={taskProgress.steps} at={taskProgress.at} waiting={taskProgress.waiting}
               onOpenStep={(key) => onOpenStep?.(key)} />
@@ -311,7 +320,9 @@ export function ConversationView({
                  chrome (outside the scroll), so bound its height and let a tall
                  gate scroll internally — otherwise on a short viewport the gate's
                  action buttons could clip below the fold with no way to reach them. */
-              <div className="mb-6 max-h-[calc(100dvh-172px)] overflow-y-auto">
+              <>
+              <PinnedGate key={pinnedGate.id} block={pinnedGate.block} live={pinnedGate.live !== false}
+                revising={pinnedGate.id === revisingId} withComposer={gateWithComposer}>
                 <Block block={pinnedGate.block} live={pinnedGate.live !== false} preview={preview}
                   onAccept={onAccept} onDismiss={() => onDismiss(pinnedGate.id)}
                   onOpenFile={onOpenFile} onOpenTab={onOpenTab} onOpenArtifact={onOpenArtifact} onOpenAgentArtifact={onOpenAgentArtifact} onOpenAgentDoc={onOpenAgentDoc}
@@ -320,12 +331,67 @@ export function ConversationView({
                   onRevise={onRevise ? () => onRevise(pinnedGate.id) : undefined}
                   onReviseSend={onReviseSend ? (note, beat) => onReviseSend(pinnedGate.id, note, beat) : undefined}
                   onReviseCancel={onReviseCancel} />
-              </div>
+              </PinnedGate>
+              {gateWithComposer && composer}
+              </>
             ) : composer}
           </div>
         </div>
       </div>
     </motion.div>
+  )
+}
+
+/* The live gate in the composer's place. It can fold to a one-line bar so the
+   thread above is readable while it waits — still amber-bordered, tinted and
+   pulsing, so a folded gate never reads as dismissed. Keyed by message id, so
+   each new gate arrives open. */
+function PinnedGate({ block, live, revising, withComposer = false, children }: {
+  block: BlockSpec; live: boolean; revising: boolean; withComposer?: boolean; children: React.ReactNode
+}) {
+  const [folded, setFolded] = useState(false)
+  const title = block.kind === 'decision' || block.kind === 'confirm' ? block.title : undefined
+  const waiting = live || revising
+  const chevron = (up: boolean) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden
+      style={{ transform: up ? 'rotate(180deg)' : undefined }}>
+      <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+
+  if (folded) {
+    return (
+      <button onClick={() => setFolded(false)} aria-expanded={false}
+        className={`press ${withComposer ? 'mb-2' : 'mb-6'} mt-3 flex w-full items-center gap-2.5 rounded-[var(--r-md)] px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--warn)_12%,var(--glass))]`}
+        style={{ background: 'color-mix(in srgb, var(--warn) 7%, var(--glass))', border: '1px solid var(--warn)' }}>
+        <span className="relative grid h-2 w-2 shrink-0 place-items-center">
+          <span className="absolute inset-0 animate-ping rounded-full motion-reduce:animate-none" style={{ background: 'var(--warn)', opacity: 0.6 }} />
+          <span className="relative h-2 w-2 rounded-full" style={{ background: 'var(--warn)' }} />
+        </span>
+        <span className="shrink-0 text-[9.5px] font-semibold uppercase tracking-[.13em]" style={{ color: 'var(--warn)' }}>
+          Waiting on you
+        </span>
+        {title && <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: 'var(--text)' }}>{title}</span>}
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-[11.5px]" style={{ color: 'var(--muted)' }}>
+          Open{chevron(true)}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    /* With the prompt bar below it, the gate gives up ~150px of height so both
+       stay on screen; a tall gate scrolls inside itself. */
+    <div className={`relative overflow-y-auto ${withComposer ? 'mb-1 max-h-[max(160px,calc(100dvh-330px))]' : 'mb-6 max-h-[calc(100dvh-172px)]'}`}>
+      {children}
+      {waiting && (
+        <button onClick={() => setFolded(true)} aria-label="Collapse" title="Collapse"
+          className="press absolute right-2 top-5 grid h-7 w-7 place-items-center rounded-[7px] transition-colors hover:bg-[var(--wash-3)]"
+          style={{ color: 'var(--muted)' }}>
+          {chevron(false)}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -420,3 +486,4 @@ function EdgeToggle({ on, onClick, label, className = '', children }: {
     </Tooltip>
   )
 }
+
