@@ -468,7 +468,7 @@ export default function App() {
               <AnimatePresence mode="popLayout" initial={false}>
                 {j.state.arrangement === 'start' && (
                   FLAGS.SESSION_LIST_LAYOUT
-                    ? <HomeEmpty key="start" name={profile.name} subtitle={homeSubtitle} composer={composerFor()} />
+                    ? <HomeEmpty key="start" onPick={(p) => { setDraft(p); window.setTimeout(() => document.getElementById("prompt")?.focus(), 0) }} composer={composerFor()} />
                     : <StartView key="start" name={profile.name} tasks={homeTasks} subtitle={homeSubtitle}
                     onOpenTask={j.openTask}
                     onViewAllTasks={j.showTasks}
