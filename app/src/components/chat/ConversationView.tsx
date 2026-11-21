@@ -48,7 +48,6 @@ interface Props {
   /** Open the "all files in this session" modal. */
   onShowFiles?: () => void
   /** Show the agent-topology graph in the canvas. */
-  onShowGraph?: () => void
   /** Pending inline-comment changes — shown in a tray above the composer. */
   changes?: { quote: string; note: string }[]
   onApplyChanges?: () => void
@@ -66,7 +65,7 @@ interface Props {
  * region of the shell now, so the twin had nothing left to do.
  */
 export function ConversationView({
-  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles, onShowGraph,
+  state, chips, taskProgress, onOpenStep, preview, onChip, onAccept, onDismiss, onOpenFile, onOpenTab, onOpenArtifact, onOpenAgentArtifact, onOpenAgentDoc, onRecordAnswer, onRevise, revisingId, onReviseSend, onReviseCancel, onToast, composer, onToggleContext, onTogglePanel, onShowFiles,
   changes = [], onApplyChanges, onDiscardChanges, onRemoveChange,
 }: Props) {
   const openUrl = useOpenUrl()
@@ -180,9 +179,6 @@ export function ConversationView({
             <div className="ml-auto flex items-center gap-1">
               {taskProgress && (
                 <>
-                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
-                    <IconWorkflow size={15} />
-                  </EdgeToggle>
                   <EdgeToggle on={false} onClick={onShowFiles} label="Files in this session">
                     <IconFileSearch size={15} />
                   </EdgeToggle>
@@ -229,9 +225,6 @@ export function ConversationView({
                   The agent-builder run has its own canvas, no graph/files. */}
               {object.kind !== 'insight' && object.kind !== 'agent' && (
                 <>
-                  <EdgeToggle on={false} onClick={onShowGraph} label="Show execution activity">
-                    <IconWorkflow size={15} />
-                  </EdgeToggle>
                   <EdgeToggle on={false} onClick={onShowFiles} label="All files in this session">
                     <IconFileSearch size={15} />
                   </EdgeToggle>
@@ -455,14 +448,6 @@ function IconFileSearch({ size = 15 }: { size?: number }) {
 }
 
 /* Three linked nodes — the agent-workflow topology. */
-function IconWorkflow({ size = 15 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3" y="4" width="7" height="5" rx="1.5" /><rect x="14" y="15" width="7" height="5" rx="1.5" />
-      <rect x="3" y="15" width="7" height="5" rx="1.5" /><path d="M6.5 9v6M10 17.5h4M6.5 12h8.5a2 2 0 0 1 2 2v1" />
-    </svg>
-  )
-}
 
 /* The two region toggles that frame the conversation. Same button, same
    pressed treatment — they control mirror images of each other. */

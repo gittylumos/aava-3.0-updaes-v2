@@ -147,7 +147,6 @@ export default function App() {
   /* Switching docs drops any pending inline comments — they were about the doc
      you were on, and their highlight ranges belong to that document's DOM. */
   const openDoc = (doc: BacklogDoc) => { j.openObjectDoc(doc); setDocChanges([]) }
-  const showGraph = () => { askCanvas('graph'); j.setPanelOpen(true) }
   const showFiles = () => { askCanvas('files'); j.setPanelOpen(true) }
 
   /* A beat asked the canvas to change view (open onto the Execution-activity graph,
@@ -507,7 +506,6 @@ export default function App() {
                     onToggleContext={j.toggleContext}
                     onTogglePanel={j.togglePanel}
                     onShowFiles={showFiles}
-                    onShowGraph={showGraph}
                     changes={docChanges}
                     onApplyChanges={() => { j.applyComments(docChanges); setDocChanges([]) }}
                     onDiscardChanges={() => setDocChanges([])}

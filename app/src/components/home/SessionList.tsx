@@ -163,9 +163,8 @@ export function SessionList({ view, onView, tasks, threads, firstTime, activeTas
 
   const rowEl = (r: Row, extra?: ReactNode) => (
     <button key={r.id} type="button" onClick={r.onPick} aria-current={r.selected ? 'true' : undefined}
-      className="press flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--wash-3)]"
+      className="press flex w-full items-start gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-[var(--wash-3)]"
       style={{ background: r.selected ? 'var(--wash-4)' : undefined, borderBottom: '1px solid var(--glass-line-soft)' }}>
-      <span className="mt-0.5 shrink-0" style={{ color: r.tone ? `var(--${r.tone})` : r.selected ? 'var(--text)' : 'var(--text-dim)' }}>{r.icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>{r.title}</span>
         <span className="block truncate text-[12px]" style={{ color: 'var(--muted)' }}>{r.meta}</span>

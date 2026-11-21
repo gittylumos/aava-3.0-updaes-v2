@@ -112,15 +112,21 @@ export function RunTimeline() {
                       </p>
                     ))}
                     {st.app && ctx?.preview && (
-                      <div className="w-full max-w-[400px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
-                        <div className="relative h-[130px] overflow-hidden" style={{ background: 'var(--preview-bg)' }}>
-                          <div aria-hidden className="pointer-events-none origin-top-left select-none" style={{ transform: 'scale(.55)', width: '182%' }}>{ctx.preview}</div>
+                      <div className="mt-1 w-full max-w-[440px] overflow-hidden rounded-[var(--r-md)]" style={{ background: 'var(--glass)', border: '1px solid var(--glass-line)' }}>
+                        <div className="relative h-[150px] overflow-hidden" style={{ background: 'var(--preview-bg)' }}>
+                          <div aria-hidden className="pointer-events-none origin-top-left select-none" style={{ transform: 'scale(.62)', width: '161%' }}>{ctx.preview}</div>
                         </div>
-                        <button type="button" onClick={() => ctx.onOpenTab('preview')}
-                          className="press flex w-full items-center justify-between px-3 py-2 text-left text-[12.5px]">
-                          <span className="mono" style={{ color: 'var(--text-dim)' }}>feedback-form · localhost:4200</span>
-                          <span style={{ color: 'var(--text)' }}>Open</span>
-                        </button>
+                        <div className="flex items-center gap-3 px-3.5 py-3" style={{ borderTop: '1px solid var(--glass-line-soft)' }}>
+                          <div className="grid min-w-0 flex-1 gap-0.5">
+                            <span className="truncate text-[13px] font-semibold">feedback-form</span>
+                            <span className="mono truncate text-[11px]" style={{ color: 'var(--muted)' }}>localhost:4200 · Running</span>
+                          </div>
+                          <button type="button" onClick={() => ctx.onOpenTab('preview')}
+                            className="press rounded-full px-3.5 py-1.5 text-[12px] font-medium hover:bg-[var(--wash-4)] hover:text-[var(--text)]"
+                            style={{ background: 'var(--wash-3)', color: 'var(--text-dim)', minHeight: 'var(--hit)', border: '1px solid var(--glass-line)' }}>
+                            Open
+                          </button>
+                        </div>
                       </div>
                     )}
                     {st.tab && (
